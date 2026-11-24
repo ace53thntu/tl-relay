@@ -1320,7 +1320,19 @@ class GitHook(unittest.TestCase):
 
     def test_a_plain_install_notes_a_foreign_hook(self):
         self.hook.write_text("#!/bin/sh\necho mine\n")
-        self.notice("not written by ai-sdlc")
+        self.notice("not written by tl-relay")
+
+    def test_the_marker_names_tl_relay(self):
+        self.assertEqual(install.HOOK_MARKER, "# tl-relay pre-push hook")
+
+    def test_a_hook_with_the_legacy_marker_is_rewritten_with_the_new_one(self):
+        run_clone(self.clone, self.home, "--git-hook")
+        self.hook.write_text(self.hook.read_text().replace(install.HOOK_MARKER, "# ai-sdlc pre-push hook"))
+        code, out, err = run_clone(self.clone, self.home, "--git-hook")
+        self.assertEqual(code, 0, err)
+        text = self.hook.read_text()
+        self.assertIn("# tl-relay pre-push hook", text)
+        self.assertNotIn("# ai-sdlc pre-push hook", text)
 
     def test_a_dangling_foreign_symlink_raises_and_is_left_alone(self):
         target = pathlib.Path(self.tmp.name) / "nowhere"

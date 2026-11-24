@@ -16,7 +16,8 @@ from runtime import config
 FRAGMENTS = ("settings-fragment.json", "user-fragment.json")
 SCRIPT = re.compile(r"'([^']+)'$")
 RETIRED = ("block-test-edit.sh", "warn-out-of-scope.sh", "validate-evidence.sh")
-HOOK_MARKER = "# ai-sdlc pre-push hook"
+HOOK_MARKER = "# tl-relay pre-push hook"
+LEGACY_HOOK_MARKERS = ("# ai-sdlc pre-push hook",)
 HOOK_TEMPLATE = "git-pre-push"
 
 
@@ -393,6 +394,10 @@ def _hook_target(repo):
     return common / "hooks" / "pre-push", common.parent
 
 
+def is_own_hook(text):
+    return any(marker in text for marker in (HOOK_MARKER,) + LEGACY_HOOK_MARKERS)
+
+
 def _hook_text(path):
     try:
         regular = stat.S_ISREG(os.lstat(path).st_mode)
@@ -403,8 +408,8 @@ def _hook_text(path):
     if not regular:
         raise InstallError("%s: a pre-push hook that is not a regular file is already there; move it aside first" % path)
     text = _read(path)
-    if HOOK_MARKER not in text:
-        raise InstallError("%s: a pre-push hook not written by ai-sdlc is already there; move it aside first" % path)
+    if not is_own_hook(text):
+        raise InstallError("%s: a pre-push hook not written by tl-relay is already there; move it aside first" % path)
     return text
 
 

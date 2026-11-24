@@ -66,6 +66,6 @@ After merge, the agent installs the pre-push hook for the main checkout. The age
 
 1. Reuse `<home>` if this run validated it. Otherwise, resolve it with the command at the top of this file.
 2. Run `AI_SDLC_HOME='<home>' AI_SDLC_REPO='<main>' /usr/bin/python3 '<main>/maintainer/sdlc.py' install --git-hook`.
-3. Run `hook="$(git -C '<main>' rev-parse --path-format=absolute --git-common-dir)/hooks/pre-push" && test -f "$hook" && test -x "$hook" && grep -qF '# ai-sdlc pre-push hook' "$hook" && /usr/bin/python3 -c 'import os,shlex,sys; m=[l for l in open(sys.argv[1]) if l.startswith("main=")]; sys.exit(not (m and os.path.samefile(shlex.split(m[0])[0][5:], sys.argv[2])))' "$hook" '<main>'`.
+3. Run `hook="$(git -C '<main>' rev-parse --path-format=absolute --git-common-dir)/hooks/pre-push" && test -f "$hook" && test -x "$hook" && grep -qF -e '# tl-relay pre-push hook' -e '# ai-sdlc pre-push hook' "$hook" && /usr/bin/python3 -c 'import os,shlex,sys; m=[l for l in open(sys.argv[1]) if l.startswith("main=")]; sys.exit(not (m and os.path.samefile(shlex.split(m[0])[0][5:], sys.argv[2])))' "$hook" '<main>'`.
 
 `install` can exit 0 after it skips the hook, so step 3 decides the result. On a nonzero exit from any step, the agent stops and reports.
