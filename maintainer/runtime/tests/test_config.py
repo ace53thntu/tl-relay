@@ -103,6 +103,11 @@ class Config(unittest.TestCase):
             with self.subTest(name=name):
                 config._read(repo / name)
 
+    def test_the_example_holds_only_keys_the_tooling_reads(self):
+        repo = pathlib.Path(__file__).resolve().parents[2]
+        doc = config._read(repo / "ai-sdlc.example.yaml")
+        self.assertEqual(sorted(doc), ["apiVersion", "install", "kind", "project"])
+
     def test_the_block_list(self):
         self.assertEqual(config.MAPPING_BLOCKS, ("project", "install", "tracker", "neutrality"))
 
