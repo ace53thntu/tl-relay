@@ -1,45 +1,59 @@
 # tl-relay
 
-tl-relay is a set of skills, agents and two hooks for a tech lead. They carry a feature from design inputs to a pull request and stop for a human at each gate.
+tl-relay is a set of agent skills for a tech lead. It takes a feature from its source documents through a reviewed design to one pull request per task. The agent drafts, reviews and builds. You sign each gate before the work moves on.
 
-- `tl-design` takes a design set from source documents to filed tickets, through four gated stages: ingest, review, design and breakdown.
+- `tl-design` turns a PRD, story register or prototype into a design set and its task breakdown.
 - `tl-implement` builds one breakdown row of a signed design set into one pull request.
-- `write-plan`, `run-plan` and the other skills support both.
+- The process skills (`brainstorm`, `write-plan`, `run-plan`, `test-first`, `review-change` and others) work on their own in any project.
 
-Claude Code gets the full set through the plugin. Cursor and Codex get the skills through `npx skills`.
+Claude Code gets skills, agents and hooks through the plugin. Cursor, Codex and other agents get the skills through `npx skills`.
 
 ## Install
 
+Pick one channel per agent. A plugin install plus an `npx` install loads every skill twice.
+
 ### Claude Code plugin
+
+Run in Claude Code:
 
 ```text
 /plugin marketplace add ace53thntu/tl-relay
 /plugin install tl-relay@tl-relay
 ```
 
-The plugin ships the skills, the agents as `tl-relay:<name>`, the Workflow scripts, the SessionStart hook that loads `using-tl-relay` and the lesson hook. Plugin installs show each skill as `tl-relay:<name>`.
+The plugin installs the following:
 
-### Any agent through `npx`
+- every skill, named `tl-relay:<skill>`
+- the agents, named `tl-relay:<agent>`
+- the Workflow scripts
+- a SessionStart hook that loads `using-tl-relay`
+- a lesson hook
+
+To update, run `/plugin marketplace update tl-relay`, then restart Claude Code.
+
+### `npx skills add`
+
+`npx skills` installs the skills for Claude Code, Cursor, Codex and the other agents that the [skills command-line tool](https://github.com/vercel-labs/skills) supports. It does not install agents or hooks.
 
 ```sh
-npx skills add ace53thntu/tl-relay
-npx skills add ace53thntu/tl-relay --skill brainstorm
-npx skills add ace53thntu/tl-relay -a cursor
-npx skills add ace53thntu/tl-relay -a codex
+npx skills add ace53thntu/tl-relay              # all skills, for the agents the CLI detects
+npx skills add ace53thntu/tl-relay -a cursor    # Cursor only
+npx skills add ace53thntu/tl-relay -a codex     # Codex only
+npx skills add ace53thntu/tl-relay --list       # list the skills without installing
 ```
 
-Install the plugin or the `npx` copies, not both. Both load each skill twice.
+To install one skill, add `--skill <name>`. That suits the skills that stand alone: `brainstorm`, `debug-issue`, `test-first`, `verify-done`, `review-change`, `technical-writing`, `explore-codebase` and `write-plan`. A few of them hand off to the next skill in a chain, so install the chain together: `brainstorm`, `write-plan` and `run-plan`, or `debug-issue`, `test-first` and `verify-done`.
 
-### Single-skill installs
+### Bundles
 
-`--skill <name>` suits the leaf skills: `brainstorm`, `debug-issue`, `test-first`, `verify-done`, `review-change`, `technical-writing` and `write-plan`. Some hand off to a follow-on skill, for example `brainstorm` to `write-plan` to `run-plan`, and `debug-issue` to `test-first` and `verify-done`. `run-plan`, `write-plan` and `review-change` read `route-subagents` for model choice.
-
-Two bundles install together. `tl-design`, `tl-implement`, `ingest-sources`, `write-design`, `write-hla`, `write-lld` and `write-task-breakdown` check their sibling skills first and stop with the install command for any that is missing. The Build bundle carries `tl-design` for its Ask rule and retro step; running `tl-design` itself needs the Design bundle.
+The design and build workflows each need a set of skills. Before it runs, each workflow skill checks for its siblings. If one is missing, the skill stops and prints the install command.
 
 | Bundle | Skills |
 |---|---|
 | Design | `tl-design`, `ingest-sources`, `write-design`, `write-hla`, `write-lld`, `write-contract`, `write-task-breakdown`, `technical-writing`, `lens-qa-conformance`, `lens-qa-engineer`, `lens-security-engineer`, `lens-shared`, `lens-software-engineer`, `lens-solution-architect` |
 | Build | `tl-implement`, `tl-design`, `write-plan`, `run-plan`, `review-change`, `verify-done`, `test-first`, `debug-issue`, `lens-qa-conformance`, `lens-shared` |
+
+The Build bundle carries `tl-design` for its Ask rule and its retro step. To run `tl-design` itself, install the Design bundle.
 
 ```sh
 npx skills add ace53thntu/tl-relay --skill tl-implement --skill tl-design --skill write-plan --skill run-plan \
@@ -47,81 +61,106 @@ npx skills add ace53thntu/tl-relay --skill tl-implement --skill tl-design --skil
   --skill lens-qa-conformance --skill lens-shared
 ```
 
-## Requirements
+### Requirements
 
 - Claude Code, Cursor or Codex.
-- `git` and `gh`. `tl-implement` pushes branches and opens pull requests.
-- `jq` for the hooks. Without it they print nothing.
-- Optional: `TL_RELAY_LESSONS`, the absolute path of a folder of `<skill>.md` lesson files. The lesson hook injects the file for each skill that loads.
-- `vale` for the writing gate of `tl-design`.
-- `python3` 3.9 or later, for the skill scripts.
+- `git`, and `gh` for `tl-implement`, which pushes branches and opens pull requests.
+- `python3` 3.9 or later for the skill scripts.
+- `jq` for the plugin hooks. Without `jq` the hooks print nothing.
+- `vale` for the writing gate in `technical-writing` and `tl-design`.
 
-## Skills
-
-| Skill | Use |
-|---|---|
-| `using-tl-relay` | Loads at session start and routes each task to a skill |
-| `brainstorm` | Settles what to build before any new work |
-| `write-plan`, `run-plan` | Writes an implementation plan, then runs its tasks through subagents |
-| `test-first` | Writes the failing test before the code |
-| `debug-issue` | Finds the root cause before a fix |
-| `route-subagents` | Assigns each subagent role its model and effort |
-| `explore-codebase` | Finds and reads existing code through the code index before grep |
-| `review-change`, `verify-done` | Reviews a change, and checks the evidence before a claim of done |
-| `tl-design` | Takes a feature from source documents to filed tickets |
-| `tl-implement` | Builds one breakdown row of a signed design set into one pull request |
-| `ingest-sources` | Snapshots and converts design inputs |
-| `write-hla`, `write-design`, `write-lld`, `write-contract`, `write-task-breakdown` | Write the pages of a design set |
-| `technical-writing` | Sets the writing rules and runs the Vale gate |
-| `lens-*` | Review a design from one role: QA, security, software engineering, architecture |
-
-### `ingest-sources` setup
-
-PDF conversion needs one Python package. Install it once from the skill directory:
+`ingest-sources` needs one Python package for PDF conversion. Install it once, where `<skill dir>` is the folder of the installed `ingest-sources` skill:
 
 ```sh
 python3 -m venv <skill dir>/.venv && <skill dir>/.venv/bin/python -m pip install -r <skill dir>/requirements.txt
 ```
 
-`<skill dir>` is the folder of the installed `ingest-sources` skill. Without the package the skill stops and names it.
+Without the package, `ingest-sources` stops and names it.
 
-## What each agent supports
+## Skills
 
-| Capability | Claude Code (plugin) | Claude Code (`npx`) | Cursor, Codex (`npx`) |
+| Group | Skill | Use |
+|---|---|---|
+| Session | `using-tl-relay` | Loads at session start and routes each task to a skill |
+| Process | `brainstorm` | Settles what to build, and why, before any new work |
+| Process | `write-plan` | Writes an implementation plan from approved requirements |
+| Process | `run-plan` | Runs a plan's tasks through fresh subagents, with a review after each task |
+| Process | `route-subagents` | Assigns each subagent role its model and effort |
+| Process | `explore-codebase` | Finds and reads existing code through the code index before grep |
+| Process | `test-first` | Writes the failing test before the code |
+| Process | `debug-issue` | Finds the root cause before any fix |
+| Process | `review-change` | Reviews a finished task or feature against its requirements |
+| Process | `verify-done` | Runs the check behind a claim of done, fixed or passing |
+| Workflow | `tl-design` | Takes a feature from source documents to a signed design set and its tickets |
+| Workflow | `tl-implement` | Builds one breakdown row of a signed design set into one pull request |
+| Workflow | `ingest-sources` | Snapshots design inputs, converts them to Markdown and records what changed between revisions |
+| Design pages | `write-hla` | Writes a High-Level Architecture document |
+| Design pages | `write-design` | Writes or changes a page of a design set |
+| Design pages | `write-lld` | Writes a Low-Level Design |
+| Design pages | `write-contract` | Writes an OpenAPI 3.1 contract and checks it against the design |
+| Design pages | `write-task-breakdown` | Generates and checks the task breakdown of a signed design |
+| Design pages | `technical-writing` | Sets the writing rules and runs the Vale gate |
+| Lenses | `lens-solution-architect` | Reviews boundaries, contracts, data ownership and NFRs |
+| Lenses | `lens-software-engineer` | Reviews whether an engineer could build from the pages |
+| Lenses | `lens-security-engineer` | Reviews authentication, sensitive data, secrets and abuse cases |
+| Lenses | `lens-qa-engineer` | Checks that each use case and route has a testable rule |
+| Lenses | `lens-qa-conformance` | Maps each design rule of a breakdown row to code and a test in the diff |
+| Lenses | `lens-shared` | Holds the finding schema the lenses share. Nobody invokes it directly |
+
+## Agent support
+
+| Capability | Claude Code, plugin | Claude Code, `npx` | Cursor, Codex, `npx` |
 |---|---|---|---|
 | Skills | yes | yes | yes |
-| Agents (`design-writer`, persona reviewers) | yes, as `tl-relay:<name>` | no | no |
-| Workflow scripts | yes | yes, when the tool exists | no |
-| Bootstrap hook | yes | no | no |
+| Agents (`design-writer` and the persona reviewers) | yes, as `tl-relay:<agent>` | no | no |
+| Workflow scripts | yes | yes, when the Workflow tool exists | no |
+| SessionStart hook | yes | no | no |
 
-- Each agent file wraps one bound skill: a `lens-*` skill, or a `write-*` skill for `design-writer`. Every install carries the bound skills.
-- Without the agents, a dispatch goes to a general subagent on the agent's model. Its prompt names the bound skill and the role line. With no subagent tool, the main session plays the role itself.
-- A skill that starts a Workflow script runs its phases in sequence in the session when the Workflow tool is absent.
+- Each agent file wraps one skill: a `lens-*` skill, or a `write-*` skill for `design-writer`. Every install carries those skills.
+- Without the agents, a skill dispatches a general subagent on the agent's model, with a prompt that names the skill and the role. With no subagent tool, the main session plays the role itself.
+- Without the Workflow tool, a skill runs the phases of its Workflow script in sequence in the session.
 
 ## Configuration
 
-Every skill runs on built-in defaults. `.tl-relay/config.yaml` at the workspace root overrides them. [`config.example.yaml`](config.example.yaml) documents every key.
+Every skill runs on built-in defaults, with no config file and no home directory. To override a default, add `.tl-relay/config.yaml` at the workspace root:
 
-| Key | Default | Read by |
-|---|---|---|
-| `knowledge_dir` | `_knowledge` | `tl-design`, `write-*`, `ingest-sources`, `brainstorm`, `write-plan` |
-| `state_dir` | `.tl-relay` | `tl-design`, `tl-implement` |
-| `operator_language` | `en` | `tl-design`, `tl-implement` |
-| `publish.command` | unset: `tl-design` step 12 reports a skip | `tl-design` |
-| `publish.confirm_flag` | unset | `tl-design` |
-| `tracker.comment` | unset: the `tl-implement` ticket comment reports a skip | `tl-implement` |
-| `tracker.confirm_flag` | unset | `tl-implement` |
-| `vale.vocab` | unset: Vale runs with the shipped vocabulary only | `technical-writing` |
+```yaml
+knowledge_dir: docs/knowledge
+operator_language: en
+publish:
+  command: "my-docs-cli push {dir} --parent {target}"
+  confirm_flag: "--yes"
+tracker:
+  comment: "my-tracker comment {target} --body-file {body_file}"
+  confirm_flag: "--yes"
+vale:
+  vocab: docs/vale/accept.txt
+```
 
-- `publish.command` takes the placeholders `{dir}` and `{target}`. `tracker.comment` takes `{target}` and `{body_file}`.
-- Commit `config.yaml`. Git-ignore `.tl-relay/sdd/` and `<state_dir>/designs/`. `run-plan` writes its own self-ignoring `.gitignore` inside `.tl-relay/sdd/`. `tl-design` and `tl-implement` add `<state_dir>/designs/` to the workspace `.gitignore`.
-- A project `CLAUDE.md` overrides the role table in `route-subagents`, because user instructions outrank skills.
+| Key | Default | Effect | Read by |
+|---|---|---|---|
+| `knowledge_dir` | `_knowledge` | Folder for designs, specs and plans | `tl-design`, `write-*`, `ingest-sources`, `brainstorm`, `write-plan` |
+| `state_dir` | `.tl-relay` | Runtime store for design and implement runs | `tl-design`, `tl-implement` |
+| `operator_language` | `en` | Language of the questions the workflows ask you | `tl-design`, `tl-implement` |
+| `publish.command` | unset: the publish step reports a skip | Publishes the staged design pages. `{dir}` is the staged tree and `{target}` is the target you name | `tl-design` |
+| `publish.confirm_flag` | unset | The flag the skill adds once you approve the dry run | `tl-design` |
+| `tracker.comment` | unset: the ticket comment reports a skip | Posts the ticket comment. `{target}` is the ticket key and `{body_file}` is the comment file | `tl-implement` |
+| `tracker.confirm_flag` | unset | The flag the skill adds once you approve the dry run | `tl-implement` |
+| `vale.vocab` | unset: Vale uses the shipped vocabulary | Extra accepted words, one per line | `technical-writing` |
 
-## Constraints
+- A relative path resolves against the workspace root.
+- Commit `.tl-relay/config.yaml`. Git-ignore `.tl-relay/sdd/` and `<state_dir>/designs/`. `run-plan` writes a `.gitignore` inside `.tl-relay/sdd/`, and `tl-design` and `tl-implement` add `<state_dir>/designs/` to the workspace `.gitignore`.
+- A project `CLAUDE.md` or `AGENTS.md` outranks the skills. A model rule in it overrides `route-subagents`.
+- [`config.example.yaml`](config.example.yaml) documents every key.
 
-- A skill needs no config file and no home directory.
-- Plugin name `tl-relay`, MIT licence, semver. The first release is `0.1.0`.
+## Lessons
+
+Set `TL_RELAY_LESSONS` to the absolute path of a folder of `<skill>.md` files. When a skill loads, the plugin's lesson hook injects the matching file. A lesson replaces a default of that skill.
+
+## Licence
+
+MIT. See [`LICENSE`](LICENSE). Releases follow semver.
 
 ## Maintainers
 
-The operator's tooling lives in [`maintainer/`](maintainer/README.md). Claude Code never loads it, though the plugin cache copies the folder.
+Maintainer tooling lives in [`maintainer/`](maintainer/README.md). No install channel loads it as a skill.

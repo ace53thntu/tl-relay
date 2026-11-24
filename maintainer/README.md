@@ -14,7 +14,11 @@ This folder holds the operator's tooling. Claude Code never loads it, though the
 | `maintainer/skills/` | The operator-only skills `write-skill` and `retro` |
 | `maintainer/ai-sdlc.yaml` | Repository config. It holds only `apiVersion` and `kind` |
 | `maintainer/ai-sdlc.example.yaml` | The template for the local config |
+| `maintainer/ci/stub-claude` | The stub `claude` that CI puts first on `PATH` |
 | `skills/`, `agents/`, `hooks/` | The public plugin content. Root `hooks/` holds the bootstrap hook and the lesson hook |
+| `.claude-plugin/` | `plugin.json` and `marketplace.json` |
+| `config.example.yaml` | The template for a workspace's `.tl-relay/config.yaml` |
+| `.github/workflows/test.yml` | CI: every suite below plus the Vale gate, on push and pull request |
 
 ## Requirements
 
@@ -27,23 +31,23 @@ This folder holds the operator's tooling. Claude Code never loads it, though the
 ## Install
 
 1. Clone the repository outside the workspace it works on.
-2. Create the home, which holds the local config. `install` does not create it. The home defaults to `~/.ai-sdlc`, and `--home` is optional.
+2. Create the home, which holds the local config. `install` does not create it. Any absolute path works. Without `--home`, the tooling falls back to `~/.ai-sdlc`.
 
    ```sh
-   mkdir -p <parent>/ai-sdlc
+   mkdir -p <home>
    ```
 
-3. Copy `maintainer/ai-sdlc.example.yaml` to `<parent>/ai-sdlc/ai-sdlc.yaml` and set `project.root` to the workspace root.
+3. Copy `maintainer/ai-sdlc.example.yaml` to `<home>/ai-sdlc.yaml` and set `project.root` to the workspace root.
 4. Preview the hook changes:
 
    ```sh
-   /usr/bin/python3 maintainer/sdlc.py install --dry-run --git-hook --home <parent>/ai-sdlc
+   /usr/bin/python3 maintainer/sdlc.py install --dry-run --git-hook --home <home>
    ```
 
 5. Install the hooks:
 
    ```sh
-   /usr/bin/python3 maintainer/sdlc.py install --git-hook --home <parent>/ai-sdlc
+   /usr/bin/python3 maintainer/sdlc.py install --git-hook --home <home>
    ```
 
 6. Link every skill and agent into `~/.claude`. Run it from the checkout root. The loop skips a name that already exists there and prints it:
@@ -71,9 +75,9 @@ This folder holds the operator's tooling. Claude Code never loads it, though the
 
 - Open Claude Code sessions pick up the new home after a restart.
 - Without `--home`, `install` uses `AI_SDLC_HOME` from the shell, else `~/.ai-sdlc`. It exits 1 when a user `settings.json` already names a different home. Pass `--home` to replace it.
-- `maintainer/sdlc.py` run outside Claude Code needs `export AI_SDLC_HOME=<parent>/ai-sdlc` in your shell profile.
+- `maintainer/sdlc.py` run outside Claude Code needs `export AI_SDLC_HOME=<home>` in your shell profile.
 - When the home sits on a volume that is not mounted, `require-guardrails.sh` denies every other tool in every Claude Code session. Read, Edit, Write, Glob and Grep stay allowed. Mount the volume to fix it.
-- When the ai-sdlc checkout sits on the unmounted volume, the hook script is missing and `/bin/sh` exits 127. Claude Code treats that exit code as non-blocking, so the guardrails are off.
+- When the tl-relay checkout sits on the unmounted volume, the hook script is missing and `/bin/sh` exits 127. Claude Code treats that exit code as non-blocking, so the guardrails are off.
 - Inside Claude Code, the `settings.json` value beats a shell `export`. One Claude config directory therefore holds one home, and the last `install --home` wins in user settings. Each `<project.root>/.claude/settings.json` keeps the old home in its hook commands until `install` runs again for that `project.root`.
 
 ## Configuration
@@ -83,11 +87,11 @@ Config has two layers.
 | Layer | File | Holds |
 |---|---|---|
 | Repository | `maintainer/ai-sdlc.yaml` | `apiVersion` and `kind` only |
-| Local | `<home>/ai-sdlc.yaml` | Workspace root, operator, operator language, Claude config directories, the tracker comment template, neutrality patterns |
+| Local | `<home>/ai-sdlc.yaml` | Workspace root (`project.root`), Claude config directories (`install`), neutrality patterns, and the `operator_language` that `retro` reads |
 
 `<home>` is `$AI_SDLC_HOME`, else `~/.ai-sdlc`. Every command finds the home this way. Choose it with `install --home`, which writes `AI_SDLC_HOME` into each user `settings.json`.
 
-The public skills read `.tl-relay/config.yaml` in the workspace. `tl-implement` posts the ticket comment through its `tracker.comment` template, and `tracker.confirm_flag` confirms the post. The local config keeps only what the maintainer tooling reads. `maintainer/ai-sdlc.example.yaml` shows the template.
+The public skills read `.tl-relay/config.yaml` in the workspace, never the local config. The publish command and the ticket comment template live there. The local config keeps only what the maintainer tooling reads. `maintainer/ai-sdlc.example.yaml` shows the template.
 
 ## Commands
 
@@ -115,14 +119,14 @@ Replace each placeholder with an absolute path or a name. launchd expands neithe
 
 | Placeholder | Value |
 |---|---|
-| `<label>` | The job name, such as `com.<you>.ai-sdlc-retro` |
+| `<label>` | The job name, such as `com.<you>.tl-relay-retro` |
 | `<claude>` | The output of `command -v claude` |
-| `<home>` | The ai-sdlc home, the value of `AI_SDLC_HOME` |
+| `<home>` | The maintainer home, the value of `AI_SDLC_HOME` |
 | `<config>` | The Claude config folder, the value of `CLAUDE_CONFIG_DIR` |
 | `<user>` | The output of `id -un`. Without `USER`, `claude` cannot read its login and prints `Not logged in`. |
 | `<node-bin>` | The folder of `command -v node`. Hooks run `node`, and launchd does not load your shell profile. |
 | `<workdir>` | `<home>`. When `<home>` sits on an external volume, use your home folder instead. |
-| `<log>` | `<home>/launchd.log`. When `<home>` sits on an external volume, use `<your home folder>/Library/Logs/ai-sdlc-retro.log`. |
+| `<log>` | `<home>/launchd.log`. When `<home>` sits on an external volume, use `<your home folder>/Library/Logs/tl-relay-retro.log`. |
 
 On an external volume, launchd exited with code 78 before it opened `<home>/launchd.log` or entered `<home>`. Keep both on the internal disk.
 
@@ -178,19 +182,20 @@ launchd runs a missed job at the next wake when the Mac sleeps through 22:00. Ru
 
 ## Tests
 
-Run each command from the checkout root, one suite at a time:
+Run each command from the checkout root, one suite at a time. CI runs the same list from `.github/workflows/test.yml`:
 
 ```sh
-/usr/bin/python3 -m unittest discover -s skills/tests -p 'test_*.py'
+/usr/bin/python3 skills/tests/run_tests.py --all
 /usr/bin/python3 -m unittest discover -s maintainer/runtime/tests -p 'test_*.py'
 sh maintainer/hooks/tests/run.sh
 for s in ingest-sources tl-design write-contract write-task-breakdown; do
   /usr/bin/python3 -m unittest discover -s skills/$s/scripts -p 'test_*.py'
 done
 /usr/bin/python3 -m unittest discover -s maintainer/skills/retro/scripts -p 'test_*.py'
+sh skills/technical-writing/vale/test.sh
 ```
 
-Put a stub `claude` that exits 1 first on `PATH`, so no suite calls the real CLI.
+Copy `maintainer/ci/stub-claude` to a folder first on `PATH` as `claude`, and set `CLAUDE_STUB_LOG` to an empty file. No suite may call the real `claude`, so the log stays empty. `run_tests.py` runs the units in parallel. Without `--all` it skips `test_final_run` and `test_triggers` when the diff from `origin/main` touches none of their inputs.
 
 ## Trigger suite
 
