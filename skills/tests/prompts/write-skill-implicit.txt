@@ -1,0 +1,2 @@
+expect: write-skill
+We need a new skill under ai-sdlc/skills that guides an agent through cleaning up stale branches and worktrees after a merge.

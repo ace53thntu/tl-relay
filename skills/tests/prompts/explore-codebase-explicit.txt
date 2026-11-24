@@ -1,0 +1,2 @@
+expect: explore-codebase
+I just joined this team and need to get my bearings in the payments service before I touch anything. Can you scout the codebase and map it out for me: the main modules, which entry points handle incoming webhooks, and how a refund request flows from the controller down to the database layer? Point me at the files and functions that matter, I'm not changing code yet.

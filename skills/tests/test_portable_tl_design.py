@@ -1,0 +1,107 @@
+import pathlib
+import unittest
+
+SKILLS = pathlib.Path(__file__).resolve().parents[1]
+
+
+class PortableTlDesignTest(unittest.TestCase):
+    text = (SKILLS / "tl-design/SKILL.md").read_text()
+
+    def test_reads_config_keys_with_defaults(self):
+        for needle in (".tl-relay/config.yaml", "operator_language", "`en`", "state_dir", "knowledge_dir",
+                       "publish.command", "publish.confirm_flag", "{dir}", "{target}"):
+            self.assertIn(needle, self.text)
+
+    def test_publish_dir_sits_in_state_dir(self):
+        self.assertIn("<state_dir>/designs/<handle>/publish/", self.text)
+
+    def test_publish_skips_without_a_command(self):
+        self.assertIn("When `publish.command` is unset, step 12 reports the skip and the run goes on to step 13.", self.text)
+
+    def test_publish_waits_for_the_dry_run_approval(self):
+        self.assertIn("Then stop and wait for the operator to approve that output.", self.text)
+        self.assertIn("When `publish.confirm_flag` is unset, run the command once, only after the operator approves the target.", self.text)
+
+    def test_none_mode_names_the_role_source(self):
+        self.assertIn("`ROLES` and `MODELS` constants in `<skill dir>/workflows/design-persona-review.js`", self.text)
+        self.assertIn("`design-writer` runs on `opus`", self.text)
+
+    def test_publish_dir_is_gitignored(self):
+        self.assertIn("adds the line `<state_dir>/designs/` to the workspace `.gitignore` if absent", self.text)
+        self.assertIn("Every step 12 run checks the workspace `.gitignore`", self.text)
+        self.assertIn("relative to the workspace root", self.text)
+        unset = "- When `publish.command` is unset, step 12 reports the skip and the run goes on to step 13.\n- Otherwise"
+        self.assertIn(unset, self.text)
+        self.assertLess(self.text.index("Every step 12 run checks"), self.text.index(unset))
+
+    def writer_role(self):
+        return self.text.split("`design-writer` runs on `opus`", 1)[1].split("- No subagent tool", 1)[0]
+
+    def test_none_mode_writer_role_matches_the_agent_file(self):
+        body = (SKILLS.parent / "agents/design-writer.md").read_text().split("---", 2)[2]
+        self.assertIn("`key_class`", body)
+        role = " ".join(self.writer_role().split())
+        trigger = " ".join(body.split("only when ", 1)[1].split(".", 1)[0].split())
+        self.assertIn(trigger, role)
+        tag = " ".join(body.split("§ Agent decisions ", 1)[1].split(".", 1)[0].split())
+        self.assertIn(tag, role)
+
+    def test_ask_rule_table_has_a_none_row(self):
+        table = self.text.split("## Ask rule", 1)[1].split("**Open points.**", 1)[0]
+        for value in ("contract", "data_model", "architecture", "security_release", "timeline", "none"):
+            self.assertIn(f"| `{value}` |", table)
+
+    def test_none_mode_writer_role_points_to_the_ask_rule_table(self):
+        role = self.writer_role()
+        self.assertIn("quotes the [Ask rule](#ask-rule) `key_class` table", " ".join(role.split()))
+        self.assertNotIn("| `contract` |", role)
+        self.assertNotIn("lens finding schema", role)
+        self.assertIn("It never asks about a choice that matches the code at the baseline, follows from an earlier answer, "
+                      "or carries out an answered decision.", role)
+
+    def test_every_writer_dispatch_quotes_the_ask_rule(self):
+        dispatch = self.text.split("The session dispatches `design-writer`", 1)[1].split("Questions to the operator", 1)[0]
+        self.assertIn("Every `design-writer` dispatch prompt, in `plugin`, `bare` and `none` mode, quotes the "
+                      "[Ask rule](#ask-rule) `key_class` table, with the `none` row, and its never-ask sentence.",
+                      " ".join(dispatch.split()))
+
+    def test_lint_runs_only_when_present(self):
+        self.assertIn("| `sh \"$K/scripts/lint.sh\"`, only when `$K/scripts/lint.sh` exists | The hub |", self.text)
+        self.assertIn("When `$K/scripts/lint.sh` does not exist, the head reports the lint skip and the gate does not wait on it.",
+                      self.text)
+        self.assertNotIn("Each must exit 0", self.text)
+
+    def test_file_tasks_skips_without_a_command(self):
+        self.assertIn("with no such command, report a skip and go to step 14", self.text)
+
+    def test_no_hard_coded_knowledge_dir(self):
+        self.assertNotIn("`_knowledge/designs/", self.text)
+
+    def test_scripts_resolve_from_the_skill_dir(self):
+        self.assertNotIn("~/.claude/skills", self.text)
+        self.assertNotIn("WF/", self.text)
+        self.assertIn("<skill dir>/workflows/design-set-write.js", self.text)
+
+    def test_agents_mode_and_sequential_fallback(self):
+        for needle in ("`plugin`", "`bare`", "`none`", "tl-relay:", "Running without agents or Workflows"):
+            self.assertIn(needle, self.text)
+
+    def test_sibling_check(self):
+        self.assertIn("npx skills add", self.text)
+
+    def test_lens_shared_installs_as_a_skill(self):
+        text = (SKILLS / "lens-shared/SKILL.md").read_text()
+        self.assertIn("name: lens-shared", text)
+        self.assertIn("finding-schema.md", text)
+
+    def test_retro_edits_only_in_a_checkout(self):
+        self.assertNotIn("ai-sdlc/skills/", self.text)
+        self.assertIn("git checkout of `tl-relay`", self.text)
+
+    def test_no_home_coupling(self):
+        for needle in ("AI_SDLC_HOME", "ai-sdlc.yaml"):
+            self.assertNotIn(needle, self.text)
+
+
+if __name__ == "__main__":
+    unittest.main()

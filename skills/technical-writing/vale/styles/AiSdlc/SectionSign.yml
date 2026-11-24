@@ -1,0 +1,6 @@
+extends: existence
+message: "Section sign. Use an anchor link with descriptive text."
+level: error
+nonword: true
+tokens:
+  - '§'

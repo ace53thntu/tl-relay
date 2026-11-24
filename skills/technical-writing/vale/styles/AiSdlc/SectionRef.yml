@@ -1,0 +1,7 @@
+extends: existence
+message: "'%s' is a print-style cross-reference. Use an anchor link with descriptive text."
+level: error
+ignorecase: true
+nonword: true
+tokens:
+  - '(?:see |in |\()section \d+(?:\.\d+)*'

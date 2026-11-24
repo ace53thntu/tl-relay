@@ -1,0 +1,133 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+quit() {
+  printf '%s\n' "$2" >&2
+  exit "$1"
+}
+
+drop_brief() {
+  case $brief in
+    /dev/*) ;;
+    *) if [ -f "$brief" ] && [ ! -L "$brief" ]; then rm -f -- "$brief"; fi ;;
+  esac
+}
+
+apply_dir_flag() {
+  dropped=0
+  [ "${1-}" = "-C" ] || return 0
+  [ -d "${2-}" ] || quit 2 "bad -C directory: ${2-}"
+  cd "$2"
+  dropped=2
+}
+
+script_dir=$(cd "$(dirname "$0")" && pwd)
+apply_dir_flag "$@"
+shift "$dropped"
+
+case $# in
+  2 | 3) ;;
+  *) quit 2 "usage: task-brief [-C DIR] PLAN_FILE TASK_NUMBER [OUTFILE]" ;;
+esac
+plan=$1
+wanted=$2
+[ -f "$plan" ] || quit 2 "no such plan file: $plan"
+
+if [ "$#" -eq 2 ]; then
+  # Siblings run through the interpreter: an unpacked install can lose exec bits.
+  brief=$("${BASH:-bash}" "$script_dir/sdd-workspace" "$plan")/task-$wanted-brief.md
+else
+  brief=$3
+fi
+
+read -r -d '' extract <<'AWK' || true
+function level_of(s) {
+  match(s, /^#+/)
+  return RLENGTH
+}
+function id_of(s,    r) {
+  r = s
+  sub(/^#+[ \t]+Task[ \t]+/, "", r)
+  return match(r, /^[A-Za-z0-9]+(\.[A-Za-z0-9]+)*/) ? substr(r, 1, RLENGTH) : ""
+}
+function is_sub_task(id,    tail) {
+  tail = substr(id, length(want) + 1, 1)
+  return substr(id, 1, length(want)) == want && tail ~ /^[A-Za-z.]$/
+}
+function on_task_heading(id, depth) {
+  heading_count++
+  if (id "" == want) {
+    capturing = 1; found = 1; start_depth = depth
+  } else if (!capturing || depth <= start_depth || !is_sub_task(id)) {
+    capturing = 0
+  }
+}
+BEGIN {
+  want = n ""
+  task_word = "^#+[ \t]+Task[ \t]"
+}
+{
+  if ($0 ~ /^```/) {
+    match($0, /^`+/)
+    if (!in_fence) {
+      in_fence = 1; fence_len = RLENGTH; open_line = NR; hid = 0
+    } else if (RLENGTH >= fence_len) {
+      in_fence = 0
+    }
+  } else if (in_fence) {
+    if ($0 ~ task_word) hid = 1
+  } else {
+    if ($0 ~ task_word) {
+      id = id_of($0)
+      if (id ~ /[0-9]/) on_task_heading(id, level_of($0))
+    }
+    if (capturing && $0 ~ /^#+[ \t]/ && !($0 ~ task_word && id_of($0) ~ /[0-9]/) && level_of($0) <= start_depth) capturing = 0
+    if (n_shaped < 5 && $0 ~ /^#+[ \t]+[^ \t]+[ \t]+[A-Za-z0-9.]*[0-9]/) shaped[++n_shaped] = $0
+  }
+  if (capturing) print
+}
+END {
+  outcome = ""
+  if (in_fence && hid) {
+    if (capturing) outcome = "stop"
+    else if (!found) outcome = "hidden"
+  } else if (in_fence && capturing) {
+    outcome = "warn"
+  } else if (!heading_count && n_shaped) {
+    outcome = "hint"
+  }
+  if (outcome == "") exit 0
+
+  fence = "the code fence opened at line " open_line " of " ENVIRON["TASK_BRIEF_PLAN"] " never closes"
+  text["stop"] = text["hidden"] = "task-brief: " fence ", so no Task heading after it can be seen; close that fence in the plan and rerun"
+  text["warn"] = "task-brief: warning: " fence "; it hides no Task heading, so this brief is complete"
+  text["hint"] = "task-brief: no task headings found. Task headings must use the English word \"Task\" (\"### Task 1: ...\"), even when the rest of the plan is in another language. Headings shaped like tasks:"
+  err = "cat >&2"
+  print text[outcome] | err
+  for (k = 1; outcome == "hint" && k <= n_shaped; k++) print "  " shaped[k] | err
+  close(err)
+  exit (outcome == "stop" ? 4 : 0)
+}
+AWK
+
+if TASK_BRIEF_PLAN=$plan awk -v n="$wanted" "$extract" "$plan" >"$brief"; then
+  awk_status=0
+else
+  awk_status=$?
+fi
+case $awk_status in
+  0) ;;
+  *)
+    drop_brief
+    exit "$awk_status"
+    ;;
+esac
+
+[ -s "$brief" ] || {
+  printf "task %s not found in %s (no heading matching 'Task %s')\n" "$wanted" "$plan" "$wanted" >&2
+  drop_brief
+  exit 3
+}
+
+done_fmt='wrote %s: %s lines\n'
+printf "$done_fmt" "$brief" "$(wc -l <"$brief" | tr -d ' ')"

@@ -1,0 +1,3 @@
+- A finding is blocking when the change must not merge with it, and minor otherwise.
+- A finding is pre-existing only when both hold: every line on the failure path is outside the lines the diff adds or modifies, and no line the diff adds or modifies calls that path, routes new input to it or removes a guard in front of it. When you cannot tell, it is not pre-existing.
+- Report a pre-existing defect only when a user or a caller would hit it, under the same bar as any other finding. A pre-existing finding keeps its severity and does not block the change.

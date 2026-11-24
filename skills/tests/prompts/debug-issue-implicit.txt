@@ -1,0 +1,2 @@
+expect: debug-issue
+test_order_total fails with AssertionError: 99.0 != 100.0 after the discount change. Find out why.

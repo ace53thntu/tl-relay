@@ -1,0 +1,2 @@
+expect: write-plan
+I have a spec for the retailer export feature. Use write-plan to turn it into an implementation plan.

@@ -1,0 +1,2 @@
+expect: review-change
+I finished the retailer export task. Before I merge, check the work meets the requirements.

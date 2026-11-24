@@ -1,0 +1,2 @@
+expect: brainstorm
+I want to add a retry button to the order-approval screen in the retailer app. Help me think through what it should do before we build anything.

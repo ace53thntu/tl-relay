@@ -1,0 +1,2 @@
+expect: test-first
+The design is agreed: normalise_th_phone('081-234-5678') returns '+66812345678'. Implement it now.

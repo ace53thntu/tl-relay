@@ -1,0 +1,7 @@
+extends: existence
+message: "Em dash. Use a period, a comma, or a colon after a label."
+level: error
+# Google.EmDash matches only a dash with a space on each side, so it is off and this rule matches every em dash.
+nonword: true
+tokens:
+  - '—'

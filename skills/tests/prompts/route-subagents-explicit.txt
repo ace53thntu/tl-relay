@@ -1,0 +1,2 @@
+expect: route-subagents
+Before I fan this work out, help me decide which model and effort level each subagent should run on: the file-sweeping scout, the reviewer of the plan, the people writing code, and whoever checks the diff afterwards.

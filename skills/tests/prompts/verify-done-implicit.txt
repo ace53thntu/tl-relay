@@ -1,0 +1,2 @@
+expect: verify-done
+The test passes now. Confirm it's fixed so I can commit.

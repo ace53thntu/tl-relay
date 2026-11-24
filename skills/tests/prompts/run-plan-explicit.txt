@@ -1,0 +1,4 @@
+expect: run-plan
+My implementation plan has three independent tasks: 1) add a User model with email and password fields, 2) add login and register routes, 3) add JWT middleware.
+
+Use run-plan to execute it. Dispatch a fresh subagent for each task and review the output between tasks.

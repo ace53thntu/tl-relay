@@ -1,0 +1,2 @@
+expect: brainstorm
+please use the brainstorm skill to help me think through this feature

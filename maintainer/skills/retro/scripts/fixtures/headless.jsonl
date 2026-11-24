@@ -1,0 +1,2 @@
+{"type": "user", "uuid": "u1", "sessionId": "s1", "timestamp": "2026-11-23T10:00:01Z", "entrypoint": "sdk-cli", "isSidechain": false, "isMeta": false, "message": {"role": "user", "content": "Summarise the notes."}}
+{"type": "user", "uuid": "u2", "sessionId": "s1", "timestamp": "2026-11-23T10:00:02Z", "entrypoint": "sdk-cli", "isSidechain": false, "isMeta": false, "message": {"role": "user", "content": "Another prompt."}}

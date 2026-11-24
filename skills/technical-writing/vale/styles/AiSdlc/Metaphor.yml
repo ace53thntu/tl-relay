@@ -1,0 +1,12 @@
+# Adapted from Syntaf/vale-llm-slop (MIT).
+extends: existence
+message: "'%s' is a metaphor. State the technical fact."
+level: error
+ignorecase: true
+tokens:
+  - load-bearing
+  - the shape of the
+  - forcing function
+  - stands? in for
+  - north star
+  - smoking gun

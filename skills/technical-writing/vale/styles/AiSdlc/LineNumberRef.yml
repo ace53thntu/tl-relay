@@ -1,0 +1,8 @@
+extends: existence
+message: "'%s' cites a line number. Name the file or the symbol only."
+level: error
+# Vale skips code spans, so this rule reads the raw markup and matches inside single backticks.
+scope: raw
+nonword: true
+tokens:
+  - '`[^`\n]*\.(?:ts|tsx|js|jsx|mjs|py|sh|md|json|ya?ml|sql|kt|swift|java|go|rb|lock):\d+[^`\n]*`'

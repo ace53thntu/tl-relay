@@ -1,0 +1,2 @@
+expect: run-plan
+The implementation plan for the invoice export feature is approved and sitting in the plans folder; kick off execution now, giving each of its tasks to a fresh subagent.

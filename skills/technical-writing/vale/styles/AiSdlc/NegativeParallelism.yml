@@ -1,0 +1,8 @@
+# Adapted from Syntaf/vale-llm-slop (MIT).
+extends: existence
+message: "'%s' sets up a contrast to knock down. State the fact once."
+level: warning
+ignorecase: true
+tokens:
+  - not (?:just|only|merely) [^.|]{1,60}? but
+  - is not an? [^.|]{1,40}\. It is

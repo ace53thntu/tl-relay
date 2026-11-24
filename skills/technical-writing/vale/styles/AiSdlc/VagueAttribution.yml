@@ -1,0 +1,9 @@
+extends: existence
+message: "'%s' names no source. Name the source or cut the claim."
+level: error
+ignorecase: true
+tokens:
+  - experts (?:believe|say|agree)
+  - studies (?:suggest|show)
+  - research shows
+  - it is widely regarded

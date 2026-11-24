@@ -1,0 +1,7 @@
+extends: existence
+message: "Semicolon in a table cell. Keep it only where it separates list items."
+level: warning
+scope: table.cell
+nonword: true
+tokens:
+  - ';'

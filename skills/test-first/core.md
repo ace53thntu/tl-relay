@@ -1,0 +1,4 @@
+- Ask a question that blocks the work before the red step, not after it.
+- The red step adds or changes test files. It may add a new source file that the tests import, as a stub that loads and returns a wrong value. It changes no existing non-test file.
+- In the red step, at least one test fails on an assertion against the current source. A test that fails to load, or fails on a thrown error such as a TypeError, does not count: assert on the behaviour, and reach a new member through a cast when the type does not have it yet.
+- When a red test asserts the wrong behaviour, stop and name the case.

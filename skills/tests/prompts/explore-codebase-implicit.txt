@@ -1,0 +1,2 @@
+expect: explore-codebase
+When a customer submits an order from the mobile app today, which modules does that request pass through before it is saved, and where does the order service load its pricing timeout value from and which functions read it?

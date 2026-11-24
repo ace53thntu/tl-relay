@@ -1,0 +1,2 @@
+expect: retro
+Run the retro over today's Claude Code sessions: pull out the calls I made by hand that you could have made yourself, plus any corrections or rules I stated, and save them as lessons for the skills to pick up next run.

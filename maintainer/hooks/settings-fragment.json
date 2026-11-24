@@ -1,0 +1,12 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "*",
+        "hooks": [
+          { "type": "command", "command": "AI_SDLC_HOME='{home}' /bin/sh '{repo}/maintainer/hooks/session-start-report.sh'" }
+        ]
+      }
+    ]
+  }
+}

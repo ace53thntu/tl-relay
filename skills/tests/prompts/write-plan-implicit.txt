@@ -1,0 +1,2 @@
+expect: write-plan
+I have the approved requirements for the retailer CSV export, a multi-step change. Write the implementation plan before anyone touches code.

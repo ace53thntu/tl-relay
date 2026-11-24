@@ -1,0 +1,2 @@
+expect: route-subagents
+I've got eleven small coding tasks to hand to helper agents and I don't want to burn the expensive model on all of them, so which ones should go to the cheaper tier and which actually need the heavy one?

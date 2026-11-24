@@ -1,0 +1,6 @@
+- The red step failed for the expected reason, or the task is exempt. <!-- red -->
+- Every task verify command exits 0. <!-- verify -->
+- Every red test case passes. <!-- red_cases -->
+- Every repository done command exits 0, except a command excluded at the base. <!-- done -->
+- The diff from the task base is not empty. <!-- diff -->
+- The reviewer reports no blocking finding. <!-- review -->

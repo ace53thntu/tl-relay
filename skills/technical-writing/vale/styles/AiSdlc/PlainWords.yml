@@ -1,0 +1,11 @@
+extends: substitution
+message: "Use '%s' instead of '%s'."
+level: error
+ignorecase: true
+swap:
+  utiliz(?:e|es|ed|ing): use
+  facilitat(?:e|es|ed|ing): help
+  in order to: to
+  due to the fact that: because
+  in the event that: if
+  numerous: many

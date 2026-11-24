@@ -1,0 +1,6 @@
+__pycache__/
+.venv/
+.DS_Store
+designs/*/rounds/*/pages/
+.tl-relay/sdd/
+.tl-relay/designs/

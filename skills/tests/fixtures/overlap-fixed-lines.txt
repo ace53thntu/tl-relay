@@ -1,0 +1,7 @@
+ingest-sources/scripts/pdf2md.py	381f9bfc69d49d39040a7d5fc3197ce385019a2ba2de649622f841a8c658ed37	Shebang the interpreter fixes
+ingest-sources/scripts/pdf2md.py	c70ee549b8198a4d66228acdb8a80ddfb13166e46b0b9cf8e5f4316a2e5fd87f	Import the library API fixes
+ingest-sources/scripts/pdf2md.py	3412809c1cf42d7343047cba6a497584fa6c468737e2ef3fc443e11211447ea5	Python entry-point idiom
+write-contract/scripts/fixtures/demo-lld.md	2e7e398a84c7a7fd3d74445be0237db99913fa2465dd19e91f8164de74162a26	Markdown table delimiter row
+debug-issue/tests/test-pressure-1.md	12af00ef4beed04e98324a76d971f94419a92b77311cf21629020e3449b8f457	Markdown table delimiter row
+review-change/SKILL.md	3db04f0ad944e3def1ec94e517ebb0b143134eb5f0ae22653d748a8d9b3c9471	Markdown table delimiter row
+write-plan/SKILL.md	1d780183a6b7ca1adea78af20a80beb1521dfd662ee6f43a53f88aa7b8c61d4b	Plan heading that run-plan, review-change and every plan rely on

@@ -1,0 +1,132 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+quit() {
+  printf '%s\n' "$2" >&2
+  exit "$1"
+}
+
+apply_dir_flag() {
+  dropped=0
+  [ "${1-}" = "-C" ] || return 0
+  [ -d "${2-}" ] || quit 2 "bad -C directory: ${2-}"
+  cd "$2"
+  dropped=2
+}
+
+physical_dir() {
+  CDPATH='' cd -- "$1" && pwd -P
+}
+
+workspace_stem() {
+  local stem
+  stem=$(basename "$1" .md) || exit
+  case $stem in
+    "" | . | ..) quit 2 "cannot derive a workspace name from: $1" ;;
+  esac
+  printf '%s\n' "$stem"
+}
+
+owns() {
+  [ -L "$1" ] && return 1
+  [ -f "$1/plan-path" ] && [ ! -L "$1/plan-path" ] || return 1
+  [ "$(cat "$1/plan-path" 2>/dev/null)" = "$marker_value" ]
+}
+
+claim() {
+  local marker=$1/plan-path created=0 parent err rc
+  [ -L "$1" ] && return 1
+  [ -L "$marker" ] && return 1
+  if [ ! -e "$1" ] && [ ! -L "$1" ]; then
+    parent=$(dirname "$1")
+    if [ ! -d "$parent" ]; then
+      { mkdir -p "$parent" && chmod u+wx "$parent"; } || quit 1 "sdd-workspace: cannot create $1"
+    fi
+    if err=$(mkdir -- "$1" 2>&1); then
+      created=1
+    elif [ ! -e "$1" ] && [ ! -L "$1" ]; then
+      [ -z "$err" ] || printf '%s\n' "$err" >&2
+      quit 1 "sdd-workspace: cannot create $1"
+    fi
+  fi
+  if [ ! -e "$marker" ]; then
+    mkdir -p "$1" 2>/dev/null || return 1
+    [ -L "$1" ] && return 1
+    err=$({ set -C; { printf '%s\n' "$marker_value" || exit 3; } >"$marker"; } 2>&1); rc=$?
+    if [ "$rc" -ne 0 ]; then
+      if [ "$rc" -eq 3 ]; then
+        rm -f -- "$marker"
+      elif [ -e "$marker" ] || [ -L "$marker" ]; then
+        owns "$1"
+        return
+      fi
+      [ "$created" -eq 1 ] || return 1
+      rmdir -- "$1"
+      [ -z "$err" ] || printf '%s\n' "$err" >&2
+      quit 1 "sdd-workspace: cannot write $marker"
+    fi
+  else
+    owns "$1"
+  fi
+}
+
+script_dir=$(cd "$(dirname "$0")" && pwd)
+apply_dir_flag "$@"
+shift "$dropped"
+
+[ "$#" -eq 1 ] || quit 2 "usage: sdd-workspace [-C DIR] PLAN_FILE"
+plan=$1
+[ -f "$plan" ] || quit 2 "no such plan file: $plan"
+stem=$(workspace_stem "$plan")
+
+plan_parent=$(physical_dir "$(dirname "$plan")")
+plan_path=$plan_parent/${plan##*/}
+
+# Siblings run through the interpreter: an unpacked install can lose exec bits.
+toplevel=$("${BASH:-bash}" "$script_dir/sdd-repo")
+real_top=$(physical_dir "$toplevel")
+sdd_dir=$real_top/.tl-relay/sdd
+marker_value=${plan_path#"$real_top"/}
+
+numbered=$sdd_dir/$stem-$(basename "$plan_parent")
+attempt=0
+owned=0
+for candidate in "$sdd_dir/$stem" "$numbered" "$numbered"-*; do
+  case $candidate in
+    "$numbered"-*)
+      case ${candidate#"$numbered"-} in
+        '' | 0* | 1 | *[!0-9]*) continue ;;
+      esac
+      ;;
+  esac
+  if [ -L "$candidate" ]; then
+    if [ -f "$candidate/plan-path" ] && [ ! -L "$candidate/plan-path" ] && [ "$(cat "$candidate/plan-path" 2>/dev/null)" = "$marker_value" ]; then
+      printf 'sdd-workspace: skipping %s: it is a symlink\n' "$candidate" >&2
+    fi
+    continue
+  fi
+  if owns "$candidate"; then
+    owned=1
+    break
+  fi
+done
+while [ "$owned" -eq 0 ]; do
+  case $attempt in
+    0) candidate=$sdd_dir/$stem ;;
+    1) candidate=$numbered ;;
+    *) candidate=$numbered-$attempt ;;
+  esac
+  claim "$candidate" && break
+  attempt=$((attempt + 1))
+done
+
+if [ ! -e "$sdd_dir/.gitignore" ] && [ ! -L "$sdd_dir/.gitignore" ]; then
+  printf '*\n' >"$sdd_dir/.gitignore"
+fi
+
+CDPATH='' cd -- "$candidate"
+# The marker keeps the pwd -P spelling; only the printed path takes the Windows form.
+case $(command -v cygpath || true) in
+  "") pwd ;;
+  *) cygpath -m "$PWD" ;;
+esac

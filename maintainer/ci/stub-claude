@@ -1,0 +1,3 @@
+#!/bin/sh
+printf '%s\n' "$*" >> "${CLAUDE_STUB_LOG:-${RUNNER_TEMP:-${TMPDIR:-/tmp}}/claude-calls.log}"
+exit 1

@@ -1,0 +1,2 @@
+expect: technical-writing
+The caching spec page reads long-winded and mixes explanation with reference tables. Tighten the prose and shorten the sentences.

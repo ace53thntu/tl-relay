@@ -1,0 +1,2 @@
+expect: write-plan
+The requirements for the notification preferences screen are signed off and touch several modules. Produce the step-by-step implementation plan before any coding starts.

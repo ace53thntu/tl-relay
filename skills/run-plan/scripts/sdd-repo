@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+refuse() {
+  local nl=$'\n'
+  local intro="SDD scripts must run from inside the git working tree you're executing in, with at least one commit"
+  local remedy="If this is a new project, run 'git init' and make a first commit, then rerun."
+  printf '%s (current directory: %s). %s\n' "$intro" "$PWD" "$remedy" >&2
+  printf 'git said: %s\n' "${1%%"$nl"*}" >&2
+  exit 2
+}
+
+require_head=false
+if [ "${1-}" = "--with-commit" ]; then
+  require_head=true
+  shift
+fi
+if [ "$#" -gt 0 ]; then
+  printf '%s\n' "usage: sdd-repo [--with-commit]" >&2
+  exit 2
+fi
+
+if ! toplevel=$(git rev-parse --show-toplevel 2>/dev/null); then
+  refuse "$(git rev-parse --show-toplevel 2>&1 >/dev/null || true)"
+fi
+
+if $require_head && ! git -C "$toplevel" rev-parse --verify --quiet HEAD >/dev/null; then
+  refuse "$(git -C "$toplevel" rev-parse --verify HEAD 2>&1 >/dev/null || true)"
+fi
+
+printf '%s\n' "$toplevel"

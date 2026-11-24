@@ -1,0 +1,2 @@
+expect: write-plan
+Product signed off on the spec for adding soft delete to customer accounts: deleted rows keep a timestamp, list endpoints hide them, and an admin route restores them. Read through the account module and its repositories, then lay out the step-by-step implementation tasks with the files each one touches and how we prove each step works, before anyone writes code.

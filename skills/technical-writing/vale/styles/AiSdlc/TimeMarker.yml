@@ -1,0 +1,11 @@
+extends: existence
+message: "'%s' is a time-marker. Name the condition that ends the state."
+level: error
+ignorecase: true
+tokens:
+  - today
+  - currently
+  - at present
+  - right now
+  - at the moment
+  - so far

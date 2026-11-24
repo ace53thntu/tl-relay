@@ -1,0 +1,6 @@
+- A task names every file it creates or changes.
+- A task that is not exempt from test-first names at least one verify command that fails before the change and passes after it.
+- The verify commands of an exempt task show that the existing tests still pass.
+- Together a task's verify commands run every test file the task declares.
+- Exempt a task from test-first only for a change to configuration, documentation or generated files, or for a refactor the existing tests cover, and state why. A task that changes runtime behaviour opens with a red step.
+- A dependency names another task of the same plan. A task in one repository may depend on a task in another.

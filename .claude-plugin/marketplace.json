@@ -1,0 +1,12 @@
+{
+  "name": "tl-relay",
+  "description": "Skills, agents and two hooks for a tech lead, from design inputs to pull requests.",
+  "owner": {"name": "Em Dinh"},
+  "plugins": [
+    {
+      "name": "tl-relay",
+      "source": "./",
+      "description": "Skills, agents and two hooks that guide a tech lead from design inputs to pull requests, with a human at each gate."
+    }
+  ]
+}

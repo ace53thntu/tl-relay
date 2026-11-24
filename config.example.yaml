@@ -1,0 +1,25 @@
+# Copy to .tl-relay/config.yaml at the workspace root. Every key is optional;
+# a missing file or key means the default shown here.
+
+# Directory that holds designs, plans and specs.
+knowledge_dir: _knowledge
+
+# Runtime store of tl-design and tl-implement: <state_dir>/designs/<handle>/publish/ and <state_dir>/designs/<handle>/runs/<row>/.
+state_dir: .tl-relay
+
+# Language of the questions tl-design and tl-implement ask the operator.
+operator_language: en
+
+# tl-design step 12. Unset: the step reports a skip.
+# publish:
+#   command: "<command with {dir} {target}>"   # {dir} is the staged tree, {target} the target you name
+#   confirm_flag: "--yes"                      # added after the dry run you confirm
+
+# tl-implement step 9. Unset: the ticket comment reports a skip.
+# tracker:
+#   comment: "<command with {target} {body_file}>"   # {target} is the ticket key, {body_file} the comment body path
+#   confirm_flag: "--yes"
+
+# technical-writing. Unset: Vale runs with the shipped vocabulary only.
+# vale:
+#   vocab: path/to/accept.txt

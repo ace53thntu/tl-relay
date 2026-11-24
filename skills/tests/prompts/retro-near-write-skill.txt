@@ -1,0 +1,2 @@
+expect: write-skill
+The planning skill keeps asking me which worktree to use; edit its SKILL.md so the step picks the default path itself, and rerun its trigger prompts afterwards.

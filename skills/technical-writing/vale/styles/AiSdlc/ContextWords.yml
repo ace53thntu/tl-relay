@@ -1,0 +1,12 @@
+extends: existence
+message: "'%s' is often filler. Keep it only where it names a real property."
+level: warning
+ignorecase: true
+tokens:
+  - leverag(?:e|es|ed|ing)
+  - enhanc(?:e|es|ed|ing)
+  - crucial
+  - intricate
+  - paradigm
+  - interplay
+  - underscor(?:es|ed|ing)

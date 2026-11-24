@@ -1,0 +1,2 @@
+expect: test-first
+Use test-first to add a validation that rejects empty retailer names.

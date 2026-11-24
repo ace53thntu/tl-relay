@@ -1,0 +1,11 @@
+extends: existence
+message: "'%s' claims a property without measuring it. Give the number and its source."
+level: error
+ignorecase: true
+tokens:
+  - scalable
+  - robust
+  - cutting-edge
+  - seamless
+  - flexible
+  - performant

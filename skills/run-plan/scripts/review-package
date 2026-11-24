@@ -1,0 +1,75 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+quit() {
+  printf '%s\n' "$2" >&2
+  exit "$1"
+}
+
+apply_dir_flag() {
+  dropped=0
+  [ "${1-}" = "-C" ] || return 0
+  [ -d "${2-}" ] || quit 2 "bad -C directory: ${2-}"
+  cd "$2"
+  dropped=2
+}
+
+check_range() {
+  local label rev
+  for label in BASE HEAD; do
+    case $label in
+      BASE) rev=$from ;;
+      HEAD) rev=$to ;;
+    esac
+    git -C "$top" rev-parse --verify --quiet "$rev" >/dev/null || quit 2 "bad $label: $rev"
+  done
+  git -C "$top" merge-base --is-ancestor "$from" "$to" || quit 3 "HEAD is not a descendant of BASE: $span"
+  commits=$(git -C "$top" rev-list --count "$span")
+  if [ "$commits" = 0 ]; then
+    quit 3 "empty commit range: $span"
+  fi
+}
+
+# A function, not a brace group: bash 3.2 ignores set -e when a group's redirect fails.
+emit_package() {
+  local section
+  printf '# Review package: %s\n' "$span"
+  for section in Commits "Files changed" Diff; do
+    printf '\n## %s\n' "$section"
+    case $section in
+      Commits) git -C "$top" log --oneline "$span" ;;
+      "Files changed") git -C "$top" diff --stat "$span" ;;
+      Diff) git -C "$top" diff -U10 "$span" ;;
+    esac
+  done
+}
+
+script_dir=$(cd "$(dirname "$0")" && pwd)
+apply_dir_flag "$@"
+shift "$dropped"
+
+case $# in
+  3 | 4) ;;
+  *) quit 2 "usage: review-package [-C DIR] PLAN_FILE BASE HEAD [OUTFILE]" ;;
+esac
+plan=$1
+from=$2
+to=$3
+span=$from..$to
+[ -f "$plan" ] || quit 2 "no such plan file: $plan"
+
+# Siblings run through the interpreter: an unpacked install can lose exec bits.
+top=$("${BASH:-bash}" "$script_dir/sdd-repo" --with-commit)
+check_range
+
+if [ "$#" -eq 4 ]; then
+  package=$4
+else
+  package=$("${BASH:-bash}" "$script_dir/sdd-workspace" "$plan")
+  package=$package/review-$(git -C "$top" rev-parse --short "$from")..$(git -C "$top" rev-parse --short "$to").diff
+fi
+
+emit_package >"$package"
+
+summary='wrote %s: %s commit(s), %s bytes\n'
+printf "$summary" "$package" "$commits" "$(wc -c <"$package" | tr -d ' ')"

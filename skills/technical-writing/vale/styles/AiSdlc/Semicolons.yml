@@ -1,0 +1,8 @@
+extends: existence
+message: "Semicolon. Split the sentence, or use a comma or 'and'."
+level: error
+# Google.Semicolons has one level for every scope, so it is off. Table cells go to SemicolonsTable.
+scope: "~table.cell"
+nonword: true
+tokens:
+  - ';'

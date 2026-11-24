@@ -1,0 +1,11 @@
+# Adapted from Syntaf/vale-llm-slop (MIT).
+extends: existence
+message: "'%s' narrates the process. State the finding."
+level: error
+ignorecase: true
+tokens:
+  - this review found
+  - we then checked
+  - the rubric asks
+  - let'?s dive
+  - here is the

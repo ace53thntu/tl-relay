@@ -1,0 +1,18 @@
+apiVersion: ai-sdlc/v2
+kind: Config
+
+project:
+  name: example
+  root: /path/to/workspace
+
+operator: human:operator
+
+hooks:
+  deliberately_global: []
+
+install:
+  claude_config_dirs: ["~/.claude"]
+
+# neutrality:
+#   patterns: []  # PCRE regexes, matched case-insensitively against committed files; home config only
+#   identity_allow: [you@example.invalid]  # exact author or committer emails that the range scan skips

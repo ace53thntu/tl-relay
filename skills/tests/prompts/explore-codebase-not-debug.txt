@@ -1,0 +1,2 @@
+expect: debug-issue
+The order summary test started failing this morning with 'expected 3 items, received 0' and nothing in that file changed. Can you trace where the cart items get loaded, find which caller is passing an empty list now, and figure out why it broke before we decide how to fix it?

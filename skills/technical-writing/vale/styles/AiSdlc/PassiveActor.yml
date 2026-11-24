@@ -1,0 +1,8 @@
+extends: existence
+message: "'%s' hides who acts. Name the person, team or system."
+level: warning
+# Google.Passive flags every passive, including adjectives such as "are unchanged". It is off.
+# This rule keeps the verbs where the missing actor is a decision maker, a measurer or a system.
+ignorecase: true
+tokens:
+  - '(?:is|are|was|were|been|be|being)\s+(?:decided|accepted|rejected|ratified|agreed|chosen|settled|resolved|answered|proposed|confirmed|verified|measured|sized|tested|reviewed|reverted|generated|synced|granted|refused|approved|checked|validated|proven|proved|deferred|superseded|retired|abandoned|adopted|considered|believed|assumed|estimated|audited|signed|corrected|scoped|found|discovered)(?!\s+by\b)'

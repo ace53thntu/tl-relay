@@ -1,0 +1,165 @@
+openapi: 3.1.0
+info:
+  title: Demo things
+  version: 0.1.0
+  license:
+    name: Proprietary
+    identifier: LicenseRef-Proprietary
+servers:
+  - url: https://demo.invalid
+security:
+  - session: []
+tags:
+  - name: things
+    description: Things a demo user keeps
+paths:
+  /things:
+    get:
+      operationId: listThings
+      summary: List things
+      description: List things, most recent first.
+      tags: [things]
+      parameters:
+        - $ref: './common.openapi.yaml#/components/parameters/Page'
+        - $ref: './common.openapi.yaml#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: One page of things
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [items, page, pageSize, total]
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Thing'
+                  page:
+                    type: integer
+                  pageSize:
+                    type: integer
+                  total:
+                    type: integer
+              example:
+                items:
+                  - id: 3f2b8c1e-5d4a-4f6b-9c2d-1e0f7a8b9c0d
+                    name: First
+                page: 1
+                pageSize: 20
+                total: 1
+        '401':
+          $ref: './common.openapi.yaml#/components/responses/Unauthenticated'
+        '403':
+          $ref: './common.openapi.yaml#/components/responses/Forbidden'
+    post:
+      operationId: createThing
+      summary: Create a thing
+      description: Create a thing with a name.
+      tags: [things]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ThingInput'
+            example:
+              name: First
+      responses:
+        '201':
+          description: The thing was created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Thing'
+              example:
+                id: 3f2b8c1e-5d4a-4f6b-9c2d-1e0f7a8b9c0d
+                name: First
+        '401':
+          $ref: './common.openapi.yaml#/components/responses/Unauthenticated'
+        '403':
+          $ref: './common.openapi.yaml#/components/responses/Forbidden'
+        '422':
+          description: The input is invalid
+          content:
+            application/json:
+              schema:
+                $ref: './common.openapi.yaml#/components/schemas/Error'
+              examples:
+                name-missing:
+                  value:
+                    error:
+                      code: THING_NAME_REQUIRED
+                      message: Enter a name.
+                      traceId: 4bf92f3577b34da6a3ce929d0e0e4736
+                      details:
+                        - field: name
+                          reason: required
+  /things/{id}:
+    get:
+      operationId: getThing
+      summary: Read a thing
+      description: Read one thing by its id.
+      tags: [things]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          example: 3f2b8c1e-5d4a-4f6b-9c2d-1e0f7a8b9c0d
+      responses:
+        '200':
+          description: The thing
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Thing'
+              example:
+                id: 3f2b8c1e-5d4a-4f6b-9c2d-1e0f7a8b9c0d
+                name: First
+        '401':
+          $ref: './common.openapi.yaml#/components/responses/Unauthenticated'
+        '403':
+          $ref: './common.openapi.yaml#/components/responses/Forbidden'
+        '404':
+          description: No thing has this id
+          content:
+            application/json:
+              schema:
+                $ref: './common.openapi.yaml#/components/schemas/Error'
+              examples:
+                not-found:
+                  value:
+                    error:
+                      code: THING_NOT_FOUND
+                      message: This thing no longer exists.
+                      traceId: 4bf92f3577b34da6a3ce929d0e0e4736
+components:
+  securitySchemes:
+    session:
+      type: apiKey
+      in: cookie
+      name: session
+  schemas:
+    Thing:
+      type: object
+      additionalProperties: false
+      required: [id, name]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          maxLength: 75
+    ThingInput:
+      type: object
+      additionalProperties: false
+      required: [name]
+      properties:
+        name:
+          type: string
+          maxLength: 75
