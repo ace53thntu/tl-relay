@@ -2035,6 +2035,16 @@ class ScoreGuards(ScoreBase):
         self.sb.install_hook(home=other)
         self.refused(self.score(), "names home")
 
+    def test_score_refuses_a_legacy_hook_that_names_another_home(self):
+        other = self.sb.home / "other-home"
+        other.mkdir()
+        (other / "ai-sdlc.yaml").write_text("neutrality:\n  patterns: []\n")
+        self.sb.install_hook(home=other)
+        hook = self.sb.repo / ".git" / "hooks" / "pre-push"
+        hook.write_text(hook.read_text().replace("# tl-relay pre-push hook", "# ai-sdlc pre-push hook"))
+        self.assertIn("# ai-sdlc pre-push hook", hook.read_text())
+        self.refused(self.score(), "names home")
+
     def test_score_accepts_a_hook_that_names_this_home(self):
         self.sb.install_hook()
         self.sb.agent_plan({ALPHA_PROMPT: "alpha"})

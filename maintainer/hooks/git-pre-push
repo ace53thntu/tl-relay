@@ -1,5 +1,5 @@
 #!/bin/sh
-# ai-sdlc pre-push hook
+# tl-relay pre-push hook
 main={main}
 script=$main/maintainer/skills/write-skill/scripts/final_run.py
 if [ ! -f "$script" ]; then

@@ -125,7 +125,7 @@ def _check_hook_home(repo) -> None:
         raise Refused("cannot read %s: %s" % (hook, exc))
     sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3]))
     from runtime import install
-    if install.HOOK_MARKER not in text:
+    if not install.is_own_hook(text):
         return
     named = install._hook_home(text)
     home = os.environ["AI_SDLC_HOME"]
