@@ -3,7 +3,7 @@
 main={main}
 script=$main/maintainer/skills/write-skill/scripts/final_run.py
 if [ ! -f "$script" ]; then
-  echo "ai-sdlc pre-push: $script is missing; check out a branch that has it in $main, rerun sdlc.py install --git-hook, or stop and ask the operator, who decides on --no-verify" >&2
+  echo "tl-relay pre-push: $script is missing; check out a branch that has it in $main, rerun sdlc.py install --git-hook, or stop and ask the operator, who decides on --no-verify" >&2
   exit 1
 fi
 AI_SDLC_HOME={home} AI_SDLC_REPO="$main" exec /usr/bin/python3 "$script" check "$@"

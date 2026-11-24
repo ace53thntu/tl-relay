@@ -5,11 +5,6 @@ project:
   name: example
   root: /path/to/workspace
 
-operator: human:operator
-
-hooks:
-  deliberately_global: []
-
 install:
   claude_config_dirs: ["~/.claude"]
 

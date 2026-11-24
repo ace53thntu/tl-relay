@@ -1175,7 +1175,7 @@ class GitHook(unittest.TestCase):
         self.assertEqual(self.hook.read_text(), (
             "#!/bin/sh\n%s\nmain=%s\nscript=$main/maintainer/skills/write-skill/scripts/final_run.py\n"
             "if [ ! -f \"$script\" ]; then\n"
-            "  echo \"ai-sdlc pre-push: $script is missing; check out a branch that has it in $main, "
+            "  echo \"tl-relay pre-push: $script is missing; check out a branch that has it in $main, "
             "rerun sdlc.py install --git-hook, or stop and ask the operator, who decides on --no-verify\" >&2\n"
             "  exit 1\n"
             "fi\n"
