@@ -12,7 +12,12 @@ ROOT = Path(__file__).resolve().parents[2]
 class PackageTest(unittest.TestCase):
     def test_plugin_manifest(self):
         m = json.loads((ROOT / ".claude-plugin/plugin.json").read_text())
-        self.assertEqual((m["name"], m["version"], m["license"]), ("tl-relay", "0.2.0", "MIT"))
+        self.assertEqual((m["name"], m["version"], m["license"]), ("tl-relay", "0.2.1", "MIT"))
+
+    def test_marketplace_version_matches_the_plugin(self):
+        plugin = json.loads((ROOT / ".claude-plugin/plugin.json").read_text())
+        market = json.loads((ROOT / ".claude-plugin/marketplace.json").read_text())
+        self.assertEqual([p.get("version") for p in market["plugins"]], [plugin["version"]])
 
     def test_marketplace_points_at_the_root(self):
         m = json.loads((ROOT / ".claude-plugin/marketplace.json").read_text())
