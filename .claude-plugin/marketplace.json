@@ -6,6 +6,7 @@
     {
       "name": "tl-relay",
       "source": "./",
+      "version": "0.2.1",
       "description": "Skills, agents and two hooks that guide a tech lead from design inputs to pull requests, with a human at each gate."
     }
   ]
