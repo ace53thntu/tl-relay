@@ -42,7 +42,7 @@ npx skills add ace53thntu/tl-relay -a codex     # Codex only
 npx skills add ace53thntu/tl-relay --list       # list the skills without installing
 ```
 
-To install one skill, add `--skill <name>`. That suits the skills that stand alone: `brainstorm`, `debug-issue`, `test-first`, `verify-done`, `review-change`, `technical-writing`, `explore-codebase` and `write-plan`. A few of them hand off to the next skill in a chain, so install the chain together: `brainstorm`, `write-plan` and `run-plan`, or `debug-issue`, `test-first` and `verify-done`.
+To install one skill, add `--skill <name>` and add `--skill using-tl-relay`. The skills read their path rules from `using-tl-relay`. That suits the skills that stand alone: `brainstorm`, `debug-issue`, `test-first`, `verify-done`, `review-change`, `technical-writing`, `explore-codebase` and `write-plan`. A few of them hand off to the next skill in a chain, so install the chain together: `brainstorm`, `write-plan` and `run-plan`, or `debug-issue`, `test-first` and `verify-done`.
 
 ### Bundles
 
@@ -50,13 +50,13 @@ The design and build workflows each need a set of skills. Before it runs, each w
 
 | Bundle | Skills |
 |---|---|
-| Design | `tl-design`, `ingest-sources`, `write-design`, `write-hla`, `write-lld`, `write-contract`, `write-task-breakdown`, `technical-writing`, `lens-qa-conformance`, `lens-qa-engineer`, `lens-security-engineer`, `lens-shared`, `lens-software-engineer`, `lens-solution-architect` |
-| Build | `tl-implement`, `tl-design`, `write-plan`, `run-plan`, `review-change`, `verify-done`, `test-first`, `debug-issue`, `lens-qa-conformance`, `lens-shared` |
+| Design | `using-tl-relay`, `tl-design`, `ingest-sources`, `write-design`, `write-hla`, `write-lld`, `write-contract`, `write-task-breakdown`, `technical-writing`, `lens-qa-conformance`, `lens-qa-engineer`, `lens-security-engineer`, `lens-shared`, `lens-software-engineer`, `lens-solution-architect` |
+| Build | `using-tl-relay`, `tl-implement`, `tl-design`, `write-plan`, `run-plan`, `review-change`, `verify-done`, `test-first`, `debug-issue`, `lens-qa-conformance`, `lens-shared` |
 
 The Build bundle carries `tl-design` for its Ask rule and its retro step. To run `tl-design` itself, install the Design bundle.
 
 ```sh
-npx skills add ace53thntu/tl-relay --skill tl-implement --skill tl-design --skill write-plan --skill run-plan \
+npx skills add ace53thntu/tl-relay --skill using-tl-relay --skill tl-implement --skill tl-design --skill write-plan --skill run-plan \
   --skill review-change --skill verify-done --skill test-first --skill debug-issue \
   --skill lens-qa-conformance --skill lens-shared
 ```
@@ -152,6 +152,7 @@ vale:
 - A relative path resolves against the workspace root.
 - Commit `.tl-relay/config.yaml`. `run-plan` writes a `.gitignore` in each plan-runs dir. With a `state_dir` inside a git tree, `tl-design` and `tl-implement` ignore `designs/*/publish/` and `designs/*/runs/`.
 - A project `CLAUDE.md` or `AGENTS.md` outranks the skills. A model rule in it overrides `route-subagents`.
+- Upgrading from the old layout: move `<state_dir>/designs/<handle>/` to `<state_dir>/<workspace>/designs/<handle>/` before the next publish. Set `knowledge_dir` if the workspace has a hub.
 - [`config.example.yaml`](config.example.yaml) documents every key.
 
 ## Lessons
