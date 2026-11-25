@@ -10,11 +10,11 @@ cat >/dev/null 2>&1 || :
 
 . "$(dirname "$0")/lib-guardrails.sh"
 
-problems=$(guardrail_problems "${AI_SDLC_ROOT:-}")
+problems=$(guardrail_problems "${TL_RELAY_ROOT:-}")
 if [ $? -eq 0 ]; then
-  printf 'ai-sdlc guardrail check: ok.\n'
+  printf 'tl-relay guardrail check: ok.\n'
 else
-  printf 'ai-sdlc guardrail check: FAILED. Tool use is denied until this is fixed.\n%s\n' "$problems"
+  printf 'tl-relay guardrail check: FAILED. Tool use is denied until this is fixed.\n%s\n' "$problems"
   printf 'Read and Edit are never denied. Restore the registration with them.\n'
 fi
 
@@ -22,24 +22,24 @@ fi
 # enforcer cannot know it exists.
 for conf in "${HOME:-/nonexistent}"/.claude*/settings.json; do
   [ -f "$conf" ] || continue
-  case ":${AI_SDLC_USER_SETTINGS:-}:" in
+  case ":${TL_RELAY_USER_SETTINGS:-}:" in
     (*":$conf:"*) ;;
-    (*) printf 'ai-sdlc: %s is a user settings file the enforcer does not compare. Add its directory to install.claude_config_dirs and rerun sdlc.py install.\n' "$conf" ;;
+    (*) printf 'tl-relay: %s is a user settings file the enforcer does not compare. Add its directory to install.claude_config_dirs and rerun sdlc.py install.\n' "$conf" ;;
   esac
 done
 
-MEMORY=${AI_SDLC_MEMORY:-${HOME:-/nonexistent}/.claude/projects/$(printf %s "${AI_SDLC_ROOT:-}" | tr -c 'A-Za-z0-9' -)/memory/MEMORY.md}
+MEMORY=${TL_RELAY_MEMORY:-${HOME:-/nonexistent}/.claude/projects/$(printf %s "${TL_RELAY_ROOT:-}" | tr -c 'A-Za-z0-9' -)/memory/MEMORY.md}
 if [ -f "$MEMORY" ]; then
   over=$(sh "$(dirname "$0")/check-memory-index.sh" "$MEMORY" 2>&1) ||
-    printf 'ai-sdlc: MEMORY.md is past its load limit and is being truncated. %s\n' "$over"
+    printf 'tl-relay: MEMORY.md is past its load limit and is being truncated. %s\n' "$over"
 fi
 
-# Skipped inside the suite itself. run.sh exports AI_SDLC_IN_TESTS, and a test of
+# Skipped inside the suite itself. run.sh exports TL_RELAY_IN_TESTS, and a test of
 # this script would otherwise re-enter run.sh without bound.
-TESTS=${AI_SDLC_TESTS:-$(dirname "$0")/tests/run.sh}
-if [ -z "${AI_SDLC_IN_TESTS:-}" ] && [ -f "$TESTS" ]; then
+TESTS=${TL_RELAY_TESTS:-$(dirname "$0")/tests/run.sh}
+if [ -z "${TL_RELAY_IN_TESTS:-}" ] && [ -f "$TESTS" ]; then
   if ! sh "$TESTS" >/dev/null 2>&1; then
-    printf 'ai-sdlc: the hook test suite is failing. Run: sh %s\n' "$TESTS"
+    printf 'tl-relay: the hook test suite is failing. Run: sh %s\n' "$TESTS"
   fi
 fi
 

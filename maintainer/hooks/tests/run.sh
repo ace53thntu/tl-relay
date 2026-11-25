@@ -1,11 +1,12 @@
 #!/bin/sh
 # Runs every test file. Exit 1 if any fails.
 #
-# AI_SDLC_IN_TESTS tells session-start-report.sh not to run this suite, which it
+# TL_RELAY_IN_TESTS tells session-start-report.sh not to run this suite, which it
 # would otherwise do from inside a test of itself, without bound.
 set -u
-AI_SDLC_IN_TESTS=1
-export AI_SDLC_IN_TESTS
+unset AI_SDLC_HOME AI_SDLC_REPO AI_SDLC_ROOT AI_SDLC_USER_FRAGMENT AI_SDLC_FRAGMENT AI_SDLC_USER_SETTINGS AI_SDLC_SETTINGS
+TL_RELAY_IN_TESTS=1
+export TL_RELAY_IN_TESTS
 
 dir=$(dirname "$0")
 rc=0

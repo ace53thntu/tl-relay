@@ -4,8 +4,8 @@
 set -u
 
 FILE=${1:?usage: check-memory-index.sh <file>}
-BUDGET=${AI_SDLC_MEMORY_BUDGET:-24400}
-MAXLINES=${AI_SDLC_MEMORY_MAXLINES:-200}
+BUDGET=${TL_RELAY_MEMORY_BUDGET:-24400}
+MAXLINES=${TL_RELAY_MEMORY_MAXLINES:-200}
 
 [ -f "$FILE" ] || { printf '%s does not exist\n' "$FILE" >&2; exit 1; }
 
