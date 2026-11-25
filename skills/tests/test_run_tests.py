@@ -436,11 +436,13 @@ class SuitesTest(unittest.TestCase):
 
         real = run_tests.subprocess.run
         run_tests.subprocess.run = record
+        repo = pathlib.Path(run_tests.__file__).resolve().parents[2]
         try:
-            run_tests.npx_warmup(pathlib.Path(run_tests.__file__).resolve().parents[2], io.StringIO(), {"X": "y"})
+            run_tests.npx_warmup(repo, io.StringIO(), {"X": "y"})
         finally:
             run_tests.subprocess.run = real
         self.assertEqual(recorded["env"], {"X": "y", "REDOCLY_TELEMETRY": "off"})
+        self.assertEqual(recorded["cwd"], str(repo))
 
     def test_main_hands_run_the_environment_from_before_collection(self):
         recorded = {}
@@ -452,7 +454,7 @@ class SuitesTest(unittest.TestCase):
         real = run_tests.run
         with mock.patch.dict(os.environ, {}), tempfile.TemporaryDirectory() as repo:
             write(repo, "a/test_set.py", self.LEAK_SET)
-            expected = dict(os.environ)
+            expected = {k: v for k, v in os.environ.items() if k not in run_tests.GIT_ENV_DROP}
             run_tests.run = record
             try:
                 run_tests.main(["--all"], repo=pathlib.Path(repo), suites=(run_tests.Suite("a", "py", None),), out=io.StringIO())
@@ -460,6 +462,25 @@ class SuitesTest(unittest.TestCase):
                 run_tests.run = real
         self.assertNotIn("RUN_TESTS_LEAK", recorded["env"])
         self.assertEqual(recorded["env"], expected)
+
+    def test_main_drops_git_location_vars_from_the_child_env(self):
+        recorded = {}
+
+        def record(units, jobs, out, env=None):
+            recorded["env"] = env
+            return 0
+
+        planted = {name: "/run-tests-leak" for name in run_tests.GIT_ENV_DROP}
+        real = run_tests.run
+        with mock.patch.dict(os.environ, dict(planted, RUN_TESTS_KEEP="1")), tempfile.TemporaryDirectory() as repo:
+            write(repo, "a/test_ok.py", OK_SRC.format(name="One"))
+            run_tests.run = record
+            try:
+                run_tests.main(["--all"], repo=pathlib.Path(repo), suites=(run_tests.Suite("a", "py", None),), out=io.StringIO())
+            finally:
+                run_tests.run = real
+        self.assertEqual([name for name in run_tests.GIT_ENV_DROP if name in recorded["env"]], [])
+        self.assertEqual(recorded["env"].get("RUN_TESTS_KEEP"), "1")
 
     def test_the_redocly_spec_is_read_from_the_real_contract_script(self):
         repo = pathlib.Path(run_tests.__file__).resolve().parents[2]

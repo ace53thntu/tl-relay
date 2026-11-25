@@ -181,7 +181,8 @@ def npx_warmup(repo, out, env=None) -> None:
         return
     try:
         subprocess.run(["npx", "--yes", spec, "--version"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-                       env=dict(env if env is not None else os.environ, REDOCLY_TELEMETRY="off"), timeout=WARMUP_TIMEOUT)
+                       env=dict(env if env is not None else os.environ, REDOCLY_TELEMETRY="off"), cwd=str(repo),
+                       timeout=WARMUP_TIMEOUT)
     except subprocess.TimeoutExpired:
         out.write("warmup: npx --yes %s --version timed out after %ds\n" % (spec, WARMUP_TIMEOUT))
     except OSError:
@@ -224,7 +225,7 @@ def main(argv, repo=None, suites=None, out=sys.stdout, warmup=None) -> int:
     parser.add_argument("--all", action="store_true")
     parser.add_argument("--jobs", type=int, default=os.cpu_count() or 1)
     parsed = parser.parse_args(list(argv))
-    env = dict(os.environ)
+    env = {k: v for k, v in os.environ.items() if k not in GIT_ENV_DROP}
     suites = SUITES if suites is None else suites
     repo = pathlib.Path(repo) if repo else pathlib.Path(__file__).resolve().parents[2]
     heavy_skip = set()
