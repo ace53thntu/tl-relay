@@ -208,7 +208,7 @@ class KillPaths(unittest.TestCase):
     def test_the_agent_group_is_written_to_the_pgid_file(self):
         path = pathlib.Path(self.root.name) / "agent.pgid"
         proc = self.start("silent", pgid_file=path)
-        self.addCleanup(proc.kill)
+        self.addCleanup(self.interrupt, proc)
         deadline = time.time() + 10
         while not (path.exists() and path.read_text().strip()) and time.time() < deadline:
             time.sleep(0.05)
@@ -230,7 +230,7 @@ class KillPaths(unittest.TestCase):
     def test_the_pgid_file_is_empty_after_an_interrupted_run(self):
         path = pathlib.Path(self.root.name) / "agent.pgid"
         proc = self.start("silent", pgid_file=path)
-        self.addCleanup(proc.kill)
+        self.addCleanup(self.interrupt, proc)
         deadline = time.time() + 10
         while not (path.exists() and path.read_text().strip()) and time.time() < deadline:
             time.sleep(0.05)
@@ -246,8 +246,9 @@ class KillPaths(unittest.TestCase):
             try:
                 proc.communicate(timeout=30)
             except subprocess.TimeoutExpired:
+                subprocess.run(["pkill", "-9", "-f", self.marker])
                 proc.kill()
-                proc.communicate()
+                proc.communicate(timeout=30)
 
     def test_the_watchdog_runs_before_the_pgid_file_is_written(self):
         path = pathlib.Path(self.root.name) / "agent.pgid"
@@ -277,6 +278,7 @@ class KillPaths(unittest.TestCase):
         os.close(fd)
         path.unlink()
         self.assertTrue(started)
+        self.assertTrue(text.endswith(b"\n"), text)
         pgid = int(text)
         self.assertEqual(os.getpgid(pgid), pgid)
         proc.send_signal(signal.SIGINT)
