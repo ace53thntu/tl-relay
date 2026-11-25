@@ -133,6 +133,11 @@ printf 'TL_RELAY_ROOT=%s\nAI_SDLC_ROOT=%s\nTL_RELAY_USER_FRAGMENT=%s\nTL_RELAY_F
 o=$(bare TL_RELAY_HOME="$TMP/mhome" TL_RELAY_SETTINGS="$TMP/empty.json")
 { [ "$(dec "$o")" = "deny" ] && printf '%s' "$(rsn "$o")" | grep -qF "b.sh"; } && ok "new env.sh wins: TL_RELAY_ROOT is used over AI_SDLC_ROOT" || bad "AI_SDLC_ROOT won: $(rsn "$o")"
 
+mkdir "$TMP/nohome"
+o=$(bare TL_RELAY_HOME="$TMP/nohome" AI_SDLC_ROOT="$ROOT" AI_SDLC_USER_FRAGMENT="$TMP/ufrag.json" AI_SDLC_FRAGMENT="$TMP/pfrag.json" \
+  AI_SDLC_USER_SETTINGS="$TMP/usettings.json" AI_SDLC_SETTINGS="$TMP/psettings.json")
+[ "$(dec "$o")" != "deny" ] && ok "AI_SDLC_ names in the environment resolve when the home has no env.sh" || bad "env fallback denied: $(rsn "$o")"
+
 # A PATH holding everything the hook needs except jq. An empty PATH would also
 # remove cat, and the test would pass for the wrong reason.
 mkdir "$TMP/bin"
