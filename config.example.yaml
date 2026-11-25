@@ -1,11 +1,15 @@
-# Copy to .tl-relay/config.yaml at the workspace root. Every key is optional;
-# a missing file or key means the default shown here.
+# Copy to `.tl-relay/config.yaml` in a workspace, or to `~/.tl-relay/config.yaml`.
+# Every key is optional; a missing file or key means the default shown here.
 
-# Directory that holds designs, plans and specs.
-knowledge_dir: _knowledge
+# A shared hub that skills read, and that receives ADRs, glossary terms and index entries.
+# Unset: skills skip every hub step.
+# knowledge_dir: _knowledge
 
-# Runtime store of tl-design and tl-implement: <state_dir>/designs/<handle>/publish/ and <state_dir>/designs/<handle>/runs/<row>/.
-state_dir: .tl-relay
+# Root of the runtime store. Specs, plans, design sets, plan runs and worktrees live under <state_dir>/<workspace>/.
+state_dir: ~/.tl-relay
+
+# Worktree root after $WORKTREE_ROOT.
+# worktree_dir: ~/worktrees
 
 # Language of the questions tl-design and tl-implement ask the operator.
 operator_language: en

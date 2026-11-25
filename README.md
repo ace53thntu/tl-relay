@@ -122,10 +122,10 @@ Without the package, `ingest-sources` stops and names it.
 
 ## Configuration
 
-Every skill runs on built-in defaults, with no config file and no home directory. To override a default, add `.tl-relay/config.yaml` at the workspace root:
+Every skill runs with no config. The lookup and the paths follow [`skills/using-tl-relay/config.md`](skills/using-tl-relay/config.md). To override a default, add `.tl-relay/config.yaml` at the workspace root:
 
 ```yaml
-knowledge_dir: docs/knowledge
+state_dir: ~/work/tl-relay-state
 operator_language: en
 publish:
   command: "my-docs-cli push {dir} --parent {target}"
@@ -139,8 +139,9 @@ vale:
 
 | Key | Default | Effect | Read by |
 |---|---|---|---|
-| `knowledge_dir` | `_knowledge` | Folder for designs, specs and plans | `tl-design`, `write-*`, `ingest-sources`, `brainstorm`, `write-plan` |
-| `state_dir` | `.tl-relay` | Runtime store for design and implement runs | `tl-design`, `tl-implement` |
+| `knowledge_dir` | unset | A shared hub that skills read, and that receives ADRs, glossary terms and index entries | `technical-writing`, `write-hla`, `write-lld`, `tl-design` |
+| `state_dir` | `~/.tl-relay` | Root of `<runtime>`, which holds specs, plans, design sets, plan runs and worktrees | every skill that writes |
+| `worktree_dir` | unset | Worktree root after `$WORKTREE_ROOT` | `run-plan`, `tl-implement` |
 | `operator_language` | `en` | Language of the questions the workflows ask you | `tl-design`, `tl-implement` |
 | `publish.command` | unset: the publish step reports a skip | Publishes the staged design pages. `{dir}` is the staged tree and `{target}` is the target you name | `tl-design` |
 | `publish.confirm_flag` | unset | The flag the skill adds once you approve the dry run | `tl-design` |
@@ -149,7 +150,7 @@ vale:
 | `vale.vocab` | unset: Vale uses the shipped vocabulary | Extra accepted words, one per line | `technical-writing` |
 
 - A relative path resolves against the workspace root.
-- Commit `.tl-relay/config.yaml`. Git-ignore `.tl-relay/sdd/` and `<state_dir>/designs/`. `run-plan` writes a `.gitignore` inside `.tl-relay/sdd/`, and `tl-design` and `tl-implement` add `<state_dir>/designs/` to the workspace `.gitignore`.
+- Commit `.tl-relay/config.yaml`. `run-plan` writes a `.gitignore` in each plan-runs dir. With a `state_dir` inside a git tree, `tl-design` and `tl-implement` ignore `designs/*/publish/` and `designs/*/runs/`.
 - A project `CLAUDE.md` or `AGENTS.md` outranks the skills. A model rule in it overrides `route-subagents`.
 - [`config.example.yaml`](config.example.yaml) documents every key.
 
