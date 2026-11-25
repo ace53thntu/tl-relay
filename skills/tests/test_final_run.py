@@ -9,6 +9,7 @@ import re
 import shutil
 import signal
 import subprocess
+import tempfile
 import time
 import unittest
 from unittest import mock
@@ -2308,6 +2309,34 @@ class UnmergedRefs(unittest.TestCase):
         done = self.sb.push("push", "origin", "v1")
         self.assertNotEqual(done.returncode, 0, done.stderr)
         self.assertIn("blocked by rule 7:", done.stderr)
+
+
+class SandboxGitConfig(unittest.TestCase):
+    SIGNING = "[commit]\n\tgpgsign = true\n[gpg]\n\tprogram = false\n"
+
+    def planted(self, root, name):
+        if name == "GIT_TEMPLATE_DIR":
+            hook = root / "hooks" / "pre-commit"
+            hook.parent.mkdir(parents=True)
+            hook.write_text("#!/bin/sh\nexit 1\n")
+            hook.chmod(0o755)
+            return str(root)
+        if name == "XDG_CONFIG_HOME":
+            (root / "git").mkdir()
+            (root / "git" / "config").write_text(self.SIGNING)
+            return str(root)
+        (root / "gitconfig").write_text(self.SIGNING)
+        return str(root / "gitconfig")
+
+    def test_the_operator_git_config_does_not_reach_the_sandbox(self):
+        for name in ("GIT_CONFIG_GLOBAL", "GIT_CONFIG_SYSTEM", "XDG_CONFIG_HOME", "GIT_TEMPLATE_DIR"):
+            with self.subTest(name=name), tempfile.TemporaryDirectory() as tmp:
+                with mock.patch.dict(os.environ, {name: self.planted(pathlib.Path(tmp), name)}):
+                    sb = fr_fixture.Sandbox()
+                try:
+                    self.assertNotIn(name, sb.env)
+                finally:
+                    sb.cleanup()
 
 
 if __name__ == "__main__":

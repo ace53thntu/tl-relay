@@ -43,6 +43,7 @@ print(json.dumps({"type": "result", "is_error": False}))
 """
 
 SKILL = "---\nname: %s\ndescription: Use when %s.\n---\n\nBody of %s.\n"
+OPERATOR_CONFIG = ("CLAUDE_CONFIG_DIR", "GIT_CONFIG_GLOBAL", "GIT_CONFIG_SYSTEM", "XDG_CONFIG_HOME", "GIT_TEMPLATE_DIR")
 
 
 class Sandbox:
@@ -61,7 +62,7 @@ class Sandbox:
         stub.chmod(0o755)
         temp = root / "tmp"
         temp.mkdir()
-        self.env = {k: v for k, v in os.environ.items() if k not in GIT_ENV_DROP and k != "CLAUDE_CONFIG_DIR"
+        self.env = {k: v for k, v in os.environ.items() if k not in GIT_ENV_DROP and k not in OPERATOR_CONFIG
                     and not k.startswith(("AI_SDLC_", "TL_RELAY_"))}
         self.env.update(
             HOME=str(self.home),
