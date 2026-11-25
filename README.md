@@ -155,13 +155,13 @@ vale:
 - Upgrading from the old layout:
   - Move design pages from `_knowledge/designs/<handle>/` into `<state_dir>/<workspace>/designs/<handle>/` before the next publish.
   - Move publish and run state from `.tl-relay/designs/<handle>/` into the same directory.
-  - Move each old folder below into `<state_dir>/<workspace>/`, with its subfolders:
+  - Move the contents of each old folder below, subfolders included, into `<state_dir>/<workspace>/`:
     - `_knowledge/plans/specs/` to `specs/`
     - `_knowledge/plans/implementation/` to `plans/`
     - `_knowledge/plans/lld/` to `plans/lld/`
     - `_knowledge/plans/audits/` to `audits/`
     - `_knowledge/hlds/` to `hlds/`
-  - A `CLAUDE.md` "Skill output targets" section keeps the old paths instead.
+    - A `CLAUDE.md` "Skill output targets" section keeps these old paths instead.
   - Delete `.tl-relay/sdd/` at each repo and worktree root once no run is in progress. `run-plan` cannot resume those runs.
   - Set `knowledge_dir` if the workspace has a hub.
 - [`config.example.yaml`](config.example.yaml) documents every key.
