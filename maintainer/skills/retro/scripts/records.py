@@ -49,7 +49,7 @@ def load_patterns(path: Path) -> dict:
     return compile_patterns(json.loads(path.read_text(encoding="utf-8")))
 
 
-def ai_sdlc_skills(repo: Path) -> FrozenSet[str]:
+def repo_skills(repo: Path) -> FrozenSet[str]:
     roots = (repo / "skills", repo / "maintainer" / "skills")
     return frozenset(p.parent.name for root in roots for p in root.glob("*/SKILL.md"))
 

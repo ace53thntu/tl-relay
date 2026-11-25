@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import List, Optional
 
-from records import EXCERPT_MAX, ai_sdlc_skills, extract, load_patterns, redact
+from records import EXCERPT_MAX, repo_skills, extract, load_patterns, redact
 from transcripts import config_dir, list_transcripts, operator_text, read_new, skip_reason
 
 REPO = Path(__file__).resolve().parents[4]
@@ -127,7 +127,7 @@ def _run(args) -> int:
     state = _load_json(retro / "state.json", {})
     files = dict(state.get("files") or {})
     history = [h for h in _load_lines(retro / "instructions.jsonl") if (h.get("ts") or "") >= cutoff]
-    skills = ai_sdlc_skills(REPO)
+    skills = repo_skills(REPO)
     out = []
     for path in list_transcripts(config_dir(args.config_dir)):
         ctx = _new_file_state()
