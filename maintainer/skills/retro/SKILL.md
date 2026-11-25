@@ -5,7 +5,7 @@ description: Use when the nightly 22:00 job fires, when the operator asks to loo
 
 # Retro
 
-`<home>` is `$TL_RELAY_HOME`, else `$AI_SDLC_HOME`, else `~/.ai-sdlc` when only `~/.ai-sdlc` exists, else `~/.tl-relay`. An empty `TL_RELAY_HOME` counts as unset. Pass it as an absolute path. Run scripts as `/usr/bin/python3 <this folder>/scripts/<script>.py … --home <home>`.
+`<home>` is `$TL_RELAY_HOME`, else `$AI_SDLC_HOME`, else `~/.ai-sdlc` when only `~/.ai-sdlc` exists, else `~/.tl-relay`. An empty `TL_RELAY_HOME` or `AI_SDLC_HOME` counts as unset. Pass it as an absolute path. Run scripts as `/usr/bin/python3 <this folder>/scripts/<script>.py … --home <home>`.
 
 ## Cycle
 
