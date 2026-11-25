@@ -107,7 +107,19 @@ def collect_units(tests_dir, skip) -> List[str]:
             if any(type(t).__name__ == "_FailedTest" for t in tests):
                 units.append(module)
                 continue
-            units.extend(sorted({"%s.%s.%s" % (module, type(t).__name__, t._testMethodName) for t in tests}))
+            loaded = sys.modules.get(module)
+            names = sorted(dir(loaded)) if loaded is not None else []
+            found = set()
+            for t in tests:
+                attr = next((n for n in names if getattr(loaded, n, None) is type(t)), None)
+                if attr is None:
+                    found = None
+                    break
+                found.add("%s.%s.%s" % (module, attr, t._testMethodName))
+            if found is None:
+                units.append(module)
+            else:
+                units.extend(sorted(found))
     finally:
         sys.path.remove(str(tests_dir))
         for name in list(sys.modules):

@@ -143,6 +143,25 @@ class RunTest(unittest.TestCase):
             self.assertEqual(run_tests.run(units, 2, out), 0)
             self.assertEqual(out.getvalue().strip().splitlines()[-1], "OK (1 units)")
 
+    def test_an_aliased_testcase_is_named_by_its_alias(self):
+        with tempfile.TemporaryDirectory() as d:
+            write(d, "test_base.py", OK_SRC.format(name="Shared"))
+            write(d, "test_user.py", "from test_base import Shared as Alias\n")
+            units = run_tests.collect_units(pathlib.Path(d), {"test_base"})
+            self.assertEqual(units, ["test_user.Alias.test_a"])
+            out = io.StringIO()
+            suite = run_tests.suite_units(pathlib.Path(d), run_tests.Suite(".", "py", None), {"test_base"})
+            self.assertEqual(run_tests.run(suite, 2, out), 0)
+            self.assertEqual(out.getvalue().strip().splitlines()[-1], "OK (1 units)")
+
+    def test_two_classes_sharing_a_name_keep_both_units(self):
+        with tempfile.TemporaryDirectory() as d:
+            write(d, "test_dup.py", "import unittest\n\n\ndef make():\n    class T(unittest.TestCase):\n"
+                  "        def test_b(self):\n            pass\n    return T\n\n\n"
+                  "class T(unittest.TestCase):\n    def test_a(self):\n        pass\n\n\nB = make()\n")
+            units = run_tests.collect_units(pathlib.Path(d), set())
+            self.assertEqual(units, ["test_dup.B.test_b", "test_dup.T.test_a"])
+
     def test_import_errors(self):
         for name, body in (("test_broken", "raise RuntimeError('boom')\n"), ("test_imp", "import nosuchmod_xyz\n")):
             with tempfile.TemporaryDirectory() as d:
