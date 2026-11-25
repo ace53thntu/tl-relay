@@ -110,6 +110,13 @@ class RunTest(unittest.TestCase):
             self.assertEqual(text.strip().splitlines()[-1], "FAILED (1 of 3 units)")
             self.assertEqual(self.run_dir(d, skip={"test_bad"})[0], 0)
 
+    def test_units_are_test_methods(self):
+        with tempfile.TemporaryDirectory() as d:
+            write(d, "test_ok.py", TWO_OK + "\n\nclass Three(unittest.TestCase):\n    def test_a(self):\n        pass\n\n    def test_b(self):\n        pass\n")
+            units = run_tests.collect_units(pathlib.Path(d), set())
+            self.assertEqual(sorted(units), ["test_ok.One.test_a", "test_ok.Three.test_a", "test_ok.Three.test_b",
+                                             "test_ok.Two.test_a"])
+
     def test_import_errors(self):
         for name, body in (("test_broken", "raise RuntimeError('boom')\n"), ("test_imp", "import nosuchmod_xyz\n")):
             with tempfile.TemporaryDirectory() as d:
