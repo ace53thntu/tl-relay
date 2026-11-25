@@ -111,7 +111,8 @@ Not migrated:
 - The write-skill scripts (`final_run.py`) read `TL_RELAY_HOME` only. The `gates.md` commands take the home from `TL_RELAY_HOME`, else `AI_SDLC_HOME`, and set or export `TL_RELAY_HOME` on each command.
 - `TL_RELAY_TRIGGER_*` and every other internal variable read no old name.
 - The write-skill scripts do not read records under `<git common dir>/ai-sdlc/`. They score branches again that a run before the rename scored.
-- After `install` removes `AI_SDLC_HOME` from a user `settings.json`, a checkout from before the rename no longer finds the home. Rerun its own `install` to roll back.
+- A checkout from before the rename reads only `AI_SDLC_HOME`, else `~/.ai-sdlc`. After `install` replaces `AI_SDLC_HOME` in a user `settings.json`, that checkout still finds `~/.ai-sdlc`. It loses any other home.
+- To roll back, rerun `install --home <home>` from the older checkout. It writes `AI_SDLC_HOME` back but leaves `TL_RELAY_HOME`, which this checkout still prefers. Delete `TL_RELAY_HOME` by hand when you mean the rollback to last.
 
 ## Commands
 

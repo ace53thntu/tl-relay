@@ -14,8 +14,8 @@ printf '{"hooks":{}}\n' > "$TMP/empty.json"
 
 # HOME points at the fixture so the scan for config directories never reads the
 # real ones.
-run() { # user-settings
-  env -u AI_SDLC_HOME -u AI_SDLC_REPO -u AI_SDLC_ROOT -u AI_SDLC_USER_FRAGMENT -u AI_SDLC_FRAGMENT -u AI_SDLC_USER_SETTINGS -u AI_SDLC_SETTINGS -u TL_RELAY_HOME -u TL_RELAY_MEMORY -u TL_RELAY_MEMORY_BUDGET -u TL_RELAY_MEMORY_MAXLINES HOME="$TMP/home" ${MEM:+TL_RELAY_MEMORY="$MEM"} TL_RELAY_ROOT="${TL_RELAY_ROOT:-$TMP/root}" TL_RELAY_COMPARE="$(dirname "$0")/../compare.jq" \
+run() { # user-settings [memory-file]
+  env -u AI_SDLC_HOME -u AI_SDLC_REPO -u AI_SDLC_ROOT -u AI_SDLC_USER_FRAGMENT -u AI_SDLC_FRAGMENT -u AI_SDLC_USER_SETTINGS -u AI_SDLC_SETTINGS -u TL_RELAY_HOME -u TL_RELAY_MEMORY -u TL_RELAY_MEMORY_BUDGET -u TL_RELAY_MEMORY_MAXLINES HOME="$TMP/home" ${2:+TL_RELAY_MEMORY="$2"} TL_RELAY_ROOT="${TL_RELAY_ROOT:-$TMP/root}" TL_RELAY_COMPARE="$(dirname "$0")/../compare.jq" \
   TL_RELAY_USER_FRAGMENT="$TMP/ufrag.json" TL_RELAY_FRAGMENT="$TMP/ufrag.json" \
   TL_RELAY_USER_SETTINGS="$1" TL_RELAY_SETTINGS="$1" \
   TL_RELAY_IN_TESTS=1 sh "$H" </dev/null 2>/dev/null
@@ -42,7 +42,7 @@ printf 'short\n' > "$TMP/mem_ok.md"
 head -c 30000 /dev/zero | tr '\0' 'x' > "$TMP/mem_big.md"
 i=0; while [ $i -lt 250 ]; do printf 'x\n'; i=$((i+1)); done > "$TMP/mem_tall.md"
 
-mem_run() { MEM="$1" run "$LIVE"; }
+mem_run() { run "$LIVE" "$1"; }
 
 o=$(mem_run "$TMP/mem_big.md")
 printf '%s' "$o" | grep -qF 'MEMORY.md' && ok "warns when MEMORY.md is over its byte budget" || bad "no memory warning"
@@ -52,6 +52,8 @@ printf '%s' "$o" | grep -qF 'MEMORY.md' && ok "warns when MEMORY.md is over its 
 
 o=$(mem_run "$TMP/mem_ok.md")
 printf '%s' "$o" | grep -qF 'MEMORY.md' && bad "should be silent when memory is within limits" || ok "silent when memory is fine"
+o=$(MEM="$TMP/mem_big.md" run "$LIVE")
+printf '%s' "$o" | grep -qF 'MEMORY.md' && bad "an exported MEM leaks into the memory path" || ok "ignores an exported MEM"
 
 STUB=$(mktemp -d)
 
