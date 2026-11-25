@@ -67,6 +67,16 @@ class ChangedPathsTest(unittest.TestCase):
                 self.assertIn(expected, result)
 
 
+class RelativePathsTest(unittest.TestCase):
+    def test_paths_are_relative_to_a_repo_below_the_git_top_level(self):
+        with tempfile.TemporaryDirectory() as parent:
+            make_repo(parent, {"sub/README.md": "a\n"})
+            write(parent, "sub/maintainer/x.txt", "x\n")
+            git(parent, "add", "-A")
+            git(parent, "commit", "-q", "-m", "change")
+            self.assertIn("maintainer/x.txt", run_tests.changed_paths(pathlib.Path(parent) / "sub"))
+
+
 class DecodeTest(unittest.TestCase):
     def test_non_utf8_path_does_not_raise(self):
         real = run_tests.git_output
@@ -298,8 +308,11 @@ class SuitesTest(unittest.TestCase):
 
     def main_without_base(self):
         with tempfile.TemporaryDirectory() as repo:
+            git(repo, "init", "-q")
             for name, text in self.SKIP_FILES.items():
                 write(repo, name, text)
+            git(repo, "add", "-A")
+            git(repo, "commit", "-q", "-m", "base")
             return self.run_main(repo, [])
 
     def main_with_heavy_and_change(self, name):
@@ -326,6 +339,14 @@ class SuitesTest(unittest.TestCase):
     def test_a_rename_out_of_the_prefix_still_runs_the_suite(self):
         code, text = self.main_with_rename("c/old.txt", "lib/new.txt")
         self.assertEqual(code, 1)
+        self.assertIn("planted-c-failure", text)
+        self.assertNotIn("skipped: c", text)
+
+    def test_a_runner_change_runs_every_skippable_suite(self):
+        code, text = self.main_with_change("skills/tests/run_tests.py")
+        self.assertEqual(code, 1)
+        self.assertIn("planted-c-failure", text)
+        self.assertNotIn("skipped: c", text)
 
     def test_all_runs_a_skippable_suite(self):
         code, text = self.main_with_change("README.md", "--all")

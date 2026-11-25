@@ -13,6 +13,7 @@ HEAVY_PREFIXES = ("maintainer/skills/write-skill/scripts/", "maintainer/runtime/
                   "skills/tests/", "skills/using-tl-relay/")
 GIT_ENV_DROP = ("GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE", "GIT_COMMON_DIR", "GIT_OBJECT_DIRECTORY")
 HEAVY_SUITE = "skills/tests"
+RUNNER = "skills/tests/run_tests.py"
 
 Suite = namedtuple("Suite", "path kind skip_unless")
 Unit = namedtuple("Unit", "suite kind cwd argv")
@@ -58,7 +59,7 @@ def changed_paths(repo) -> Optional[List[str]]:
     if base is None:
         return None
     base_sha = base.decode("utf-8", "surrogateescape").strip()
-    diff = git_output(repo, "diff", "--no-renames", "-z", "--name-only", base_sha)
+    diff = git_output(repo, "diff", "--no-renames", "--relative", "-z", "--name-only", base_sha)
     untracked = git_output(repo, "ls-files", "-z", "--others", "--exclude-standard")
     if diff is None or untracked is None:
         return None
@@ -174,7 +175,7 @@ def main(argv, repo=None, suites=None, out=sys.stdout) -> int:
         out.write("skipped: test_final_run, test_triggers (diff touches no write-skill scripts, skills/tests, runtime, hooks, sdlc.py or using-tl-relay)\n")
     units = []
     for suite in suites:
-        if paths is not None and suite.skip_unless and not any(p.startswith(suite.skip_unless) for p in paths):
+        if paths is not None and suite.skip_unless and RUNNER not in paths and not any(p.startswith(suite.skip_unless) for p in paths):
             out.write("skipped: %s (diff touches nothing under %s)\n" % (suite.path, suite.skip_unless))
             continue
         units.extend(suite_units(repo, suite, heavy_skip if suite.path == HEAVY_SUITE else set()))
