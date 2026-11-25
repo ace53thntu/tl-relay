@@ -66,17 +66,15 @@ class Config(unittest.TestCase):
             self.assertEqual(str(caught.exception), "%s: the top level must be a mapping" % (repo / "maintainer" / "tl-relay.yaml"))
 
     def test_default_home_prefers_tl_relay_home(self):
-        with unittest.mock.patch.dict(os.environ, {"TL_RELAY_HOME": "/x/new", "AI_SDLC_HOME": "/x/old"}):
+        with unittest.mock.patch.dict(os.environ, {"TL_RELAY_HOME": "/x/new"}):
             self.assertEqual(config.default_home(), pathlib.Path("/x/new"))
 
-    def test_default_home_falls_back_to_ai_sdlc_home(self):
-        with unittest.mock.patch.dict(os.environ, {"AI_SDLC_HOME": "/x/old"}):
-            os.environ.pop("TL_RELAY_HOME", None)
-            self.assertEqual(config.default_home(), pathlib.Path("/x/old"))
-
-    def test_an_empty_tl_relay_home_falls_through(self):
-        with unittest.mock.patch.dict(os.environ, {"TL_RELAY_HOME": "", "AI_SDLC_HOME": "/x/old"}):
-            self.assertEqual(config.default_home(), pathlib.Path("/x/old"))
+    def test_an_empty_tl_relay_home_uses_the_default_home(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp = pathlib.Path(tmp)
+            with unittest.mock.patch.dict(os.environ, {"TL_RELAY_HOME": "", "AI_SDLC_HOME": "/x/old"}), \
+                    unittest.mock.patch.object(pathlib.Path, "home", return_value=tmp):
+                self.assertEqual(config.default_home(), tmp / ".tl-relay")
 
     def test_default_home_without_variables(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -86,33 +84,22 @@ class Config(unittest.TestCase):
                 os.environ.pop("AI_SDLC_HOME", None)
                 self.assertEqual(config.default_home(), tmp / ".tl-relay")
                 (tmp / ".ai-sdlc").mkdir()
-                self.assertEqual(config.default_home(), tmp / ".ai-sdlc")
-                (tmp / ".tl-relay").mkdir()
                 self.assertEqual(config.default_home(), tmp / ".tl-relay")
 
     def test_default_repo(self):
         with unittest.mock.patch.dict(os.environ, {"TL_RELAY_REPO": "/x/repo"}):
             self.assertEqual(config.default_repo(), pathlib.Path("/x/repo"))
-        with unittest.mock.patch.dict(os.environ, {"AI_SDLC_REPO": "/x/repo"}):
+        with unittest.mock.patch.dict(os.environ, {}):
             os.environ.pop("TL_RELAY_REPO", None)
             self.assertTrue((config.default_repo() / "maintainer" / "runtime" / "config.py").is_file())
 
-    def test_load_reads_a_legacy_home_file(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            repo, home = pathlib.Path(tmp) / "repo", pathlib.Path(tmp) / "home"
-            (repo / "maintainer").mkdir(parents=True)
-            home.mkdir()
-            (home / "ai-sdlc.yaml").write_text("apiVersion: ai-sdlc/v2\nproject: {name: t}\n")
-            self.assertEqual(config.load(repo, home)["project"]["name"], "t")
-
-    def test_the_new_home_file_wins(self):
+    def test_load_ignores_an_old_home_file(self):
         with tempfile.TemporaryDirectory() as tmp:
             repo, home = pathlib.Path(tmp) / "repo", pathlib.Path(tmp) / "home"
             (repo / "maintainer").mkdir(parents=True)
             home.mkdir()
             (home / "ai-sdlc.yaml").write_text("project: {name: old}\n")
-            (home / "tl-relay.yaml").write_text("project: {name: new}\n")
-            self.assertEqual(config.load(repo, home)["project"]["name"], "new")
+            self.assertEqual(config.load(repo, home), {})
 
     def _file(self, tmp, text):
         path = pathlib.Path(tmp) / "tl-relay.yaml"

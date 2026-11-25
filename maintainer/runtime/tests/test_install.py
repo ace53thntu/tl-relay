@@ -22,7 +22,7 @@ REPO = pathlib.Path(__file__).resolve().parents[3]
 
 
 def pinned(env):
-    kept = {k: v for k, v in os.environ.items() if not k.startswith(("AI_SDLC_", "TL_RELAY_"))}
+    kept = {k: v for k, v in os.environ.items() if not k.startswith("TL_RELAY_")}
     return dict(kept, **env)
 
 
@@ -98,7 +98,7 @@ class Install(unittest.TestCase):
         self.assertEqual(install.render("{home}|{repo}", "/r{home}", "/h{repo}"), "/h{repo}|/r{home}")
 
     def test_merge_replaces_old_entry_for_same_script(self):
-        old = "/bin/sh '/old/ai-sdlc/hooks/block-env-dump.sh'"
+        old = "/bin/sh '/old/home/hooks/block-env-dump.sh'"
         other = "/bin/sh '/elsewhere/mine.sh'"
         live = {"hooks": {"PreToolUse": [
             {"matcher": "Bash", "hooks": [{"type": "command", "command": old}, {"type": "command", "command": other}]}]}}
@@ -111,7 +111,7 @@ class Install(unittest.TestCase):
 
     def test_install_drops_a_stale_task_hook_registration(self):
         home = make(self.tmp.name)
-        stale = "TL_RELAY_HOME='/old' /bin/sh '/old/ai-sdlc/hooks/block-test-edit.sh'"
+        stale = "TL_RELAY_HOME='/old' /bin/sh '/old/home/hooks/block-test-edit.sh'"
         path = self._settings(json.dumps({"hooks": {"PreToolUse": [
             {"matcher": "Edit|Write|NotebookEdit", "hooks": [{"type": "command", "command": stale}]}]}}))
         install.apply(install.plan(REPO, home))
@@ -121,13 +121,13 @@ class Install(unittest.TestCase):
             self.assertNotIn("block-test-edit.sh", command)
 
     def test_merge_drops_a_retired_hook_under_another_event_and_the_emptied_event(self):
-        stale = "/bin/sh '/old/ai-sdlc/hooks/validate-evidence.sh'"
+        stale = "/bin/sh '/old/home/hooks/validate-evidence.sh'"
         live = {"hooks": {"PostToolUse": [{"matcher": "*", "hooks": [{"type": "command", "command": stale}]}]}}
         merged = install.merge_settings(live, {})
         self.assertNotIn("PostToolUse", merged["hooks"])
 
     def test_merge_keeps_a_user_hook_beside_a_retired_one(self):
-        stale = "/bin/sh '/old/ai-sdlc/hooks/warn-out-of-scope.sh'"
+        stale = "/bin/sh '/old/home/hooks/warn-out-of-scope.sh'"
         mine = {"type": "command", "command": "echo mine"}
         live = {"hooks": {"PostToolUse": [{"matcher": "*", "hooks": [{"type": "command", "command": stale}, mine]}]}}
         merged = install.merge_settings(live, {})
@@ -195,56 +195,18 @@ class Install(unittest.TestCase):
         self.assertIn("--home", err)
         self.assertNotIn("Traceback", err)
 
-    def test_a_same_home_legacy_key_is_replaced(self):
+    def test_the_hook_home_reads_tl_relay_home(self):
+        text = "#!/bin/sh\nTL_RELAY_HOME=/h TL_RELAY_REPO=x exec /usr/bin/python3 s\n"
+        self.assertEqual(install._hook_home(text), "/h")
+        self.assertIsNone(install._hook_home(text.replace("TL_RELAY_", "AI_SDLC_")))
+
+    def test_a_stray_old_home_key_is_left_alone(self):
         home = make(self.tmp.name)
-        path = self._settings(json.dumps({"env": {"AI_SDLC_HOME": str(home), "KEEP": "1"}}))
+        path = self._settings(json.dumps({"env": {"AI_SDLC_HOME": "/other", "KEEP": "1"}}))
         code, _, err = run_cli(home)
         self.assertEqual(code, 0, err)
-        self.assertEqual(json.loads(path.read_text())["env"], {"KEEP": "1", "TL_RELAY_HOME": str(home.resolve())})
-
-    def test_a_foreign_legacy_key_is_refused(self):
-        home = make(self.tmp.name)
-        path = self._settings('{"env": {"AI_SDLC_HOME": "/other"}}')
-        before = path.read_bytes()
-        code, _, err = run_cli(home)
-        self.assertEqual(code, 1)
-        self.assertIn("%s: env.AI_SDLC_HOME is /other; pass --home to replace it" % path, err)
-        self.assertEqual(path.read_bytes(), before)
-        self.assertFalse((home / "env.sh").exists())
-
-    def test_home_given_replaces_a_foreign_legacy_key(self):
-        home = make(self.tmp.name)
-        path = self._settings('{"env": {"AI_SDLC_HOME": "/other"}}')
-        code, _, err = run_cli(home, "--home", str(home))
-        self.assertEqual(code, 0, err)
-        self.assertEqual(json.loads(path.read_text())["env"], {"TL_RELAY_HOME": str(home.resolve())})
-
-    def test_project_settings_drop_a_foreign_legacy_key(self):
-        home = make(self.tmp.name).resolve()
-        live = {"env": {"AI_SDLC_HOME": "/elsewhere", "KEEP": "1"}}
-        with self.assertRaises(install.InstallError):
-            install.without_stale_home(live, "p", home, False)
-        self.assertEqual(install.without_stale_home(live, "p", home, True), {"env": {"KEEP": "1"}})
-        same = {"env": {"AI_SDLC_HOME": str(home)}}
-        self.assertEqual(install.without_stale_home(same, "p", home, False), same)
-        path = pathlib.Path(self.tmp.name) / "local.json"
-        path.write_text(json.dumps(live))
-        with self.assertRaises(install.InstallError):
-            install.check_local_home(path, home)
-
-    def test_install_accepts_a_legacy_home_file(self):
-        home = make(self.tmp.name)
-        (home / "tl-relay.yaml").rename(home / "ai-sdlc.yaml")
-        plan = install.plan(REPO, home)
-        self.assertTrue(plan)
-        self.assertEqual(sorted(p.name for p in home.iterdir()), ["ai-sdlc.yaml"])
-        self.assertNotIn("ai-sdlc.yaml", [pathlib.Path(item[0]).name for item in plan])
-
-    def test_the_hook_home_reads_either_prefix(self):
-        for prefix in ("TL_RELAY", "AI_SDLC"):
-            with self.subTest(prefix=prefix):
-                text = "#!/bin/sh\n%s_HOME=/h %s_REPO=x exec /usr/bin/python3 s\n" % (prefix, prefix)
-                self.assertEqual(install._hook_home(text), "/h")
+        self.assertEqual(json.loads(path.read_text())["env"],
+                         {"AI_SDLC_HOME": "/other", "KEEP": "1", "TL_RELAY_HOME": str(home.resolve())})
 
     def test_home_flag_replaces_a_differing_home(self):
         home = make(self.tmp.name)
@@ -1386,19 +1348,6 @@ class GitHook(unittest.TestCase):
         self.hook.write_text("#!/bin/sh\necho mine\n")
         self.notice("not written by tl-relay")
 
-    def test_a_plain_install_notes_a_hook_rendered_from_the_old_template(self):
-        run_clone(self.clone, self.home, "--git-hook")
-        text = self.hook.read_text().replace("TL_RELAY_HOME=", "AI_SDLC_HOME=").replace("TL_RELAY_REPO=", "AI_SDLC_REPO=")
-        self.hook.write_text(text)
-        self.notice("uses the old variable names")
-
-    def test_a_plain_install_notes_the_oldest_hook(self):
-        run_clone(self.clone, self.home, "--git-hook")
-        text = self.hook.read_text().replace(install.HOOK_MARKER, "# ai-sdlc pre-push hook")
-        text = text.replace("TL_RELAY_HOME=", "AI_SDLC_HOME=").replace("TL_RELAY_REPO=", "AI_SDLC_REPO=")
-        self.hook.write_text(text)
-        self.notice("uses the old variable names")
-
     def test_a_plain_install_draws_no_notice_for_a_current_hook(self):
         run_clone(self.clone, self.home, "--git-hook")
         code, out, err = run_clone(self.clone, self.home)
@@ -1408,14 +1357,13 @@ class GitHook(unittest.TestCase):
     def test_the_marker_names_tl_relay(self):
         self.assertEqual(install.HOOK_MARKER, "# tl-relay pre-push hook")
 
-    def test_a_hook_with_the_legacy_marker_is_rewritten_with_the_new_one(self):
+    def test_a_hook_with_only_the_old_marker_is_foreign(self):
         run_clone(self.clone, self.home, "--git-hook")
         self.hook.write_text(self.hook.read_text().replace(install.HOOK_MARKER, "# ai-sdlc pre-push hook"))
+        before = self.hook.read_bytes()
         code, out, err = run_clone(self.clone, self.home, "--git-hook")
-        self.assertEqual(code, 0, err)
-        text = self.hook.read_text()
-        self.assertIn("# tl-relay pre-push hook", text)
-        self.assertNotIn("# ai-sdlc pre-push hook", text)
+        self.assertEqual(code, 1)
+        self.assertEqual(self.hook.read_bytes(), before)
 
     def test_a_dangling_foreign_symlink_raises_and_is_left_alone(self):
         target = pathlib.Path(self.tmp.name) / "nowhere"

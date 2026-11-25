@@ -16,7 +16,7 @@ from runtime import neutral  # noqa: E402
 
 LOCAL_ENV = subprocess.run(["git", "rev-parse", "--local-env-vars"], check=True, capture_output=True,
                            text=True).stdout.split()
-ENV = {k: v for k, v in os.environ.items() if k not in LOCAL_ENV and not k.startswith(("AI_SDLC_", "TL_RELAY_"))}
+ENV = {k: v for k, v in os.environ.items() if k not in LOCAL_ENV and not k.startswith("TL_RELAY_")}
 
 
 def git(repo, *args):
@@ -79,15 +79,6 @@ class CheckNeutralTest(unittest.TestCase):
         code, _, err = self.run_check([])
         self.assertEqual(code, 2)
         self.assertEqual(err.strip(), "neutrality.patterns is empty in %s/tl-relay.yaml" % self.home)
-
-    def test_check_neutral_reads_a_legacy_home(self):
-        (self.home / "ai-sdlc.yaml").write_text("neutrality:\n  patterns: ['zzz']\n")
-        out, err = io.StringIO(), io.StringIO()
-        env = {"AI_SDLC_HOME": str(self.home)}
-        with mock.patch.dict(os.environ, env), contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
-            os.environ.pop("TL_RELAY_HOME", None)
-            code = sdlc.main(["check-neutral", "--repo", str(self.repo)])
-        self.assertEqual((code, out.getvalue()), (0, ""))
 
     def test_untracked_file_is_ignored(self):
         (self.repo / "b.md").write_text("zzz-secret\n")

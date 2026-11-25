@@ -17,7 +17,6 @@ FRAGMENTS = ("settings-fragment.json", "user-fragment.json")
 SCRIPT = re.compile(r"'([^']+)'$")
 RETIRED = ("block-test-edit.sh", "warn-out-of-scope.sh", "validate-evidence.sh")
 HOOK_MARKER = "# tl-relay pre-push hook"
-LEGACY_HOOK_MARKERS = ("# ai-sdlc pre-push hook",)
 HOOK_TEMPLATE = "git-pre-push"
 
 
@@ -405,7 +404,7 @@ def _hook_target(repo):
 
 
 def is_own_hook(text):
-    return any(marker in text for marker in (HOOK_MARKER,) + LEGACY_HOOK_MARKERS)
+    return HOOK_MARKER in text
 
 
 def _hook_text(path):
@@ -493,8 +492,6 @@ def hook_notice(repo, home):
     named = _hook_home(text)
     if _differs(named, home):
         return "pre-push hook %s names home %s, not %s; run install --git-hook to update it" % (path, named, home)
-    if is_own_hook(text) and _hook_value(text, "TL_RELAY_HOME=") is None:
-        return "pre-push hook %s uses the old variable names; run install --git-hook to update it" % path
     return None
 
 
