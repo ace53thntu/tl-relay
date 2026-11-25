@@ -356,7 +356,13 @@ class DocBudgetTest(unittest.TestCase):
     def test_walk_skips_publish_and_runs(self):
         self.write(TH + "publish/_knowledge/lld/marketplace.md", w(5000))
         self.write(TH + "runs/r1/lld/marketplace.md", w(5000))
-        self.assertEqual(self.run_cli(self.root)[0], 0)
+        self.assertEqual(self.run_cli(self.root + "/" + TH)[0], 0)
+
+    def test_walk_keeps_lld_modules_named_publish_or_runs(self):
+        for mod in ("runs", "publish"):
+            self.write(TH + "lld/%s/api/4-1-big.md" % mod, w(5000))
+            self.assertEqual(self.run_cli(self.root + "/" + TH)[0], 1)
+            os.remove(os.path.join(self.root, TH, "lld", mod, "api", "4-1-big.md"))
 
     def test_walk_skips_hidden_dirs_and_files(self):
         self.write(TH + ".draft/lld/marketplace.md", w(5000))

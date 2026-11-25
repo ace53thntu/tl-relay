@@ -47,6 +47,15 @@ class ImpactTest(unittest.TestCase):
                     fh.write(STORY)
             self.assertEqual(im.scan(d, ["US-16"]), [])
 
+    def test_keeps_nested_publish_and_runs_dirs(self):
+        with tempfile.TemporaryDirectory() as d:
+            for rel in ("lld/runs/api/index.md", "lld/publish/x.md", "runs/r1/y.md"):
+                os.makedirs(os.path.join(d, os.path.dirname(rel)))
+                with open(os.path.join(d, rel), "w", encoding="utf-8") as fh:
+                    fh.write(STORY)
+            pages = sorted(h[0] for h in im.scan(d, ["US-16"]))
+        self.assertEqual(pages, [os.path.join("lld", "publish", "x.md"), os.path.join("lld", "runs", "api", "index.md")])
+
 
 if __name__ == "__main__":
     unittest.main()
