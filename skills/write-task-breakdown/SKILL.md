@@ -7,7 +7,7 @@ description: Use when a design set's design stage is signed and its task breakdo
 
 ## Configuration
 
-`.tl-relay/config.yaml` at the workspace root sets `knowledge_dir`; a missing file or key means `_knowledge`.
+Paths follow [config.md](../using-tl-relay/config.md): `<design root>` holds `designs/`, by default `<state_dir>/<workspace>/`. `knowledge_dir` has no default.
 `<skill dir>` is this skill's base directory as the session reports it.
 
 ## Overview
@@ -49,7 +49,7 @@ The table columns are `ID | Task | Scope | Ticket | Design | Depends on | MD`. `
 
 ## Commands
 
-Run these from the set directory `<knowledge_dir>/designs/<handle>`. Set `SK` and `CK` first.
+Run these from the set directory `<design root>/designs/<handle>`. Set `SK` and `CK` first.
 
 ```bash
 SK=<skill dir>/scripts

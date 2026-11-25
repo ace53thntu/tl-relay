@@ -7,14 +7,14 @@ description: Use when a story, feature slice, or endpoint change needs a Low-Lev
 
 ## Configuration
 
-`.tl-relay/config.yaml` at the workspace root sets `knowledge_dir`; a missing file or key means `_knowledge`.
+Paths follow [config.md](../using-tl-relay/config.md): `<design root>` holds `designs/`, by default `<state_dir>/<workspace>/`. `knowledge_dir` has no default.
 `<skill dir>` is this skill's base directory as the session reports it. `doc_budget.py` comes from the sibling skill `tl-design`. If `<skill dir>/../tl-design/scripts/doc_budget.py` is missing, stop and name `tl-design` with `npx skills add ace53thntu/tl-relay --skill tl-design`.
 
 ## Overview
 
 Seven sections in fixed order. The LLD fixes the module's contracts, state, concurrency model and failure handling. Pseudo-code, DDL, field mappings, per-country config blocks and the code changes belong to the implementation plan that follows (`write-plan`), as do tests and rollout: the file layout, the change order, the wiring, migration file names, versioning markers and replay test files.
 
-A module LLD of a design set under `<knowledge_dir>/designs/<handle>/` follows `write-design`, which cites this skill.
+A module LLD of a design set under `<design root>/designs/<handle>/` follows `write-design`, which cites this skill.
 
 ## Inputs to collect before writing
 
@@ -184,9 +184,9 @@ Never wrap the line in backticks. A code span publishes to Confluence as code.
 
 ## Output
 
-- Path: `<knowledge_dir>/plans/lld/YYYY-MM-DD-<slug>.md`.
-- Frontmatter from `<knowledge_dir>/_templates/plan.md` with `type: LLD`. `affects` lists every repo the change touches code in. That list drives the knowledge refresh after the work ships.
-- Add an entry to `<knowledge_dir>/plans/lld/index.md` whose description string equals the page's `description` exactly. `lint.sh` compares them.
+- Path: `<runtime>/plans/lld/YYYY-MM-DD-<slug>.md`.
+- Frontmatter from `<knowledge_dir>/_templates/plan.md` when `knowledge_dir` is set and the file exists, else written inline: `type: LLD` and `affects`. `affects` lists every repo the change touches code in. That list drives the knowledge refresh after the work ships.
+- Add an entry to `plans/lld/index.md` beside the page, only when the page sits under `knowledge_dir`. Its description string equals the page's `description` exactly. `lint.sh` compares them.
 
 With a contract, the route pages sit in `lld/<module>/api/`, children of the API page `lld/<module>-api.md`.
 

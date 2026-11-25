@@ -22,8 +22,8 @@ In this phase the drift record covers `stories` workbooks only. PRD and prototyp
 
 ## Paths
 
-`<skill dir>` is this skill's base directory as the session reports it. `.tl-relay/config.yaml` at the workspace root
-sets `knowledge_dir`; a missing file or key means `_knowledge`.
+`<skill dir>` is this skill's base directory as the session reports it.
+Paths follow [config.md](../using-tl-relay/config.md): `<design root>` holds `designs/`, by default `<state_dir>/<workspace>/`. `knowledge_dir` has no default.
 
 `PY` is `<skill dir>/.venv/bin/python` when it exists, else `python3`.
 
@@ -35,7 +35,7 @@ If an import fails, stop and give the operator
 stop and name `tl-design` with `npx skills add ace53thntu/tl-relay --skill tl-design`.
 
 ```bash
-K=<absolute path of the workspace knowledge_dir>
+K=<absolute path of the design root>
 H=<handle>
 SK=<skill dir>/scripts
 PY=<the Python defined above>

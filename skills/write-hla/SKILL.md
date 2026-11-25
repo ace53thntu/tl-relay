@@ -7,7 +7,7 @@ description: Use when a new system, platform, or cross-service initiative needs 
 
 ## Configuration
 
-`.tl-relay/config.yaml` at the workspace root sets `knowledge_dir`; a missing file or key means `_knowledge`.
+Paths follow [config.md](../using-tl-relay/config.md): `<design root>` holds `designs/`, by default `<state_dir>/<workspace>/`. `knowledge_dir` has no default.
 `<skill dir>` is this skill's base directory as the session reports it. `doc_budget.py` comes from the sibling skill `tl-design`. If `<skill dir>/../tl-design/scripts/doc_budget.py` is missing, stop and name `tl-design` with `npx skills add ace53thntu/tl-relay --skill tl-design`.
 
 ## Overview
@@ -16,7 +16,7 @@ One page, five sections in fixed order, with a use case tree: one page per use c
 
 An HLA written to an earlier version of this skill keeps its shape until someone rewrites it.
 
-The Overview of a design set under `<knowledge_dir>/designs/<handle>/` follows `write-design`, which cites this skill.
+The Overview of a design set under `<design root>/designs/<handle>/` follows `write-design`, which cites this skill.
 
 ## Inputs to collect before writing
 
@@ -176,9 +176,9 @@ Never put the label "C4" in a heading.
 
 ## Output
 
-- Path: `<knowledge_dir>/hlds/<slug>.md`. No date prefix. HLA pages are living and edited in place.
+- Path: `<runtime>/hlds/<slug>.md`. No date prefix. HLA pages are living and edited in place.
 - Frontmatter as the existing HLD pages there: `type: HLD`, `title`, `description`, `tags`, `status`, `affects`, `generated`, `sources`. No `verified` key. Only a human adds one.
-- Add an entry to `<knowledge_dir>/hlds/index.md` for the use case container. An L1 HLA over module HLAs has no container entry.
+- Add an entry to `hlds/index.md` beside the page for the use case container, only when the page sits under `knowledge_dir`. An L1 HLA over module HLAs has no container entry.
 
 ### Use case pages
 

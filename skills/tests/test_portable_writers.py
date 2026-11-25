@@ -46,9 +46,25 @@ class PortableWritersTest(unittest.TestCase):
         self.assertNotIn("$SK/write-task-breakdown/", (SKILLS / "write-task-breakdown/SKILL.md").read_text())
         self.assertIn("<skill dir>/../tl-design/scripts/doc_budget.py", (SKILLS / "write-design/SKILL.md").read_text())
 
-    def test_writers_read_knowledge_dir(self):
-        for name in ("write-design", "write-hla", "write-lld", "write-contract", "write-task-breakdown"):
-            self.assertIn("knowledge_dir", (SKILLS / name / "SKILL.md").read_text(), name)
+    def body(self, name):
+        return (SKILLS / name / "SKILL.md").read_text().split("\n---\n", 1)[1]
+
+    def test_writers_use_the_shared_config(self):
+        for name in self.NAMES:
+            text = self.body(name)
+            self.assertIn("../using-tl-relay/config.md", text, name)
+            self.assertNotIn("a missing file or key means `_knowledge`", text, name)
+            self.assertNotIn("<knowledge_dir>/designs/", text, name)
+
+    def test_hub_steps_need_knowledge_dir(self):
+        lld = self.body("write-lld")
+        hla = self.body("write-hla")
+        self.assertIn("when `knowledge_dir` is set and the file exists", lld)
+        self.assertIn("type: LLD", lld)
+        self.assertIn("<runtime>/plans/lld/YYYY-MM-DD-<slug>.md", lld)
+        self.assertIn("<runtime>/hlds/<slug>.md", hla)
+        for text in (lld, hla):
+            self.assertIn("only when the page sits under `knowledge_dir`", text)
 
 
 if __name__ == "__main__":
