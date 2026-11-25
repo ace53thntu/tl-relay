@@ -2337,21 +2337,17 @@ class SandboxGitConfig(unittest.TestCase):
             self.fail("sandbox build failed: %s %s" % (error.cmd, error.stderr))
 
     def test_the_operator_git_config_does_not_reach_the_sandbox(self):
+        env = {}
         for name in fr_fixture.OPERATOR_CONFIG:
             with self.subTest(name=name), tempfile.TemporaryDirectory() as tmp:
                 with mock.patch.dict(os.environ, {name: self.planted(pathlib.Path(tmp), name)}):
                     sb = self.sandbox()
                 try:
                     self.assertNotIn(name, sb.env)
+                    env = sb.env
                 finally:
                     sb.cleanup()
-
-    def test_the_sandbox_skips_the_system_git_config(self):
-        sb = self.sandbox()
-        try:
-            self.assertEqual(sb.env.get("GIT_CONFIG_NOSYSTEM"), "1")
-        finally:
-            sb.cleanup()
+        self.assertEqual(env.get("GIT_CONFIG_NOSYSTEM"), "1")
 
 
 if __name__ == "__main__":
