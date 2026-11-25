@@ -7,6 +7,7 @@ import time
 import uuid
 import tempfile
 import unittest
+from unittest import mock
 
 import triggers
 
@@ -234,6 +235,29 @@ class KillPaths(unittest.TestCase):
         while not (path.exists() and path.read_text().strip()) and time.time() < deadline:
             time.sleep(0.05)
         self.assertTrue(path.read_text().strip())
+        proc.send_signal(signal.SIGINT)
+        proc.communicate(timeout=30)
+        self.assertEqual(proc.returncode, 130)
+        self.assertEqual(path.read_text(), "")
+
+    def test_the_watchdog_runs_before_the_pgid_file_is_written(self):
+        path = pathlib.Path(self.root.name) / "agent.pgid"
+        os.mkfifo(str(path))
+        shadow = pathlib.Path(self.root.name) / "bin"
+        shadow.mkdir()
+        mark = pathlib.Path(self.root.name) / "dog.started"
+        (shadow / "sleep").write_text('#!/bin/bash\n[ "$1" = 77 ] && : >"%s"\nexec -a "$0" /bin/sleep "$@"\n' % mark)
+        (shadow / "sleep").chmod(0o755)
+        with mock.patch.dict(os.environ, {"PATH": "%s:%s" % (shadow, os.environ["PATH"])}):
+            proc = self.start("silent", timeout=77, pgid_file=path)
+        self.addCleanup(proc.kill)
+        deadline = time.time() + 5
+        while not mark.exists() and time.time() < deadline:
+            time.sleep(0.05)
+        self.assertTrue(mark.exists())
+        with open(str(path)) as fifo:
+            self.assertTrue(fifo.read().strip())
+        path.unlink()
         proc.send_signal(signal.SIGINT)
         proc.communicate(timeout=30)
         self.assertEqual(proc.returncode, 130)
