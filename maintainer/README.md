@@ -203,7 +203,7 @@ launchd runs a missed job at the next wake when the Mac sleeps through 22:00. Ru
 
 ## Tests
 
-From the checkout root, the first command skips up to four slow suites when the diff from `origin/main` leaves their inputs untouched, and `--all` runs every suite:
+From the checkout root, the first command skips four slow test groups when the diff leaves their inputs untouched. `--all` runs every suite:
 
 ```sh
 /usr/bin/python3 skills/tests/run_tests.py

@@ -120,7 +120,7 @@ def collect_units(tests_dir, skip) -> List[str]:
                         found = None
                         break
                     found.add("%s.%s.%s" % (module, attr, t._testMethodName))
-            except Exception:
+            except (Exception, SystemExit):
                 found = None
             if found is None:
                 units.append(module)
