@@ -1957,22 +1957,16 @@ class ScoreGuards(ScoreBase):
         self.sb._git("update-ref", "-d", "refs/remotes/origin/main")
         self.refused(self.score(), "origin/main")
 
-    def test_score_and_tune_refuse_another_config_dir(self):
+    def test_score_and_tune_run_with_any_config_dir(self):
         other = self.sb.home / "other-config"
         other.mkdir()
-        env = dict(self.sb.env, CLAUDE_CONFIG_DIR=str(other))
-        self.refused(self.sb.run("score", env=env), "CLAUDE_CONFIG_DIR")
-        self.refused(self.sb.run("tune", "alpha", "--runs", "1", env=env), "CLAUDE_CONFIG_DIR")
-
-    def test_an_empty_config_dir_is_refused(self):
-        self.refused(self.sb.run("score", env=dict(self.sb.env, CLAUDE_CONFIG_DIR="")), "CLAUDE_CONFIG_DIR")
-
-    def test_a_config_dir_resolving_to_the_default_is_accepted(self):
-        alias = self.sb.home / "alias"
-        alias.symlink_to(self.sb.home / ".claude")
         self.sb.agent_plan({ALPHA_PROMPT: "alpha"})
-        done = self.sb.run("score", env=dict(self.sb.env, CLAUDE_CONFIG_DIR=str(alias)))
-        self.assertEqual(done.returncode, 0, done.stderr)
+        for value in (str(other), ""):
+            env = dict(self.sb.env, CLAUDE_CONFIG_DIR=value)
+            for argv in (("score",), ("tune", "alpha", "--runs", "1")):
+                with self.subTest(config=value, argv=argv):
+                    done = self.sb.run(*argv, env=env)
+                    self.assertEqual(done.returncode, 0, done.stderr)
 
     def test_a_home_without_config_exits_two_and_creates_nothing(self):
         bare = self.sb.home / "bare-home"

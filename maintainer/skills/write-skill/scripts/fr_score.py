@@ -106,15 +106,6 @@ def _require_clean(repo) -> None:
         raise Refused("%s does not resolve locally" % fr_git.MAIN)
 
 
-def _check_config_dir() -> None:
-    value = os.environ.get("CLAUDE_CONFIG_DIR")
-    if value is None:
-        return
-    expected = pathlib.Path.home() / ".claude"
-    if not value or os.path.realpath(value) != os.path.realpath(str(expected)):
-        raise Refused("CLAUDE_CONFIG_DIR=%s does not resolve to %s, unset it" % (value, expected))
-
-
 def _check_hook_home(repo) -> None:
     hook = fr_git.common_dir(repo) / "hooks" / "pre-push"
     try:
@@ -277,7 +268,6 @@ def _run_all(repo, sha, fp, digest, files, change, skills, export, env) -> int:
 
 
 def _score(repo, heldout) -> int:
-    _check_config_dir()
     fr_lock.lock_path()
     _check_hook_home(repo)
     _require_clean(repo)
@@ -356,7 +346,6 @@ def _tune(repo, skill, runs) -> int:
         raise Refused("tune refuses TL_RELAY_TRIGGER_PROMPTS, unset it")
     if runs < 1:
         raise Refused("--runs must be at least 1")
-    _check_config_dir()
     fr_lock.lock_path()
     top = pathlib.Path(fr_git.toplevel(repo)).resolve()
     skills = _tune_skills(top, skill)
