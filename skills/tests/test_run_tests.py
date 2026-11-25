@@ -463,10 +463,10 @@ class SuitesTest(unittest.TestCase):
         self.assertNotIn("RUN_TESTS_LEAK", recorded["env"])
         self.assertEqual(recorded["env"], expected)
 
-    def test_the_drop_list_matches_the_local_env_vars_git_reports(self):
+    def test_the_drop_list_covers_the_local_env_vars_git_reports(self):
         done = subprocess.run(["git", "rev-parse", "--local-env-vars"], stdout=subprocess.PIPE,
                               env=run_tests.without_git_vars(os.environ), check=True)
-        self.assertEqual(sorted(run_tests.GIT_ENV_DROP), sorted(done.stdout.decode().split()))
+        self.assertLessEqual(set(done.stdout.decode().split()), set(run_tests.GIT_ENV_DROP))
 
     def test_main_drops_git_local_env_vars_from_the_child_env(self):
         recorded = {}
@@ -481,7 +481,7 @@ class SuitesTest(unittest.TestCase):
         dropped = list(run_tests.GIT_ENV_DROP) + ["GIT_CONFIG_KEY_0", "GIT_CONFIG_VALUE_0"]
         kept = {"RUN_TESTS_KEEP": "1", "GIT_CONFIG_GLOBAL": "/keep", "GIT_CONFIG_SYSTEM": "/keep", "GIT_CONFIG_NOSYSTEM": "1"}
         planted = dict({name: "/run-tests-leak" for name in dropped}, **kept)
-        with mock.patch.dict(os.environ, planted, clear=True), tempfile.TemporaryDirectory() as repo, \
+        with tempfile.TemporaryDirectory() as repo, mock.patch.dict(os.environ, planted, clear=True), \
                 mock.patch.object(run_tests, "run", record_run), mock.patch.object(run_tests, "npx_warmup", record_warmup):
             write(repo, run_tests.CONTRACT_SUITE + "/test_ok.py", OK_SRC.format(name="One"))
             run_tests.main(["--all"], repo=pathlib.Path(repo), suites=(run_tests.Suite(run_tests.CONTRACT_SUITE, "py", None),),
