@@ -4,13 +4,30 @@ import pathlib
 import subprocess
 import sys
 import unittest
+from collections import namedtuple
 from concurrent.futures import ThreadPoolExecutor
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 HEAVY = ("test_final_run", "test_triggers")
 HEAVY_PREFIXES = ("maintainer/skills/write-skill/scripts/", "maintainer/runtime/", "maintainer/hooks/", "hooks/",
                   "skills/tests/", "skills/using-tl-relay/")
 GIT_ENV_DROP = ("GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE", "GIT_COMMON_DIR", "GIT_OBJECT_DIRECTORY")
+HEAVY_SUITE = "skills/tests"
+
+Suite = namedtuple("Suite", "path kind skip_unless")
+Unit = namedtuple("Unit", "suite kind cwd argv")
+
+SUITES: Tuple[Suite, ...] = (
+    Suite("skills/tests", "py", None),
+    Suite("maintainer/runtime/tests", "py", None),
+    Suite("skills/ingest-sources/scripts", "py", None),
+    Suite("skills/tl-design/scripts", "py", None),
+    Suite("skills/write-contract/scripts", "py", None),
+    Suite("skills/write-task-breakdown/scripts", "py", None),
+    Suite("maintainer/skills/retro/scripts", "py", None),
+    Suite("maintainer/hooks/tests/run.sh", "sh", None),
+    Suite("skills/technical-writing/vale/test.sh", "sh", None),
+)
 
 
 def needs_heavy(paths) -> bool:
@@ -103,20 +120,39 @@ def collect_units(tests_dir, skip) -> List[str]:
     return units
 
 
-def run(tests_dir, skip, jobs, out) -> int:
-    units = collect_units(tests_dir, skip)
+def suite_units(repo, suite, skip) -> List[Unit]:
+    if suite.kind == "sh":
+        return [Unit(suite.path, "sh", repo, ["sh", str(repo / suite.path)])]
+    tests_dir = repo / suite.path
+    return [Unit(suite.path, "py", tests_dir, [sys.executable, "-m", "unittest", "-q", name])
+            for name in collect_units(tests_dir, skip)]
+
+
+def order(units) -> List[Unit]:
+    return sorted(units, key=lambda unit: not unit.argv[-1].startswith("test_final_run"))
+
+
+def run(units, jobs, out) -> int:
+    units = order(units)
 
     def run_unit(unit):
-        return subprocess.run([sys.executable, "-m", "unittest", "-q", unit], cwd=str(tests_dir),
-                              stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        return subprocess.run(unit.argv, cwd=str(unit.cwd), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
     with ThreadPoolExecutor(max(1, jobs)) as pool:
         results = list(pool.map(run_unit, units))
     failed = 0
     for unit, proc in zip(units, results):
-        if proc.returncode != 0 or b"\nOK" not in proc.stderr:
+        if unit.kind == "py":
+            passed = proc.returncode == 0 and b"\nOK" in proc.stderr
+            detail = proc.stderr
+            name = unit.argv[-1]
+        else:
+            passed = proc.returncode == 0
+            detail = proc.stdout + proc.stderr
+            name = unit.suite
+        if not passed:
             failed += 1
-            out.write("FAIL %s\n%s\n" % (unit, proc.stderr.decode(errors="replace")))
+            out.write("FAIL %s %s\n%s\n" % (unit.suite, name, detail.decode(errors="replace")))
     if failed:
         out.write("FAILED (%d of %d units)\n" % (failed, len(units)))
         return 1
@@ -124,22 +160,23 @@ def run(tests_dir, skip, jobs, out) -> int:
     return 0
 
 
-def main(argv, repo=None, tests_dir=None, out=sys.stdout) -> int:
+def main(argv, repo=None, suites=None, out=sys.stdout) -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--all", action="store_true")
     parser.add_argument("--jobs", type=int, default=os.cpu_count() or 1)
     parsed = parser.parse_args(list(argv))
-    jobs = parsed.jobs
-    run_all = parsed.all
-    tests_dir = pathlib.Path(tests_dir) if tests_dir else pathlib.Path(__file__).resolve().parent
+    suites = SUITES if suites is None else suites
     repo = pathlib.Path(repo) if repo else pathlib.Path(__file__).resolve().parents[2]
-    skip = set()
-    if not run_all:
+    heavy_skip = set()
+    if not parsed.all and any(suite.path == HEAVY_SUITE for suite in suites):
         paths = changed_paths(repo)
         if paths is not None and not needs_heavy(paths):
-            skip = set(HEAVY)
+            heavy_skip = set(HEAVY)
             out.write("skipped: test_final_run, test_triggers (diff touches no write-skill scripts, skills/tests, runtime, hooks, sdlc.py or using-tl-relay)\n")
-    return run(tests_dir, skip, jobs, out)
+    units = []
+    for suite in suites:
+        units.extend(suite_units(repo, suite, heavy_skip if suite.path == HEAVY_SUITE else set()))
+    return run(units, parsed.jobs, out)
 
 
 if __name__ == "__main__":

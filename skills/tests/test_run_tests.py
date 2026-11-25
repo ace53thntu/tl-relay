@@ -90,7 +90,7 @@ class DecodeTest(unittest.TestCase):
 class RunTest(unittest.TestCase):
     def run_dir(self, directory, skip=()):
         out = io.StringIO()
-        code = run_tests.run(pathlib.Path(directory), set(skip), 2, out)
+        code = run_tests.run(run_tests.suite_units(pathlib.Path(directory), run_tests.Suite(".", "py", None), set(skip)), 2, out)
         return code, out.getvalue()
 
     def test_all_pass(self):
@@ -178,47 +178,82 @@ class RunTest(unittest.TestCase):
 
 
 class MainTest(unittest.TestCase):
-    def setup_dirs(self, repo, tests):
-        make_repo(repo, {"skills/brainstorm/SKILL.md": "a\n"})
+    SUITES = (run_tests.Suite("skills/tests", "py", None),)
+
+    def setup_dirs(self, repo):
+        make_repo(repo, {"skills/brainstorm/SKILL.md": "a\n",
+                         "skills/tests/test_ok.py": OK_SRC.format(name="One"),
+                         "skills/tests/test_final_run.py": HEAVY_BAD_SRC,
+                         "skills/tests/test_triggers.py": HEAVY_BAD_SRC.replace("planted-heavy-failure", "planted-triggers-failure")})
         write(repo, "skills/brainstorm/SKILL.md", "b\n")
         git(repo, "commit", "-q", "-am", "change")
-        write(tests, "test_ok.py", OK_SRC.format(name="One"))
-        write(tests, "test_final_run.py", HEAVY_BAD_SRC)
-        write(tests, "test_triggers.py", HEAVY_BAD_SRC.replace("planted-heavy-failure", "planted-triggers-failure"))
 
     def test_skips_heavy_for_text_only_diff(self):
-        with tempfile.TemporaryDirectory() as repo, tempfile.TemporaryDirectory() as tests:
-            self.setup_dirs(repo, tests)
+        with tempfile.TemporaryDirectory() as repo:
+            self.setup_dirs(repo)
             out = io.StringIO()
-            code = run_tests.main([], repo=pathlib.Path(repo), tests_dir=pathlib.Path(tests), out=out)
+            code = run_tests.main([], repo=pathlib.Path(repo), suites=self.SUITES, out=out)
             self.assertEqual(code, 0)
             self.assertTrue(out.getvalue().startswith("skipped: test_final_run, test_triggers (diff touches no write-skill scripts, skills/tests, runtime, hooks, sdlc.py or using-tl-relay)\n"))
 
     def test_all_flag_runs_heavy(self):
-        with tempfile.TemporaryDirectory() as repo, tempfile.TemporaryDirectory() as tests:
-            self.setup_dirs(repo, tests)
+        with tempfile.TemporaryDirectory() as repo:
+            self.setup_dirs(repo)
             out = io.StringIO()
-            code = run_tests.main(["--all"], repo=pathlib.Path(repo), tests_dir=pathlib.Path(tests), out=out)
+            code = run_tests.main(["--all"], repo=pathlib.Path(repo), suites=self.SUITES, out=out)
             self.assertEqual(code, 1)
             self.assertIn("planted-heavy-failure", out.getvalue())
             self.assertIn("planted-triggers-failure", out.getvalue())
 
     def test_not_a_repo_falls_back_to_running_everything(self):
-        with tempfile.TemporaryDirectory() as repo, tempfile.TemporaryDirectory() as tests:
-            write(tests, "test_ok.py", OK_SRC.format(name="One"))
-            write(tests, "test_final_run.py", HEAVY_BAD_SRC)
+        with tempfile.TemporaryDirectory() as repo:
+            write(repo, "skills/tests/test_ok.py", OK_SRC.format(name="One"))
+            write(repo, "skills/tests/test_final_run.py", HEAVY_BAD_SRC)
             out = io.StringIO()
-            code = run_tests.main([], repo=pathlib.Path(repo), tests_dir=pathlib.Path(tests), out=out)
+            code = run_tests.main([], repo=pathlib.Path(repo), suites=self.SUITES, out=out)
             self.assertEqual(code, 1)
             self.assertIn("planted-heavy-failure", out.getvalue())
             self.assertNotIn("skipped:", out.getvalue())
 
     def test_unknown_flag_exits_2(self):
-        with tempfile.TemporaryDirectory() as repo, tempfile.TemporaryDirectory() as tests:
-            write(tests, "test_ok.py", OK_SRC.format(name="One"))
+        with tempfile.TemporaryDirectory() as repo:
+            write(repo, "skills/tests/test_ok.py", OK_SRC.format(name="One"))
             with self.assertRaises(SystemExit) as ctx:
-                run_tests.main(["--bogus"], repo=pathlib.Path(repo), tests_dir=pathlib.Path(tests), out=io.StringIO())
+                run_tests.main(["--bogus"], repo=pathlib.Path(repo), suites=self.SUITES, out=io.StringIO())
             self.assertEqual(ctx.exception.code, 2)
+
+
+class SuitesTest(unittest.TestCase):
+    def test_two_python_suites_and_a_shell_suite_share_one_run(self):
+        with tempfile.TemporaryDirectory() as repo:
+            write(repo, "a/test_ok.py", OK_SRC.format(name="InA"))
+            write(repo, "b/test_ok.py", OK_SRC.format(name="InB"))
+            write(repo, "s.sh", "exit 0\n")
+            suites = (run_tests.Suite("a", "py", None), run_tests.Suite("b", "py", None), run_tests.Suite("s.sh", "sh", None))
+            out = io.StringIO()
+            self.assertEqual(run_tests.main(["--all"], repo=pathlib.Path(repo), suites=suites, out=out), 0)
+            self.assertEqual(out.getvalue().strip().splitlines()[-1], "OK (3 units)")
+
+    def test_a_shell_suite_fails_on_exit_code_alone(self):
+        with tempfile.TemporaryDirectory() as repo:
+            write(repo, "s.sh", "echo OK\necho 'FAIL planted-sh-cause'\necho OK >&2\nexit 1\n")
+            out = io.StringIO()
+            code = run_tests.main(["--all"], repo=pathlib.Path(repo), suites=(run_tests.Suite("s.sh", "sh", None),), out=out)
+            self.assertEqual(code, 1)
+            self.assertIn("FAIL s.sh", out.getvalue())
+            self.assertIn("planted-sh-cause", out.getvalue())
+
+    def test_final_run_units_run_first(self):
+        with tempfile.TemporaryDirectory() as repo:
+            write(repo, "t/test_aaa.py", OK_SRC.format(name="A"))
+            write(repo, "t/test_final_run.py", OK_SRC.format(name="F"))
+            units = run_tests.order(run_tests.suite_units(pathlib.Path(repo), run_tests.Suite("t", "py", None), set()))
+            self.assertIn("test_final_run", units[0].argv[-1])
+
+    def test_default_suites_exist_in_the_repo(self):
+        repo = pathlib.Path(run_tests.__file__).resolve().parents[2]
+        for suite in run_tests.SUITES:
+            self.assertTrue((repo / suite.path).exists(), suite.path)
 
 
 if __name__ == "__main__":
