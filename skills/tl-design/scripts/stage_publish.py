@@ -12,7 +12,7 @@ import re
 import sys
 
 LOCAL_TYPES = {"Note", "Notes", "Audit"}
-LOCAL_DIRS = {"audits", "rounds", "sources", "specs", "_archived", "_diagrams"}
+LOCAL_DIRS = {"audits", "rounds", "sources", "specs", "_archived", "_diagrams", "publish", "runs"}
 LINK = re.compile(r"(\]\()([^)#\s]+\.md)(#[^)\s]*)?(\))")
 TYPE = re.compile(r"^type:\s*(.+?)\s*$", re.M)
 CONFLUENCE = re.compile(r"^confluence:\n(?:[ \t]+.*\n)+", re.M)

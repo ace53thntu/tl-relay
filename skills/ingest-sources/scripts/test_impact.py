@@ -39,6 +39,14 @@ class ImpactTest(unittest.TestCase):
             (os.path.join("sub", "story.md"), "US-16 — reminder", ["US-16"]),
         ])
 
+    def test_skips_publish_and_runs_dirs(self):
+        with tempfile.TemporaryDirectory() as d:
+            for rel in ("publish/x.md", "runs/r1/run-state.md"):
+                os.makedirs(os.path.join(d, os.path.dirname(rel)))
+                with open(os.path.join(d, rel), "w", encoding="utf-8") as fh:
+                    fh.write(STORY)
+            self.assertEqual(im.scan(d, ["US-16"]), [])
+
 
 if __name__ == "__main__":
     unittest.main()

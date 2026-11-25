@@ -37,7 +37,7 @@ def flatten(text):
 def scan(root, ids):
     pat, hits = pattern(ids), []
     for dirpath, dirs, files in os.walk(root):
-        dirs[:] = sorted(d for d in dirs if d not in ("node_modules", ".git"))
+        dirs[:] = sorted(d for d in dirs if d not in ("node_modules", ".git", "publish", "runs"))
         for name in sorted(files):
             if not name.endswith(".md"):
                 continue

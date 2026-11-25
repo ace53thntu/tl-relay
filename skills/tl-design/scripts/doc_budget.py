@@ -73,7 +73,7 @@ PATTERNS = [
     ("element", r"(^|/)[^/]+__[^/]+-lld/[^/]+\.md$"),
 ]
 PATTERNS = [(t, re.compile(p)) for t, p in PATTERNS]
-SKIP_DIRS = ("_archived", "audits")
+SKIP_DIRS = ("_archived", "audits", "publish", "runs")
 UNTYPED = re.compile(r"^(index|task-breakdown|open-points[^/]*|implementation-notes)\.md$")
 FINAL_DESIGN = re.compile(r"^### 3\.\d+ Final design\b")
 LINE_SUFFIX = re.compile(r", line \d+$")

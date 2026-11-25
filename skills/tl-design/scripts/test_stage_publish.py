@@ -54,6 +54,19 @@ class StagePublishTest(unittest.TestCase):
             "use-cases/index.md", "use-cases/uc-1.md"])
         self.assertIn("title: \"Overview\"", self.read("index.md"))
 
+    def test_skips_publish_and_runs_and_does_not_nest(self):
+        for rel in ("publish/x.md", "runs/r1/run-state.md"):
+            path = os.path.join(self.set, rel)
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            with open(path, "w", encoding="utf-8") as f:
+                f.write(page("HLD", "x"))
+        sp.stage(self.set, os.path.join(self.set, "publish"))
+        sp.stage(self.set, os.path.join(self.set, "publish"))
+        self.assertEqual(sp.published(self.set).count("publish/x.md"), 0)
+        self.assertFalse([p for p in sp.published(self.set) if p.startswith(("publish/", "runs/"))])
+        self.assertFalse(os.path.exists(os.path.join(self.set, "publish", "_knowledge", "publish")))
+        self.assertFalse(os.path.exists(os.path.join(self.set, "publish", "_knowledge", "runs")))
+
     def test_rewrites_links_to_the_moved_pages(self):
         sp.stage(self.set, self.out)
         self.assertIn("(lld/bk/index.md#rules)", self.read("index.md"))
