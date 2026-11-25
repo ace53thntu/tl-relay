@@ -191,7 +191,7 @@ The bar for a full design: a skilled practitioner of the domain plans the build 
 | Their decisions | Each part of the how they settled, written the way they settled it |
 | Builder's latitude | What remains for the builder to decide |
 
-Save it to `<knowledge_dir>/plans/specs/YYYY-MM-DD-<slug>.md` at the workspace root, with `knowledge_dir` from `.tl-relay/config.yaml`, default `_knowledge`. The "Skill output targets" section of `CLAUDE.md` overrides it. A location they prefer overrides that path.
+Save it to `<runtime>/specs/YYYY-MM-DD-<slug>.md`, with `<runtime>` per [config.md](../using-tl-relay/config.md). The "Skill output targets" section of `CLAUDE.md` overrides it. A location they prefer overrides that path.
 
 ## Builder check
 

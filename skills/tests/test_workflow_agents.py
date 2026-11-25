@@ -13,7 +13,7 @@ HARNESS = Path(__file__).resolve().parent / "workflow_harness.mjs"
 
 @unittest.skipUnless(shutil.which("node"), "node not on PATH")
 class WorkflowAgentsTest(unittest.TestCase):
-    def run_harness(self, agents, temporal=False):
+    def run_harness(self, agents, temporal=False, workspace=None):
         with tempfile.TemporaryDirectory() as knowledge:
             args = {
                 "handle": "demo",
@@ -25,6 +25,8 @@ class WorkflowAgentsTest(unittest.TestCase):
             }
             if temporal:
                 args["temporal"] = True
+            if workspace is not None:
+                args["workspace"] = workspace
             if agents is not None:
                 args["agents"] = agents
             return subprocess.run(
@@ -33,8 +35,8 @@ class WorkflowAgentsTest(unittest.TestCase):
                 text=True,
             )
 
-    def calls(self, agents, temporal=False):
-        done = self.run_harness(agents, temporal)
+    def calls(self, agents, temporal=False, workspace=None):
+        done = self.run_harness(agents, temporal, workspace)
         self.assertEqual(done.returncode, 0, done.stderr)
         return [json.loads(line) for line in done.stdout.splitlines()]
 
@@ -66,7 +68,7 @@ class WorkflowAgentsTest(unittest.TestCase):
 
     def test_roles_match_agent_files(self):
         prompts = {}
-        for c in self.calls("none", temporal=True):
+        for c in self.calls("none", temporal=True, workspace="/ws"):
             prompts[c["opts"].get("label")] = c["prompt"]
         names = {"sa": "solution-architect", "se": "software-engineer", "qa": "qa-engineer",
                  "security": "security-engineer", "temporal": "temporal-reviewer"}
@@ -74,6 +76,16 @@ class WorkflowAgentsTest(unittest.TestCase):
             text = (ROOT / "agents" / f"{name}.md").read_text()
             body = text.split("\n---\n", 1)[1].strip()
             self.assertIn("\n" + body + "\n", prompts[f"review {pid}"], pid)
+
+    def test_temporal_prompt_names_the_workspace_root(self):
+        calls = self.calls("bare", temporal=True, workspace="/ws")
+        prompt = next(c["prompt"] for c in calls if 'persona "temporal"' in c["prompt"])
+        self.assertIn("under the workspace root /ws", prompt)
+
+    def test_temporal_without_workspace_throws(self):
+        done = self.run_harness("bare", temporal=True)
+        self.assertNotEqual(done.returncode, 0)
+        self.assertIn("missing args: workspace", done.stderr)
 
     def test_unknown_mode_throws(self):
         done = self.run_harness("x")

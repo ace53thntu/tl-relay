@@ -42,7 +42,7 @@ npx skills add ace53thntu/tl-relay -a codex     # Codex only
 npx skills add ace53thntu/tl-relay --list       # list the skills without installing
 ```
 
-To install one skill, add `--skill <name>`. That suits the skills that stand alone: `brainstorm`, `debug-issue`, `test-first`, `verify-done`, `review-change`, `technical-writing`, `explore-codebase` and `write-plan`. A few of them hand off to the next skill in a chain, so install the chain together: `brainstorm`, `write-plan` and `run-plan`, or `debug-issue`, `test-first` and `verify-done`.
+To install one skill, add `--skill <name>` and add `--skill using-tl-relay`. The skills read their path rules from `using-tl-relay`. That suits the skills that stand alone: `brainstorm`, `debug-issue`, `test-first`, `verify-done`, `review-change`, `technical-writing`, `explore-codebase` and `write-plan`. A few of them hand off to the next skill in a chain, so install the chain together: `brainstorm`, `write-plan` and `run-plan`, or `debug-issue`, `test-first` and `verify-done`.
 
 ### Bundles
 
@@ -50,13 +50,13 @@ The design and build workflows each need a set of skills. Before it runs, each w
 
 | Bundle | Skills |
 |---|---|
-| Design | `tl-design`, `ingest-sources`, `write-design`, `write-hla`, `write-lld`, `write-contract`, `write-task-breakdown`, `technical-writing`, `lens-qa-conformance`, `lens-qa-engineer`, `lens-security-engineer`, `lens-shared`, `lens-software-engineer`, `lens-solution-architect` |
-| Build | `tl-implement`, `tl-design`, `write-plan`, `run-plan`, `review-change`, `verify-done`, `test-first`, `debug-issue`, `lens-qa-conformance`, `lens-shared` |
+| Design | `using-tl-relay`, `tl-design`, `ingest-sources`, `write-design`, `write-hla`, `write-lld`, `write-contract`, `write-task-breakdown`, `technical-writing`, `lens-qa-conformance`, `lens-qa-engineer`, `lens-security-engineer`, `lens-shared`, `lens-software-engineer`, `lens-solution-architect` |
+| Build | `using-tl-relay`, `tl-implement`, `tl-design`, `write-plan`, `run-plan`, `review-change`, `verify-done`, `test-first`, `debug-issue`, `lens-qa-conformance`, `lens-shared` |
 
 The Build bundle carries `tl-design` for its Ask rule and its retro step. To run `tl-design` itself, install the Design bundle.
 
 ```sh
-npx skills add ace53thntu/tl-relay --skill tl-implement --skill tl-design --skill write-plan --skill run-plan \
+npx skills add ace53thntu/tl-relay --skill using-tl-relay --skill tl-implement --skill tl-design --skill write-plan --skill run-plan \
   --skill review-change --skill verify-done --skill test-first --skill debug-issue \
   --skill lens-qa-conformance --skill lens-shared
 ```
@@ -122,10 +122,10 @@ Without the package, `ingest-sources` stops and names it.
 
 ## Configuration
 
-Every skill runs on built-in defaults, with no config file and no home directory. To override a default, add `.tl-relay/config.yaml` at the workspace root:
+Every skill runs with no config. The lookup and the paths follow [`skills/using-tl-relay/config.md`](skills/using-tl-relay/config.md). To override a default, add `.tl-relay/config.yaml` at the workspace root:
 
 ```yaml
-knowledge_dir: docs/knowledge
+state_dir: ~/work/tl-relay-state
 operator_language: en
 publish:
   command: "my-docs-cli push {dir} --parent {target}"
@@ -139,8 +139,9 @@ vale:
 
 | Key | Default | Effect | Read by |
 |---|---|---|---|
-| `knowledge_dir` | `_knowledge` | Folder for designs, specs and plans | `tl-design`, `write-*`, `ingest-sources`, `brainstorm`, `write-plan` |
-| `state_dir` | `.tl-relay` | Runtime store for design and implement runs | `tl-design`, `tl-implement` |
+| `knowledge_dir` | unset | A shared hub that skills read, and that receives ADRs, glossary terms and index entries | `technical-writing`, `write-hla`, `write-lld`, `tl-design` |
+| `state_dir` | `~/.tl-relay` | Root of `<runtime>`, which holds specs, plans, design sets and plan runs. Worktrees fall back to `<state_dir>/worktrees` | every skill that writes |
+| `worktree_dir` | unset | Worktree root after `$WORKTREE_ROOT` | `run-plan`, `tl-implement` |
 | `operator_language` | `en` | Language of the questions the workflows ask you | `tl-design`, `tl-implement` |
 | `publish.command` | unset: the publish step reports a skip | Publishes the staged design pages. `{dir}` is the staged tree and `{target}` is the target you name | `tl-design` |
 | `publish.confirm_flag` | unset | The flag the skill adds once you approve the dry run | `tl-design` |
@@ -149,8 +150,20 @@ vale:
 | `vale.vocab` | unset: Vale uses the shipped vocabulary | Extra accepted words, one per line | `technical-writing` |
 
 - A relative path resolves against the workspace root.
-- Commit `.tl-relay/config.yaml`. Git-ignore `.tl-relay/sdd/` and `<state_dir>/designs/`. `run-plan` writes a `.gitignore` inside `.tl-relay/sdd/`, and `tl-design` and `tl-implement` add `<state_dir>/designs/` to the workspace `.gitignore`.
+- Commit `.tl-relay/config.yaml`. `run-plan` writes a `.gitignore` in each plan-runs dir. With a `state_dir` inside a git tree, `tl-design` and `tl-implement` ignore `designs/*/publish/` and `designs/*/runs/`.
 - A project `CLAUDE.md` or `AGENTS.md` outranks the skills. A model rule in it overrides `route-subagents`.
+- Upgrading from the old layout:
+  - Move design pages from `_knowledge/designs/<handle>/` into `<state_dir>/<workspace>/designs/<handle>/` before the next publish.
+  - Move publish and run state from `.tl-relay/designs/<handle>/` into the same directory.
+  - Move the contents of each old folder below, subfolders included, into `<state_dir>/<workspace>/`:
+    - `_knowledge/plans/specs/` to `specs/`
+    - `_knowledge/plans/implementation/` to `plans/`
+    - `_knowledge/plans/lld/` to `plans/lld/`
+    - `_knowledge/plans/audits/` to `audits/`
+    - `_knowledge/hlds/` to `hlds/`
+    - A `CLAUDE.md` "Skill output targets" section keeps these old paths instead.
+  - Delete `.tl-relay/sdd/` at each repo and worktree root once no run is in progress. `run-plan` cannot resume those runs.
+  - Set `knowledge_dir` if the workspace has a hub.
 - [`config.example.yaml`](config.example.yaml) documents every key.
 
 ## Lessons

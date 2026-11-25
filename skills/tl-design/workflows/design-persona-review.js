@@ -74,6 +74,7 @@ const a = args !== null && typeof args === 'object' ? args : {}
 const need = ['handle', 'knowledge', 'stage', 'round', 'pages', 'ledger']
 const absent = need.filter(k => a[k] === undefined || a[k] === null || a[k] === '')
 if (absent.length) throw new Error(`missing args: ${absent.join(', ')}`)
+if (a.temporal && !a.workspace) throw new Error('missing args: workspace')
 if (a.stage !== 'hla' && a.stage !== 'design') throw new Error(`unknown stage ${a.stage}`)
 if (!Array.isArray(a.pages) || !a.pages.length) throw new Error('args.pages must be a non-empty array')
 const relative = a.pages.find(p => typeof p !== 'string' || !p.startsWith('/'))
@@ -89,7 +90,7 @@ const reviewPrompt = id => [
   ...(mode === 'none' ? [`Load the skill ${LENS[id]} and follow it.`, ROLES[id]] : []),
   `You review the ${a.handle} design set at stage ${a.stage}, round ${a.round}, as persona "${id}".`,
   id === 'temporal'
-    ? `Follow your lens. Review these pages against the code. Read the pages and the code of the repos they name under the workspace that holds ${a.knowledge}, and edit no file:`
+    ? `Follow your lens. Review these pages against the code. Read the pages and the code of the repos they name under the workspace root ${a.workspace}, and edit no file:`
     : 'Follow your lens. Read only these pages, and edit no file:',
   a.pages.join('\n'),
   'Return an object {findings: [...]}, one entry per finding.',

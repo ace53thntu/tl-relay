@@ -60,7 +60,7 @@ class TlImplementTest(unittest.TestCase):
         self.assertIn("**Refresh**", text)
 
     def test_run_state_lives_in_the_home(self):
-        self.assertIn("<state_dir>/designs/<handle>/runs/<row>/", SKILL.read_text())
+        self.assertIn("<runtime>/designs/<handle>/runs/<row>/", SKILL.read_text())
         state = (ROOT / "skills/tl-implement/templates/run-state.md").read_text()
         for field in ["step:", "round:", "repo:", "base:", "branch:", "worktree:", "plan:", "depends:",
                       "open questions:", "pr:", "comment:"]:
@@ -70,7 +70,7 @@ class TlImplementTest(unittest.TestCase):
         text = SKILL.read_text()
         for phrase in ["<remote>/<default branch>", "merged state", "on both exits", "steps 3, 5, 6 and 8",
                        "`base:`..HEAD", "approved `READY` head",
-                       "a module a worker registers as activities", "worktree path", "`verdict` and `reason`", "hub lint on `<worktree>/<knowledge_dir>`"]:
+                       "a module a worker registers as activities", "worktree path", "`verdict` and `reason`", "the lint that rule names"]:
             self.assertIn(phrase, text)
 
     def test_fix_round_two_rules(self):

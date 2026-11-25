@@ -118,7 +118,7 @@ House rules, from explicit user feedback. These override the generic layers wher
   count as a plain fact. That covers an HLA, LLD, contract, open points page or task breakdown. It
   carries no `grep`, `jq`, `wc` or `git` command, and no "run at the repository root" narration.
 - **PR descriptions and commit messages are documents too.** They follow the repo's Conventional Commits limit of one line under 72 characters.
-- **Output targets** for specs, plans, LLDs, audits, ADRs, and glossary terms live in the "Skill output targets" section of the workspace `CLAUDE.md`. Without that section, audits go to `<knowledge_dir>/plans/audits/`, ADRs to `<knowledge_dir>/wiki/decisions/` and glossary terms to `<knowledge_dir>/wiki/glossary.md`. Specs, plans and LLDs keep their writer skills' default paths. `knowledge_dir` comes from `.tl-relay/config.yaml` (default `_knowledge`). Do not invent a location.
+- **Output targets** for specs, plans, LLDs, audits, ADRs, and glossary terms live in the "Skill output targets" section of the workspace `CLAUDE.md`. Without that section, audits go to `<runtime>/audits/`, ADRs to `<knowledge_dir>/wiki/decisions/` and glossary terms to `<knowledge_dir>/wiki/glossary.md`; with `knowledge_dir` unset, skip the ADR and glossary writes and say so in one line. Specs, plans and LLDs keep their writer skills' default paths. `<runtime>` and `knowledge_dir` follow [config.md](../using-tl-relay/config.md). Do not invent a location.
 
 **LLD-specific:**
 

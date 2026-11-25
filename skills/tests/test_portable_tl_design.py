@@ -13,7 +13,7 @@ class PortableTlDesignTest(unittest.TestCase):
             self.assertIn(needle, self.text)
 
     def test_publish_dir_sits_in_state_dir(self):
-        self.assertIn("<state_dir>/designs/<handle>/publish/", self.text)
+        self.assertIn("<runtime>/designs/<handle>/publish/", self.text)
 
     def test_publish_skips_without_a_command(self):
         self.assertIn("When `publish.command` is unset, step 12 reports the skip and the run goes on to step 13.", self.text)
@@ -27,7 +27,8 @@ class PortableTlDesignTest(unittest.TestCase):
         self.assertIn("`design-writer` runs on `opus`", self.text)
 
     def test_publish_dir_is_gitignored(self):
-        self.assertIn("adds the line `<state_dir>/designs/` to the workspace `.gitignore` if absent", self.text)
+        self.assertIn("adds the line `<runtime>/designs/*/publish/` to the workspace `.gitignore` if absent", self.text)
+        self.assertNotIn("the line `<state_dir>/designs/`", self.text)
         self.assertIn("Every step 12 run checks the workspace `.gitignore`", self.text)
         self.assertIn("relative to the workspace root", self.text)
         unset = "- When `publish.command` is unset, step 12 reports the skip and the run goes on to step 13.\n- Otherwise"
@@ -66,10 +67,17 @@ class PortableTlDesignTest(unittest.TestCase):
                       " ".join(dispatch.split()))
 
     def test_lint_runs_only_when_present(self):
-        self.assertIn("| `sh \"$K/scripts/lint.sh\"`, only when `$K/scripts/lint.sh` exists | The hub |", self.text)
-        self.assertIn("When `$K/scripts/lint.sh` does not exist, the head reports the lint skip and the gate does not wait on it.",
+        self.assertIn("| `sh \"$K/scripts/lint.sh\"`, only when `knowledge_dir` is set and `$K/scripts/lint.sh` exists | The hub |",
                       self.text)
+        self.assertIn("When `knowledge_dir` is unset or `$K/scripts/lint.sh` does not exist, the head reports the lint skip "
+                      "and the gate does not wait on it.", self.text)
         self.assertNotIn("Each must exit 0", self.text)
+
+    def test_design_root_feeds_the_scripts(self):
+        for needle in ("`DROOT` is the absolute `<design root>`", "`D` is `$DROOT/designs/<handle>`",
+                       '--knowledge-root "$DROOT"', "| `workspace` |", "../using-tl-relay/config.md"):
+            self.assertIn(needle, self.text)
+        self.assertNotIn("`D` is `$K/designs/<handle>`", self.text)
 
     def test_file_tasks_skips_without_a_command(self):
         self.assertIn("with no such command, report a skip and go to step 14", self.text)

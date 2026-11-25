@@ -13,6 +13,7 @@ import sys
 
 LOCAL_TYPES = {"Note", "Notes", "Audit"}
 LOCAL_DIRS = {"audits", "rounds", "sources", "specs", "_archived", "_diagrams"}
+ROOT_LOCAL_DIRS = {"publish", "runs"}
 LINK = re.compile(r"(\]\()([^)#\s]+\.md)(#[^)\s]*)?(\))")
 TYPE = re.compile(r"^type:\s*(.+?)\s*$", re.M)
 CONFLUENCE = re.compile(r"^confluence:\n(?:[ \t]+.*\n)+", re.M)
@@ -26,7 +27,7 @@ def _read(path):
 def published(set_dir):
     pages = []
     for dirpath, dirnames, filenames in os.walk(set_dir):
-        dirnames[:] = sorted(d for d in dirnames if d not in LOCAL_DIRS and not d.startswith("."))
+        dirnames[:] = sorted(d for d in dirnames if d not in LOCAL_DIRS and not (dirpath == set_dir and d in ROOT_LOCAL_DIRS) and not d.startswith("."))
         for name in sorted(filenames):
             rel = posixpath.relpath(os.path.join(dirpath, name), set_dir).replace(os.sep, "/")
             if not name.endswith(".md") or rel == "index.md":

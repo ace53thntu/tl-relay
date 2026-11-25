@@ -7,7 +7,7 @@ description: Use when a module or feature needs an OpenAPI contract before its L
 
 ## Configuration
 
-`.tl-relay/config.yaml` at the workspace root sets `knowledge_dir`; a missing file or key means `_knowledge`.
+Paths follow [config.md](../using-tl-relay/config.md): `<design root>` holds `designs/`, by default `<state_dir>/<workspace>/`. `knowledge_dir` has no default.
 `<skill dir>` is this skill's base directory as the session reports it.
 
 ## Overview
@@ -20,7 +20,7 @@ design stage cannot pass G-design until it exits 0 for every module.
 
 | Mode | Contract | Shared components | LLD and route pages | Route list |
 | --- | --- | --- | --- | --- |
-| Root | `<knowledge_dir>/designs/<handle>/contracts/<module>.openapi.yaml` | `<knowledge_dir>/designs/<handle>/contracts/common.openapi.yaml` | `<knowledge_dir>/designs/<handle>/lld/<module>.md`, with route pages in the directory of the same name | `<knowledge_dir>/designs/<handle>/lld/<module>-api.md` |
+| Root | `<design root>/designs/<handle>/contracts/<module>.openapi.yaml` | `<design root>/designs/<handle>/contracts/common.openapi.yaml` | `<design root>/designs/<handle>/lld/<module>.md`, with route pages in the directory of the same name | `<design root>/designs/<handle>/lld/<module>-api.md` |
 
 A route list is any Markdown table with a cell that starts with a method and a path, optionally in backticks.
 

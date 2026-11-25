@@ -13,12 +13,12 @@ decisions. The operator signs every gate.
 
 ## Configuration
 
-`.tl-relay/config.yaml` at the workspace root sets this skill's options. A missing file or key means the default.
+`.tl-relay/config.yaml` at the workspace root sets this skill's options. A missing file or key means the default. Paths follow [config.md](../using-tl-relay/config.md).
 
 | Key | Default | Use here |
 | --- | --- | --- |
-| `knowledge_dir` | `_knowledge` | The directory `K` names |
-| `state_dir` | `.tl-relay` | The root of the publish directory |
+| `knowledge_dir` | unset | The hub `K`: its `lint.sh` at step 10 |
+| `state_dir` | `~/.tl-relay` | The root of `<runtime>`: the design set by default, and the publish dir |
 | `operator_language` | `en` | The language of every operator question |
 | `publish.command` | unset | The command step 12 runs, with `{dir}` and `{target}` |
 | `publish.confirm_flag` | unset | The flag that makes `publish.command` push |
@@ -52,14 +52,14 @@ A design page has four readers: developers, QA, Solution Architecture and the EM
 The implementation plan (`write-plan`) after G-design carries the right column. A page written to an earlier
 skill version keeps its shape, and the budget check runs only on the pages a stage wrote or rewrote.
 
-A rewrite moves each implementation-plan item it takes off a page to `<knowledge_dir>/designs/<handle>/implementation-notes.md`.
+A rewrite moves each implementation-plan item it takes off a page to `$D/implementation-notes.md`.
 That page is local and unpublished, and `doc_budget.py` types it `unknown`. The plan after G-design reads it. The rewrite's
 audit lists each item as moved, not dropped.
 `implementation-notes.md` holds only right-column items. An invariant, its id and a race outcome stay on a design page.
 
 ## State
 
-`K` is the absolute path of the workspace's `knowledge_dir`. `D` is `$K/designs/<handle>`. Each state file has one writer.
+`K` is the absolute path of `knowledge_dir`, unset when the key is unset. `DROOT` is the absolute `<design root>`. `D` is `$DROOT/designs/<handle>`. Each state file has one writer.
 
 | File | Holds | Writer |
 | --- | --- | --- |
@@ -68,7 +68,7 @@ audit lists each item as moved, not dropped.
 
 ```bash
 S=<skill dir>/scripts/state.py
-python3 "$S" --knowledge-root "$K" --handle <handle> show
+python3 "$S" --knowledge-root "$DROOT" --handle <handle> show
 ```
 
 | `state.py` command | Does |
@@ -177,13 +177,14 @@ Steps 5 and 9 call the `Workflow` tool with `scriptPath` `<skill dir>/workflows/
 
 | Arg | Holds |
 | --- | --- |
-| `handle`, `knowledge` | The set's handle and the absolute path of `K` |
+| `handle`, `knowledge` | The set's handle and `DROOT` |
 | `stage` | `hla` at step 5, `design` at step 9 |
 | `round` | The current `round` |
 | `pages` | Absolute paths of the pages the stage wrote or changed |
 | `temporal` | `true` only at stage `design`, only when a page names a Temporal workflow, schedule or worker, and only when the `temporal-workflow-design-critic` skill is available. Otherwise note the skipped persona in `workflow-state.md` |
 | `ledger` | Absolute path of `D/decisions.md` |
 | `agents` | `plugin` when the session lists `tl-relay:solution-architect`, `bare` when it lists `solution-architect`, else `none` |
+| `workspace` | The absolute workspace root; required when `temporal` is `true` |
 
 When the launch result gives the run id, append `{step, run, round}` to `workflow_runs` before the run returns.
 An interrupted run then resumes by that id. The script returns `{stage, round, findings, missing, out}` and writes
@@ -216,9 +217,9 @@ Before any sign-off, run these in order. Each script that runs must exit 0 befor
 | `python3 <skill dir>/scripts/doc_budget.py <path>... [--waive <path>]... [--baseline <json>]` | Every page the stage wrote or rewrote |
 | `python3 <skill dir>/../write-contract/scripts/check_contract.py --contract --lld --api [--module] [--common]` | Every module with routes, at G-design |
 | `python3 <skill dir>/../write-task-breakdown/scripts/check_breakdown.py --set <set dir>` | The set, at G-breakdown |
-| `sh "$K/scripts/lint.sh"`, only when `$K/scripts/lint.sh` exists | The hub |
+| `sh "$K/scripts/lint.sh"`, only when `knowledge_dir` is set and `$K/scripts/lint.sh` exists | The hub |
 
-- When `$K/scripts/lint.sh` does not exist, the head reports the lint skip and the gate does not wait on it.
+- When `knowledge_dir` is unset or `$K/scripts/lint.sh` does not exist, the head reports the lint skip and the gate does not wait on it.
 - Pass `--waive <path>` only for a page the operator named in this conversation, and record it in the head. A page edited in place runs against its pre-stage `doc_budget.py --json` report, passed as `--baseline`.
 - On exit 1, move a fact to its named home, merge or link, and rerun. Never delete a design fact. When a page cannot
   meet its budget without dropping one, ask the operator, naming the page and the fact.
@@ -231,11 +232,11 @@ Step 12 never pushes the set directory: its `index.md` holds the state block, an
 python3 <skill dir>/scripts/stage_publish.py "$D" <publish dir>
 ```
 
-- `<publish dir>` is `<state_dir>/designs/<handle>/publish/`, with `state_dir` resolved against the workspace root to an absolute path, because subagents work inside the repo worktree. It sits outside the hub and stays between pushes. A restage keeps each page's `confluence:` block, so the next push updates the same pages.
+- `<publish dir>` is `<runtime>/designs/<handle>/publish/`, with `state_dir` resolved against the workspace root to an absolute path, because subagents work inside the repo worktree. It sits outside the hub and stays between pushes. A restage keeps each page's `confluence:` block, so the next push updates the same pages.
 - The script copies every page except the set `index.md`, `Note`, `Notes` and `Audit` pages, and the `audits/`, `rounds/`, `sources/` and `specs/` directories.
 - The Overview becomes the root `index.md`. A module LLD `lld/<module>.md` becomes `lld/<module>/index.md`, and its API page `lld/<module>-api.md` becomes `lld/<module>/api/index.md`. Links follow the moved pages.
 - The staged tree sits at `<publish dir>/_knowledge`, because some publish tools resolve links within the nearest knowledge directory.
-- Every step 12 run checks the workspace `.gitignore` when `state_dir` sits inside the workspace. It adds the line `<state_dir>/designs/` to the workspace `.gitignore` if absent, written relative to the workspace root. Staged pages hold page ids and must not be committed. A `state_dir` outside the workspace needs no line.
+- Every step 12 run checks the workspace `.gitignore` when `<runtime>` sits inside the workspace. It adds the line `<runtime>/designs/*/publish/` to the workspace `.gitignore` if absent, written relative to the workspace root. Staged pages hold page ids and must not be committed. A `state_dir` outside the workspace needs no line.
 - When `publish.command` is unset, step 12 reports the skip and the run goes on to step 13.
 - Otherwise ask the operator for the target. Fill `{dir}` with `<publish dir>/_knowledge` and `{target}` with the target.
   Run the command once without `publish.confirm_flag` and show the output. Then stop and wait for the operator to approve that output.
@@ -277,7 +278,7 @@ The Overview has five children: Use cases, Schema changes, LLDs, Task breakdown 
 
 ## Running design-set-write
 
-The `design` stage runs `<skill dir>/workflows/design-set-write.js` by `scriptPath`, one Workflow run per phase: `write`, `review`, `fix`, `rereview`. The script writes under `<knowledge>/designs/<handle>/`.
+The `design` stage runs `<skill dir>/workflows/design-set-write.js` by `scriptPath`, one Workflow run per phase: `write`, `review`, `fix`, `rereview`. The script writes under `$D/`.
 
 Write the Overview, use case pages, Schema changes and Dependencies pages first, with `write-design`. The `write` run comes after, because it reads those pages as inputs.
 
@@ -285,7 +286,7 @@ Write the Overview, use case pages, Schema changes and Dependencies pages first,
 | --- | --- | --- |
 | `phase` | all | `write`, `review`, `fix` or `rereview` |
 | `handle` | all | The set's handle |
-| `knowledge` | all | The absolute path of the workspace's `knowledge_dir` |
+| `knowledge` | all | `DROOT` |
 | `modules` | all | The modules that have routes, as the `lld/<module>.md` file names spell them |
 | `skills` | all | `<skill dir>/..`, the directory that holds `write-contract` and `tl-design` |
 | `ledger` | all | The absolute path of the ruling ledger |
@@ -293,7 +294,7 @@ Write the Overview, use case pages, Schema changes and Dependencies pages first,
 | `scratch` | `rereview` | The directory that holds the copy of the set made before the `fix` run |
 | `baseline` | optional | The pre-stage `doc_budget.py --json` report, when the stage edits existing pages |
 
-`_knowledge` has no git. Before each `fix` run, copy `<knowledge>/designs/<handle>` to a directory in the session scratchpad and pass that directory as `scratch` to the `rereview` run. The re-reviewer reads `diff -ru` between the copy and the set. The controller runs `doc_budget.py` itself on the pages of a module with no routes.
+The design root has no git. Before each `fix` run, copy `$D` to a directory in the session scratchpad and pass that directory as `scratch` to the `rereview` run. The re-reviewer reads `diff -ru` between the copy and the set. The controller runs `doc_budget.py` itself on the pages of a module with no routes.
 
 A set whose design runs a Temporal workflow, schedule or worker gets the `temporal-reviewer` persona at step 9, through `temporal: true` in the persona review call. It verifies each claim against the code. The writer fixes each finding or returns it as a question. A finding whose fix falls in a key class follows the Ask rule.
 
@@ -322,8 +323,8 @@ The `agents` value sets how a persona or writer is dispatched.
   A fact moved to its named home, such as `implementation-notes.md`, is not a dropped fact.
 - Open points live on two local pages per design set. They are the list the operator questions the
   Product Owner and other owners from. No design page carries an inline open point.
-  - `<knowledge_dir>/designs/<handle>/open-points-full.md` is the full list: every entry, each under its owner with its status.
-  - `<knowledge_dir>/designs/<handle>/open-points.md` holds only the entries with status Open, word for word as in the full list.
+  - `$D/open-points-full.md` is the full list: every entry, each under its owner with its status.
+  - `$D/open-points.md` holds only the entries with status Open, word for word as in the full list.
   - Neither page has a `confluence` block.
   - No design page links either page.
   - If the set has no full list yet, create it first as a copy of `open-points.md`.

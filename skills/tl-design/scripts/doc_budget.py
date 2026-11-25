@@ -74,6 +74,7 @@ PATTERNS = [
 ]
 PATTERNS = [(t, re.compile(p)) for t, p in PATTERNS]
 SKIP_DIRS = ("_archived", "audits")
+ROOT_SKIP_DIRS = ("publish", "runs")
 UNTYPED = re.compile(r"^(index|task-breakdown|open-points[^/]*|implementation-notes)\.md$")
 FINAL_DESIGN = re.compile(r"^### 3\.\d+ Final design\b")
 LINE_SUFFIX = re.compile(r", line \d+$")
@@ -512,7 +513,7 @@ def _panel_words(text):
 
 def _walk(root):
     for d, dirs, files in os.walk(root):
-        dirs[:] = sorted(x for x in dirs if x not in SKIP_DIRS and not x.startswith(("_stage-", ".")))
+        dirs[:] = sorted(x for x in dirs if x not in SKIP_DIRS and not (d == root and x in ROOT_SKIP_DIRS) and not x.startswith(("_stage-", ".")))
         for f in sorted(files):
             if f.endswith(".md") and not f.startswith("."):
                 yield os.path.join(d, f)

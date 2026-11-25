@@ -8,7 +8,7 @@ class PortableTlImplementTest(unittest.TestCase):
     text = (SKILLS / "tl-implement/SKILL.md").read_text()
 
     def test_run_dir_in_state_dir(self):
-        self.assertIn("<state_dir>/designs/<handle>/runs/<row>/", self.text)
+        self.assertIn("<runtime>/designs/<handle>/runs/<row>/", self.text)
 
     def test_tracker_comment_is_optional(self):
         for needle in ("tracker.comment` is unset", "{target}", "{body_file}", "tracker.confirm_flag"):
@@ -38,11 +38,11 @@ class PortableTlImplementTest(unittest.TestCase):
         row = next(l for l in self.text.splitlines() if l.startswith("| 9 |"))
         self.assertIn("Approves the comment output", row)
 
-    def test_step7_lint_on_knowledge_dir(self):
-        row = next(l for l in self.text.splitlines() if l.startswith("| 7 |"))
-        self.assertIn("`<knowledge_dir>` pages", row)
-        self.assertIn("hub lint on `<worktree>/<knowledge_dir>`", self.text)
-        self.assertNotIn("<worktree>/_knowledge", self.text)
+    def test_step7_edits_the_repo_bundle(self):
+        self.assertIn("the repo's own `_knowledge/` bundle", self.text)
+        self.assertIn("the lint that rule names", self.text)
+        self.assertNotIn("<worktree>/<knowledge_dir>", self.text)
+        self.assertNotIn("`<knowledge_dir>` pages", self.text)
 
     def test_temporal_review_asked_once(self):
         for needle in ("once per run", "`run-state.md` field `temporal_review:`",
@@ -85,11 +85,16 @@ class PortableTlImplementTest(unittest.TestCase):
     def test_state_dir_absolute(self):
         self.assertIn("`state_dir` is resolved against the workspace root to an absolute path", self.text)
 
-    def test_step7_uses_knowledge_dir(self):
-        self.assertIn("`<knowledge_dir>` pages the change moved", self.text)
-
     def test_worktree_default(self):
-        self.assertIn("`$WORKTREE_ROOT`, else `$HOME/worktrees`", self.text)
+        self.assertIn("`$WORKTREE_ROOT`, else `worktree_dir`, else `<state_dir>/worktrees`", self.text)
+
+    def test_run_dir_gitignore_line(self):
+        self.assertIn("adds the line `<runtime>/designs/*/runs/`", self.text)
+        self.assertNotIn("the line `<state_dir>/designs/`", self.text)
+
+    def test_reads_the_design_root(self):
+        self.assertIn("from `<design root>/designs/<handle>/`", self.text)
+        self.assertIn("../using-tl-relay/config.md", self.text)
 
 
 if __name__ == "__main__":

@@ -74,8 +74,14 @@ script_dir=$(cd "$(dirname "$0")" && pwd)
 apply_dir_flag "$@"
 shift "$dropped"
 
-[ "$#" -eq 1 ] || quit 2 "usage: sdd-workspace [-C DIR] PLAN_FILE"
-plan=$1
+usage="usage: sdd-workspace [-C DIR] --runs-dir DIR PLAN_FILE"
+[ "${1-}" = "--runs-dir" ] && [ "$#" -eq 3 ] || quit 2 "$usage"
+runs_arg=$2
+case $runs_arg in
+  /*|[A-Za-z]:/*) ;;
+  *) quit 2 "sdd-workspace: --runs-dir must be an absolute path: $runs_arg" ;;
+esac
+plan=$3
 [ -f "$plan" ] || quit 2 "no such plan file: $plan"
 stem=$(workspace_stem "$plan")
 
@@ -83,10 +89,10 @@ plan_parent=$(physical_dir "$(dirname "$plan")")
 plan_path=$plan_parent/${plan##*/}
 
 # Siblings run through the interpreter: an unpacked install can lose exec bits.
-toplevel=$("${BASH:-bash}" "$script_dir/sdd-repo")
-real_top=$(physical_dir "$toplevel")
-sdd_dir=$real_top/.tl-relay/sdd
-marker_value=${plan_path#"$real_top"/}
+"${BASH:-bash}" "$script_dir/sdd-repo" >/dev/null
+[ -d "$runs_arg" ] || { mkdir -p -- "$runs_arg" && chmod u+wx "$runs_arg"; } 2>/dev/null || quit 1 "sdd-workspace: cannot create $runs_arg"
+sdd_dir=$(physical_dir "$runs_arg") || quit 1 "sdd-workspace: cannot create $runs_arg"
+marker_value=$plan_path
 
 numbered=$sdd_dir/$stem-$(basename "$plan_parent")
 attempt=0

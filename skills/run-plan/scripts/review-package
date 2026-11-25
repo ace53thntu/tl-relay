@@ -48,9 +48,16 @@ script_dir=$(cd "$(dirname "$0")" && pwd)
 apply_dir_flag "$@"
 shift "$dropped"
 
+runs_args=()
+if [ "${1-}" = "--runs-dir" ]; then
+  [ "$#" -ge 2 ] || quit 2 "usage: review-package [-C DIR] [--runs-dir DIR] PLAN_FILE BASE HEAD [OUTFILE]"
+  runs_args=(--runs-dir "$2")
+  shift 2
+fi
+
 case $# in
   3 | 4) ;;
-  *) quit 2 "usage: review-package [-C DIR] PLAN_FILE BASE HEAD [OUTFILE]" ;;
+  *) quit 2 "usage: review-package [-C DIR] [--runs-dir DIR] PLAN_FILE BASE HEAD [OUTFILE]" ;;
 esac
 plan=$1
 from=$2
@@ -65,7 +72,8 @@ check_range
 if [ "$#" -eq 4 ]; then
   package=$4
 else
-  package=$("${BASH:-bash}" "$script_dir/sdd-workspace" "$plan")
+  [ "${#runs_args[@]}" -gt 0 ] || quit 2 "review-package: --runs-dir DIR is required without OUTFILE"
+  package=$("${BASH:-bash}" "$script_dir/sdd-workspace" "${runs_args[@]}" "$plan")
   package=$package/review-$(git -C "$top" rev-parse --short "$from")..$(git -C "$top" rev-parse --short "$to").diff
 fi
 

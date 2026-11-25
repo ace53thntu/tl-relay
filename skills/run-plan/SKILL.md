@@ -116,9 +116,9 @@ digraph run_plan {
 
 Invoke every script this page names by absolute path, from the working tree running the plan. They live in this skill's `scripts/` directory.
 
-1. **Worktree.** The `CLAUDE.md` section "Worktree location" says where worktrees go when it exists; otherwise use `$WORKTREE_ROOT`, else `$HOME/worktrees`. Create one there, or confirm the one you are in.
+1. **Worktree.** The worktree root is the `CLAUDE.md` section "Worktree location", else `$WORKTREE_ROOT`, else `worktree_dir`, else `<state_dir>/worktrees`, per [config.md](../using-tl-relay/config.md#worktrees). Create one there, or confirm the one you are in.
 2. **Branch.** `main` and `master` are off limits for implementation until the operator explicitly agrees.
-3. **Workspace.** `bash scripts/sdd-workspace -C <worktree> PLAN_FILE` prints the plan's workspace directory.
+3. **Workspace.** `bash scripts/sdd-workspace -C <worktree> --runs-dir <runtime>/plan-runs PLAN_FILE` prints the plan's workspace directory. Pass `<runtime>` as an absolute path, per [config.md](../using-tl-relay/config.md#paths).
 4. **Existing ledger.** Look for `<workspace>/progress.md`. When it exists, [references/resuming.md](references/resuming.md) comes first. That file decides whether the ledger is yours and which task is next.
 5. **New ledger.** When no ledger exists, start one whose first line is `# SDD ledger — plan: <plan file path>`. A caller may pass `Plan gate passed by caller: <path>` and `Keep workspace`. Header notes start at line 2. The first blank line ends the header; with no notes, line 2 is that blank line. Write each caller note there, and find each later by its prefix.
 6. **Plan.** One read is enough. Open a todo for every task, and keep the plan's context and Global Constraints in view.
@@ -129,7 +129,8 @@ Invoke every script this page names by absolute path, from the working tree runn
 
 ### Ledger and workspace
 
-Each plan owns one git-ignored directory under `<repo-root>/.tl-relay/sdd/`.
+Each plan owns one directory under `<runtime>/plan-runs/`.
+In this skill, `<workspace>` is the directory `sdd-workspace` prints, not the workspace name of config.md.
 Ledger, briefs, reports and review packages all live there.
 
 Todos alone vanish at compaction, along with conversation memory.
@@ -138,7 +139,7 @@ Compaction is behind the worst failure on record: controllers that kept no ledge
 | When | Do |
 |---|---|
 | Context was compacted | Rebuild state from the ledger and `git log`, not from memory. The commits the ledger names exist in git either way. |
-| `git clean -fdx` ran | The workspace was git-ignored scratch, so it is gone. Rebuild from `git log`. |
+| The workspace directory is gone | Rebuild from `git log`. |
 | Another plan's directory sits beside yours | Leave it unread and unwritten. |
 
 ## Task loop
@@ -155,7 +156,7 @@ Every later turn re-reads them. Pass artifacts as files instead.
 
 **You do**
 
-- **Brief.** `bash scripts/task-brief -C <worktree> PLAN_FILE N` writes the task's full text to its own file and prints the path. Requirements come from that file alone.
+- **Brief.** `bash scripts/task-brief -C <worktree> --runs-dir <runtime>/plan-runs PLAN_FILE N` writes the task's full text to its own file and prints the path. Requirements come from that file alone.
 - **Report path.** Swap `brief` for `report` in the brief's name: `…/task-N-brief.md` becomes `…/task-N-report.md`.
 - **BASE.** Capture `git -C <worktree> rev-parse HEAD` just before dispatching. The review package, every fix-round diff and round 1's range base depend on it.
 - **Agent id.** The dispatch result names the implementer. Save it: fix rounds resume that agent unless the fix loop escalates.
@@ -182,7 +183,7 @@ The report file gets everything. The reply to you carries only the status, commi
 
 | Implementer returns | You do |
 |---|---|
-| DONE | In the design-doc lane, skip to step 5. Otherwise run `bash scripts/review-package -C <worktree> PLAN_FILE BASE HEAD` and give `review-change` the unique path it prints. |
+| DONE | In the design-doc lane, skip to step 5. Otherwise run `bash scripts/review-package -C <worktree> --runs-dir <runtime>/plan-runs PLAN_FILE BASE HEAD` and give `review-change` the unique path it prints. |
 | DONE_WITH_CONCERNS, NEEDS_CONTEXT or BLOCKED | Follow [references/handling-reports.md](references/handling-reports.md), on every occurrence |
 | A question, before starting or mid-task | Let the implementer resume only once its question has a complete, plain answer and the context it was missing |
 
@@ -199,7 +200,7 @@ This review gates one task. Breadth across the branch waits for the final review
 | An open `scope` finding means the task is not accepted | None |
 | The implementer's self-review counts as no substitute | None |
 
-**Diff.** `bash scripts/review-package -C <worktree> PLAN_FILE BASE HEAD` writes the diff to a file, and `review-change` gets that path.
+**Diff.** `bash scripts/review-package -C <worktree> --runs-dir <runtime>/plan-runs PLAN_FILE BASE HEAD` writes the diff to a file, and `review-change` gets that path.
 The package's contents stay out of your context. You never call `review-change` without a diff file.
 
 **Ranges.** Round 1 starts at `BASE`. Each later round starts at the head the round before it reviewed.

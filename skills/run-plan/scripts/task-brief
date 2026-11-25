@@ -25,9 +25,16 @@ script_dir=$(cd "$(dirname "$0")" && pwd)
 apply_dir_flag "$@"
 shift "$dropped"
 
+runs_args=()
+if [ "${1-}" = "--runs-dir" ]; then
+  [ "$#" -ge 2 ] || quit 2 "usage: task-brief [-C DIR] [--runs-dir DIR] PLAN_FILE TASK_NUMBER [OUTFILE]"
+  runs_args=(--runs-dir "$2")
+  shift 2
+fi
+
 case $# in
   2 | 3) ;;
-  *) quit 2 "usage: task-brief [-C DIR] PLAN_FILE TASK_NUMBER [OUTFILE]" ;;
+  *) quit 2 "usage: task-brief [-C DIR] [--runs-dir DIR] PLAN_FILE TASK_NUMBER [OUTFILE]" ;;
 esac
 plan=$1
 wanted=$2
@@ -35,7 +42,8 @@ wanted=$2
 
 if [ "$#" -eq 2 ]; then
   # Siblings run through the interpreter: an unpacked install can lose exec bits.
-  brief=$("${BASH:-bash}" "$script_dir/sdd-workspace" "$plan")/task-$wanted-brief.md
+  [ "${#runs_args[@]}" -gt 0 ] || quit 2 "task-brief: --runs-dir DIR is required without OUTFILE"
+  brief=$("${BASH:-bash}" "$script_dir/sdd-workspace" "${runs_args[@]}" "$plan")/task-$wanted-brief.md
 else
   brief=$3
 fi

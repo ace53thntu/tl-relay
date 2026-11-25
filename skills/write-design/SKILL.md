@@ -7,12 +7,12 @@ description: Use when writing or changing a page of a design set under `<knowled
 
 ## Configuration
 
-`.tl-relay/config.yaml` at the workspace root sets `knowledge_dir`; a missing file or key means `_knowledge`.
+Paths follow [config.md](../using-tl-relay/config.md): `<design root>` holds `designs/`, by default `<state_dir>/<workspace>/`. `knowledge_dir` has no default.
 `<skill dir>` is this skill's base directory as the session reports it. `doc_budget.py` comes from the sibling skill `tl-design`. If `<skill dir>/../tl-design/scripts/doc_budget.py` is missing, stop and name `tl-design` with `npx skills add ace53thntu/tl-relay --skill tl-design`.
 
 ## Overview
 
-A design set is one page tree under `<knowledge_dir>/designs/<handle>/`. This skill owns that tree: the pages, their paths, and the rules that span them.
+A design set is one page tree under `<design root>/designs/<handle>/`. This skill owns that tree: the pages, their paths, and the rules that span them.
 
 - `write-hla` sets the five-section skeleton of the Overview and the use case page form.
 - `write-lld` sets the seven-section skeleton of a module LLD and its child page rules.
@@ -34,7 +34,7 @@ This skill cites those skills and states only where a set differs from them.
 └── <Set title>: Dependencies    dependencies.md
 ```
 
-- All paths are relative to `<knowledge_dir>/designs/<handle>/`.
+- All paths are relative to `<design root>/designs/<handle>/`.
 - The Overview has five children, in this order: Use cases, Schema changes, LLDs, Task breakdown and Dependencies.
 - A set has no decisions page. [Decisions](#decisions) states where a decision goes.
 - These files hold workflow state, not design content: `index.md` with the state block, `open-points.md`, `open-points-full.md`, `task-breakdown.estimates.tsv`, `sources/`, `specs/`, `audits/` and `contracts/`.
@@ -55,7 +55,7 @@ These rules differ:
 - Section 3 has no `3.1 Use cases` index.
 - A set with several modules prefixes each use case id with the module code, such as `PL-UC-1`.
 - The frontmatter carries `type: HLD`, as the HLA pages of the existing sets do.
-- A set adds no entry to `<knowledge_dir>/hlds/index.md`, neither for `overview.md` nor for `use-cases/index.md`.
+- A set adds no entry to the HLA index `hlds/index.md`, neither for `overview.md` nor for `use-cases/index.md`.
 - Every other page links a term to `overview.md#terms` on its first use.
 - `doc_budget.py` types `overview.md` as an HLA page.
 

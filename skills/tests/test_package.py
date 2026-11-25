@@ -40,7 +40,7 @@ class PackageTest(unittest.TestCase):
 
     def test_config_example_lists_every_key(self):
         text = (ROOT / "config.example.yaml").read_text()
-        for key in ("knowledge_dir", "state_dir", "operator_language", "publish:", "command", "confirm_flag",
+        for key in ("knowledge_dir", "state_dir", "worktree_dir", "operator_language", "publish:", "command", "confirm_flag",
                     "tracker:", "comment", "vale:", "vocab", "{dir}", "{target}", "{body_file}"):
             self.assertIn(key, text)
 
