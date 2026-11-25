@@ -56,9 +56,9 @@ six b body
 alpha body
 """
 
-USAGE_WORKSPACE = "usage: sdd-workspace [-C DIR] PLAN_FILE\n"
-USAGE_BRIEF = "usage: task-brief [-C DIR] PLAN_FILE TASK_NUMBER [OUTFILE]\n"
-USAGE_REVIEW = "usage: review-package [-C DIR] PLAN_FILE BASE HEAD [OUTFILE]\n"
+USAGE_WORKSPACE = "usage: sdd-workspace [-C DIR] --runs-dir DIR PLAN_FILE\n"
+USAGE_BRIEF = "usage: task-brief [-C DIR] [--runs-dir DIR] PLAN_FILE TASK_NUMBER [OUTFILE]\n"
+USAGE_REVIEW = "usage: review-package [-C DIR] [--runs-dir DIR] PLAN_FILE BASE HEAD [OUTFILE]\n"
 
 
 class Result:
@@ -79,6 +79,7 @@ class Case(unittest.TestCase):
         self.home.mkdir()
         self.plain = self.tmp / "plain"
         self.plain.mkdir()
+        self.runs = self.tmp / "runs"
         old_umask = os.umask(0o022)
         self.addCleanup(os.umask, old_umask)
         env = {
@@ -119,7 +120,11 @@ class Case(unittest.TestCase):
                 p.chmod(mode)
         return dest
 
-    def run_script(self, name, args, cwd=None, relative=False, scripts=None, path_prefix=None, bare=False, timeout=None):
+    def run_script(self, name, args, cwd=None, relative=False, scripts=None, path_prefix=None, bare=False, timeout=None, runs=True):
+        args = list(args)
+        if runs and name in ("sdd-workspace", "task-brief", "review-package"):
+            at = 2 if args[:1] == ["-C"] else 0
+            args[at:at] = ["--runs-dir", self.runs]
         if bare:
             scripts = scripts or self.copy_scripts()
             cwd = scripts
@@ -190,7 +195,7 @@ class Case(unittest.TestCase):
         return repo
 
     def sdd(self, repo):
-        return repo / ".tl-relay" / "sdd"
+        return self.runs
 
     def tree(self, root):
         return sorted(str(p.relative_to(root)) for p in pathlib.Path(root).rglob("*"))
@@ -410,7 +415,7 @@ class SddWorkspaceTests(Case):
                 self.assertEqual((r.code, r.out, r.err), (2, "", f"bad -C directory: {shown}\n"))
 
     def test_c_without_value_is_a_bad_directory(self):
-        r = self.run_script("sdd-workspace", ["-C"])
+        r = self.run_script("sdd-workspace", ["-C"], runs=False)
         self.assertEqual((r.code, r.out, r.err), (2, "", "bad -C directory: \n"))
 
     def test_missing_plan_file_exits_2(self):
@@ -502,19 +507,20 @@ class SddWorkspaceTests(Case):
         r = self.run_script("sdd-workspace", ["plan.md"], cwd=repo, path_prefix=stub)
         self.assertEqual((r.code, r.out, r.err), (0, "C:/x\n", ""))
         self.assertEqual(calls.read_text(), f"-m {self.sdd(repo) / 'plan'}\n")
-        self.assertEqual((self.sdd(repo) / "plan" / "plan-path").read_bytes(), b"plan.md\n")
+        self.assertEqual((self.sdd(repo) / "plan" / "plan-path").read_bytes(), f"{repo / 'plan.md'}\n".encode())
 
-    def test_linked_worktree_with_a_plan_in_the_main_checkout_uses_the_worktree_workspace(self):
+    def test_linked_worktree_workspace_sits_in_the_runs_dir(self):
         repo = self.repo()
         plan = self.plan(repo, "docs/plan.md", PLAN)
         wt = self.tmp / "wt"
         self.git(repo, "worktree", "add", "-q", str(wt), "-b", "wtb")
         r = self.run_script("sdd-workspace", ["-C", wt, plan], cwd=self.plain)
         self.assertEqual((r.code, r.err), (0, ""))
-        workspace = self.sdd(wt) / "plan"
+        workspace = self.runs / "plan"
         self.assertEqual(r.out, f"{workspace}\n")
         self.assertEqual((workspace / "plan-path").read_bytes(), f"{plan}\n".encode())
         self.assertFalse((repo / ".tl-relay").exists())
+        self.assertFalse((wt / ".tl-relay").exists())
         r = self.run_script("task-brief", ["-C", wt, plan, "3"], cwd=self.plain)
         self.assertEqual((r.code, r.err), (0, ""))
         self.assertTrue((workspace / "task-3-brief.md").is_file())
@@ -525,7 +531,7 @@ class SddWorkspaceTests(Case):
         r = self.run_script("sdd-workspace", ["docs/alpha/plan.md"], cwd=repo)
         workspace = self.sdd(repo) / "plan"
         self.assertEqual((r.code, r.out, r.err), (0, f"{workspace}\n", ""))
-        self.assertEqual((workspace / "plan-path").read_bytes(), b"docs/alpha/plan.md\n")
+        self.assertEqual((workspace / "plan-path").read_bytes(), f"{repo / 'docs/alpha/plan.md'}\n".encode())
 
     def test_marker_is_mode_0644_and_directories_0755(self):
         repo = self.repo()
@@ -539,10 +545,8 @@ class SddWorkspaceTests(Case):
         repo = self.repo()
         self.plan(repo, "plan.md")
         self.ws(repo, "plan.md")
-        self.assertEqual(
-            self.tree(repo / ".tl-relay"),
-            ["sdd", "sdd/.gitignore", "sdd/plan", "sdd/plan/plan-path"],
-        )
+        self.assertEqual(self.tree(self.runs), [".gitignore", "plan", "plan/plan-path"])
+        self.assertFalse((repo / ".tl-relay").exists())
 
     def test_plan_outside_the_repository_is_recorded_as_absolute_path(self):
         repo = self.repo()
@@ -569,7 +573,7 @@ class SddWorkspaceTests(Case):
                 outputs.add(r.out)
         self.assertEqual(outputs, {f"{self.sdd(repo) / 'plan'}\n"})
         self.assertEqual(
-            (self.sdd(repo) / "plan" / "plan-path").read_bytes(), b"docs/alpha/plan.md\n"
+            (self.sdd(repo) / "plan" / "plan-path").read_bytes(), f"{repo / 'docs/alpha/plan.md'}\n".encode()
         )
         self.assertEqual(sorted(p.name for p in self.sdd(repo).iterdir()), [".gitignore", "plan"])
 
@@ -580,7 +584,7 @@ class SddWorkspaceTests(Case):
         r = self.run_script("sdd-workspace", ["../docs/p.md"], cwd=repo / "src")
         self.assertEqual((r.code, r.err), (0, ""))
         self.assertEqual(r.out, f"{self.sdd(repo) / 'p'}\n")
-        self.assertEqual((self.sdd(repo) / "p" / "plan-path").read_bytes(), b"docs/p.md\n")
+        self.assertEqual((self.sdd(repo) / "p" / "plan-path").read_bytes(), f"{repo / 'docs/p.md'}\n".encode())
 
     @unittest.skipUnless(CAN_SYMLINK, "cannot create symlinks")
     def test_symlinked_repository_path_prints_the_physical_workspace(self):
@@ -591,7 +595,7 @@ class SddWorkspaceTests(Case):
         r = self.run_script("sdd-workspace", ["-C", link, "docs/p.md"], cwd=self.plain)
         self.assertEqual((r.code, r.err), (0, ""))
         self.assertEqual(r.out, f"{self.sdd(repo) / 'p'}\n")
-        self.assertEqual((self.sdd(repo) / "p" / "plan-path").read_bytes(), b"docs/p.md\n")
+        self.assertEqual((self.sdd(repo) / "p" / "plan-path").read_bytes(), f"{repo / 'docs/p.md'}\n".encode())
 
     def test_slug_strips_only_a_trailing_md_extension(self):
         repo = self.repo()
@@ -618,13 +622,13 @@ class SddWorkspaceTests(Case):
             with self.subTest(rerun=rel):
                 self.assertEqual(self.ws(repo, rel), self.sdd(repo) / name)
                 self.assertEqual(
-                    (self.sdd(repo) / name / "plan-path").read_bytes(), f"{rel}\n".encode()
+                    (self.sdd(repo) / name / "plan-path").read_bytes(), f"{repo / rel}\n".encode()
                 )
 
     def test_marker_comparison_ignores_trailing_newlines(self):
         repo = self.repo()
         self.plan(repo, "docs/alpha/plan.md")
-        self.write(self.sdd(repo) / "plan" / "plan-path", "docs/alpha/plan.md\n\n\n")
+        self.write(self.sdd(repo) / "plan" / "plan-path", f"{repo / 'docs/alpha/plan.md'}\n\n\n")
         self.assertEqual(self.ws(repo, "docs/alpha/plan.md"), self.sdd(repo) / "plan")
 
     def test_workspace_without_marker_is_adopted_and_keeps_its_files(self):
@@ -634,7 +638,7 @@ class SddWorkspaceTests(Case):
         workspace = self.ws(repo, "docs/alpha/plan.md")
         self.assertEqual(workspace, self.sdd(repo) / "plan")
         self.assertEqual((workspace / "progress.md").read_text(), "ledger\n")
-        self.assertEqual((workspace / "plan-path").read_bytes(), b"docs/alpha/plan.md\n")
+        self.assertEqual((workspace / "plan-path").read_bytes(), f"{repo / 'docs/alpha/plan.md'}\n".encode())
 
     def test_gitignore_is_written_as_a_star_when_absent(self):
         repo = self.repo()
@@ -661,12 +665,24 @@ class SddWorkspaceTests(Case):
         self.assertFalse(target.exists())
         self.assertTrue(link.is_symlink())
 
-    def test_workspace_is_ignored_and_no_tracked_file_changes(self):
+    def test_repository_stays_clean(self):
         repo = self.repo()
         self.commit(repo, {"docs/plan.md": "x\n"}, "plan")
         self.ws(repo, "docs/plan.md")
-        status = self.git(repo, "status", "--porcelain", "--ignored")
-        self.assertEqual(status, "!! .tl-relay/")
+        self.assertEqual(self.git(repo, "status", "--ignored", "--short"), "")
+
+    def test_missing_runs_dir_prints_usage_and_exits_2(self):
+        repo = self.repo()
+        self.write(repo / "plan.md", "# p\n")
+        r = self.run_script("sdd-workspace", ["plan.md"], cwd=repo, runs=False)
+        self.assertEqual((r.code, r.out, r.err), (2, "", USAGE_WORKSPACE))
+
+    def test_relative_runs_dir_exits_2_and_creates_nothing(self):
+        repo = self.repo()
+        self.write(repo / "plan.md", "# p\n")
+        r = self.run_script("sdd-workspace", ["--runs-dir", "rel", "plan.md"], cwd=repo, runs=False)
+        self.assertEqual((r.code, r.out, r.err), (2, "", "sdd-workspace: --runs-dir must be an absolute path: rel\n"))
+        self.assertFalse((repo / "rel").exists())
 
     def test_works_in_a_repository_without_commit(self):
         repo = self.repo(commit=False)
@@ -674,25 +690,26 @@ class SddWorkspaceTests(Case):
         r = self.run_script("sdd-workspace", ["plan.md"], cwd=repo)
         self.assertEqual((r.code, r.out, r.err), (0, f"{self.sdd(repo) / 'plan'}\n", ""))
 
-    def test_workspace_is_under_the_working_tree_not_dot_git(self):
+    def test_runs_dir_and_missing_parents_are_created(self):
         repo = self.repo()
         self.plan(repo, "plan.md")
-        self.ws(repo, "plan.md")
-        self.assertFalse((repo / ".git" / ".tl-relay").exists())
-        self.assertTrue((self.sdd(repo) / "plan").is_dir())
+        deep = self.tmp / "a" / "b"
+        r = self.run_script("sdd-workspace", ["--runs-dir", deep, "plan.md"], cwd=repo, runs=False)
+        self.assertEqual((r.code, r.out, r.err), (0, f"{deep / 'plan'}\n", ""))
+        self.assertTrue((deep / "plan").is_dir())
 
-    def test_dot_ai_sdlc_as_a_regular_file_exits_1(self):
+    def test_runs_dir_that_is_a_regular_file_exits_1(self):
         repo = self.repo()
         self.plan(repo, "plan.md")
-        self.write(repo / ".tl-relay", "x\n")
+        self.write(self.runs, "x\n")
         r = self.run_script("sdd-workspace", ["plan.md"], cwd=repo, timeout=10)
-        self.assertEqual((r.code, r.out), (1, ""))
-        self.assertTrue(r.err.endswith(f"sdd-workspace: cannot create {self.sdd(repo) / 'plan'}\n"), r.err)
+        self.assertEqual((r.code, r.out, r.err), (1, "", f"sdd-workspace: cannot create {self.runs}\n"))
 
     @unittest.skipIf(IS_ROOT, "root ignores directory modes")
     def test_read_only_sdd_directory_exits_1_with_or_without_gitignore(self):
-        for gitignore in (False, True):
+        for i, gitignore in enumerate((False, True)):
             with self.subTest(gitignore=gitignore):
+                self.runs = self.tmp / f"runs-{i}"
                 repo = self.repo(f"ro-{gitignore}")
                 self.plan(repo, "plan.md")
                 sdd = self.sdd(repo)
@@ -755,13 +772,14 @@ class SddWorkspaceTests(Case):
 
     @unittest.skipUnless(CAN_SYMLINK, "cannot create symlinks")
     def test_symlinked_marker_is_never_written_or_trusted(self):
-        for live in (False, True):
+        for i, live in enumerate((False, True)):
             with self.subTest(live=live):
+                self.runs = self.tmp / f"runs-{i}"
                 repo = self.repo(f"link-{live}")
                 self.plan(repo, "docs/alpha/plan.md")
                 target = self.tmp / f"outside-{live}"
                 if live:
-                    self.write(target, "docs/alpha/plan.md\n")
+                    self.write(target, f"{repo / 'docs/alpha/plan.md'}\n")
                 stem = self.sdd(repo) / "plan"
                 stem.mkdir(parents=True)
                 (stem / "plan-path").symlink_to(target)
@@ -769,7 +787,7 @@ class SddWorkspaceTests(Case):
                 self.assertEqual((r.code, r.out, r.err), (0, f"{self.sdd(repo) / 'plan-alpha'}\n", ""))
                 self.assertTrue((stem / "plan-path").is_symlink())
                 if live:
-                    self.assertEqual(target.read_text(), "docs/alpha/plan.md\n")
+                    self.assertEqual(target.read_text(), f"{repo / 'docs/alpha/plan.md'}\n")
                 else:
                     self.assertFalse(target.exists())
 
@@ -806,7 +824,7 @@ class SddWorkspaceTests(Case):
         repo = self.repo()
         self.plan(repo, "docs/alpha/plan.md")
         outside = self.tmp / "outside"
-        self.write(outside / "plan-path", "docs/alpha/plan.md\n")
+        self.write(outside / "plan-path", f"{repo / 'docs/alpha/plan.md'}\n")
         sdd = self.sdd(repo)
         sdd.mkdir(parents=True)
         (sdd / "plan-alpha-2").symlink_to(outside, target_is_directory=True)
@@ -845,7 +863,7 @@ class SddWorkspaceTests(Case):
         self.write(
             stub / "mkdir",
             f'#!/bin/sh\nif [ ! -e {shlex.quote(str(flag))} ] && [ "$1" = -p ]'
-            f' && case "$2" in */.tl-relay/sdd/plan) true ;; *) false ;; esac; then\n'
+            f' && case "$2" in */runs*/plan) true ;; *) false ;; esac; then\n'
             f'  : > {shlex.quote(str(flag))}\n  rmdir -- "$2"\n'
             f'  ln -s {shlex.quote(str(outside))} "$2"\n  exit 0\nfi\nexec {real} "$@"\n',
         )
@@ -859,15 +877,16 @@ class SddWorkspaceTests(Case):
     def test_non_numeric_suffix_copy_is_not_resumed(self):
         repo = self.repo()
         self.plan(repo, "docs/alpha/plan.md")
-        self.write(self.sdd(repo) / "plan-alpha-old" / "plan-path", "docs/alpha/plan.md\n")
+        self.write(self.sdd(repo) / "plan-alpha-old" / "plan-path", f"{repo / 'docs/alpha/plan.md'}\n")
         self.assertEqual(self.ws(repo, "docs/alpha/plan.md"), self.sdd(repo) / "plan")
 
     def test_suffixes_the_claim_loop_never_creates_are_not_resumed(self):
-        for suffix in ("0", "1", "02"):
+        for i, suffix in enumerate(("0", "1", "02")):
             with self.subTest(suffix=suffix):
+                self.runs = self.tmp / f"runs-{i}"
                 repo = self.repo(f"suffix-{suffix}")
                 self.plan(repo, "docs/alpha/plan.md")
-                self.write(self.sdd(repo) / f"plan-alpha-{suffix}" / "plan-path", "docs/alpha/plan.md\n")
+                self.write(self.sdd(repo) / f"plan-alpha-{suffix}" / "plan-path", f"{repo / 'docs/alpha/plan.md'}\n")
                 self.assertEqual(self.ws(repo, "docs/alpha/plan.md"), self.sdd(repo) / "plan")
 
     @unittest.skipUnless(CAN_SYMLINK, "cannot create symlinks")
@@ -875,7 +894,7 @@ class SddWorkspaceTests(Case):
         repo = self.repo()
         self.plan(repo, "docs/alpha/plan.md")
         outside = self.tmp / "outside"
-        self.write(outside / "plan-path", "docs/alpha/plan.md\n")
+        self.write(outside / "plan-path", f"{repo / 'docs/alpha/plan.md'}\n")
         self.sdd(repo).mkdir(parents=True)
         link = self.sdd(repo) / "plan"
         link.symlink_to(outside, target_is_directory=True)
@@ -891,7 +910,7 @@ class SddWorkspaceTests(Case):
         repo = self.repo()
         self.plan(repo, "docs/alpha/plan.md")
         outside = self.tmp / "outside"
-        self.write(outside / "plan-path", "docs/beta/plan.md\n")
+        self.write(outside / "plan-path", f"{repo / 'docs/beta/plan.md'}\n")
         self.sdd(repo).mkdir(parents=True)
         (self.sdd(repo) / "plan").symlink_to(outside, target_is_directory=True)
         r = self.run_script("sdd-workspace", ["docs/alpha/plan.md"], cwd=repo, timeout=10)
@@ -902,7 +921,7 @@ class SddWorkspaceTests(Case):
     def test_symlinked_workspace_with_a_symlinked_marker_is_skipped_silently(self):
         repo = self.repo()
         self.plan(repo, "docs/alpha/plan.md")
-        real = self.write(self.tmp / "real-marker", "docs/alpha/plan.md\n")
+        real = self.write(self.tmp / "real-marker", f"{repo / 'docs/alpha/plan.md'}\n")
         outside = self.tmp / "outside"
         outside.mkdir()
         (outside / "plan-path").symlink_to(real)
@@ -910,7 +929,7 @@ class SddWorkspaceTests(Case):
         (self.sdd(repo) / "plan").symlink_to(outside, target_is_directory=True)
         r = self.run_script("sdd-workspace", ["docs/alpha/plan.md"], cwd=repo, timeout=10)
         self.assertEqual((r.code, r.out, r.err), (0, f"{self.sdd(repo) / 'plan-alpha'}\n", ""))
-        self.assertEqual(real.read_text(), "docs/alpha/plan.md\n")
+        self.assertEqual(real.read_text(), f"{repo / 'docs/alpha/plan.md'}\n")
 
     @unittest.skipIf(IS_ROOT, "root ignores directory modes")
     def test_candidate_created_by_another_run_is_left_alone_when_the_write_fails(self):
@@ -941,9 +960,11 @@ class SddWorkspaceTests(Case):
         if found is None:
             self.skipTest("no mkdir on PATH")
         real = shlex.quote(found)
-        for other, expected in (("other/plan.md\n", "plan-alpha"), ("docs/alpha/plan.md\n", "plan")):
-            with self.subTest(other=other):
+        for foreign, expected in ((True, "plan-alpha"), (False, "plan")):
+            with self.subTest(foreign=foreign):
+                self.runs = self.tmp / f"runs-{expected}"
                 repo = self.repo(f"race-{expected}")
+                other = "/other/plan.md\n" if foreign else f"{repo / 'docs/alpha/plan.md'}\n"
                 self.plan(repo, "docs/alpha/plan.md")
                 stub = self.tmp / f"stub-{expected}"
                 stub.mkdir()
@@ -951,7 +972,7 @@ class SddWorkspaceTests(Case):
                 self.write(
                     stub / "mkdir",
                     f'#!/bin/sh\nif [ ! -e {shlex.quote(str(flag))} ] && [ "$1" = -p ]'
-                    f' && case "$2" in */.tl-relay/sdd/plan) true ;; *) false ;; esac; then\n'
+                    f' && case "$2" in */runs*/plan) true ;; *) false ;; esac; then\n'
                     f'  : > {shlex.quote(str(flag))}\n  {real} -p -- "$2"\n'
                     f'  printf %s {shlex.quote(other)} > "$2/plan-path"\n  exit 0\nfi\nexec {real} "$@"\n',
                 )
@@ -972,7 +993,7 @@ class SddWorkspaceTests(Case):
         finally:
             os.umask(old)
         self.assertEqual((r.code, r.out, r.err), (0, f"{self.sdd(repo) / 'plan'}\n", ""))
-        self.assertEqual((self.sdd(repo) / "plan" / "plan-path").read_text(), "docs/alpha/plan.md\n")
+        self.assertEqual((self.sdd(repo) / "plan" / "plan-path").read_text(), f"{repo / 'docs/alpha/plan.md'}\n")
 
 
 class TaskBriefTests(Case):
@@ -1080,7 +1101,7 @@ class TaskBriefTests(Case):
                 self.assertEqual((r.code, r.out, r.err), (2, "", f"bad -C directory: {given}\n"))
 
     def test_c_without_value_is_a_bad_directory(self):
-        r = self.run_script("task-brief", ["-C"])
+        r = self.run_script("task-brief", ["-C"], runs=False)
         self.assertEqual((r.code, r.out, r.err), (2, "", "bad -C directory: \n"))
 
     def test_missing_plan_file_exits_2_before_any_repository_lookup(self):
@@ -1331,7 +1352,21 @@ class TaskBriefTests(Case):
         self.assertEqual((r.code, r.err), (0, ""))
         self.assertEqual(r.out, f"wrote {out}: 3 lines\n")
         self.assertEqual(out.read_text(), "### Task 6b: six b\nsix b body\n\n")
-        self.assertEqual((out.parent / "plan-path").read_bytes(), b"docs/plan.md\n")
+        self.assertEqual((out.parent / "plan-path").read_bytes(), f"{repo / 'docs/plan.md'}\n".encode())
+
+    def test_default_outfile_without_runs_dir_exits_2(self):
+        repo = self.repo()
+        self.write(repo / "plan.md", PLAN)
+        r = self.run_script("task-brief", ["plan.md", "3"], cwd=repo, runs=False)
+        self.assertEqual((r.code, r.out, r.err), (2, "", "task-brief: --runs-dir DIR is required without OUTFILE\n"))
+
+    def test_outfile_without_runs_dir_works_outside_a_repository(self):
+        plan = self.plan()
+        out = self.plain / "brief.md"
+        r = self.run_script("task-brief", [plan, "3", out], cwd=self.plain, runs=False)
+        self.assertEqual((r.code, r.err), (0, ""))
+        self.assertTrue(out.is_file())
+        self.assertFalse(self.runs.exists())
 
     def test_default_outfile_works_in_a_repository_without_commit(self):
         repo = self.repo(commit=False)
@@ -1393,7 +1428,7 @@ class ReviewPackageTests(Case):
                 self.assertEqual((r.code, r.out, r.err), (2, "", f"bad -C directory: {given}\n"))
 
     def test_c_without_value_is_a_bad_directory(self):
-        r = self.run_script("review-package", ["-C"])
+        r = self.run_script("review-package", ["-C"], runs=False)
         self.assertEqual((r.code, r.out, r.err), (2, "", "bad -C directory: \n"))
 
     def test_missing_plan_file_exits_2_before_any_repository_lookup(self):
@@ -1484,7 +1519,20 @@ class ReviewPackageTests(Case):
         self.assertEqual((r.code, r.err), (0, ""))
         size = len(out.read_bytes())
         self.assertEqual(r.out, f"wrote {out}: 2 commit(s), {size} bytes\n")
-        self.assertEqual((out.parent / "plan-path").read_bytes(), b"docs/plan.md\n")
+        self.assertEqual((out.parent / "plan-path").read_bytes(), f"{repo / 'docs/plan.md'}\n".encode())
+
+    def test_default_output_without_runs_dir_exits_2(self):
+        repo, base, mid, head = self.history()
+        r = self.run_script("review-package", ["docs/plan.md", "HEAD~1", "HEAD"], cwd=repo, runs=False)
+        self.assertEqual((r.code, r.out, r.err), (2, "", "review-package: --runs-dir DIR is required without OUTFILE\n"))
+
+    def test_outfile_without_runs_dir_works(self):
+        repo, base, mid, head = self.history()
+        out = self.tmp / "given.diff"
+        r = self.run_script("review-package", ["docs/plan.md", base, head, out], cwd=repo, runs=False)
+        self.assertEqual((r.code, r.err), (0, ""))
+        self.assertTrue(out.is_file())
+        self.assertFalse(self.runs.exists())
 
     def test_distinct_ranges_get_distinct_default_files(self):
         repo, base, mid, head = self.history()

@@ -8,19 +8,20 @@ SCRIPT = SKILLS / "run-plan" / "scripts" / "sdd-workspace"
 
 
 class PortableRunPlanTest(unittest.TestCase):
-    def test_workspace_lives_in_tl_relay_sdd(self):
+    def test_workspace_lives_in_the_runs_dir(self):
         with tempfile.TemporaryDirectory() as tmp:
             repo = pathlib.Path(tmp).resolve() / "repo"
+            runs = pathlib.Path(tmp).resolve() / "runs"
             repo.mkdir()
             subprocess.run(["git", "init", "-q", str(repo)], check=True)
             (repo / "plan.md").write_text("# plan\n")
-            out = subprocess.run(["bash", str(SCRIPT), "-C", str(repo), "plan.md"],
+            out = subprocess.run(["bash", str(SCRIPT), "-C", str(repo), "--runs-dir", str(runs), "plan.md"],
                                  capture_output=True, text=True, check=True)
             path = pathlib.Path(out.stdout.strip())
-            self.assertTrue(str(path).startswith(str(repo / ".tl-relay" / "sdd") + "/"), path)
+            self.assertTrue(str(path).startswith(str(runs) + "/"), path)
             status = subprocess.run(["git", "-C", str(repo), "status", "--ignored", "--short"],
                                     capture_output=True, text=True, check=True).stdout
-            self.assertIn("!! .tl-relay/", status)
+            self.assertNotIn(".tl-relay", status)
 
     def test_route_subagents_holds_the_role_table(self):
         text = (SKILLS / "route-subagents/SKILL.md").read_text()
