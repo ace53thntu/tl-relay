@@ -5,6 +5,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 import run_tests
 
@@ -229,6 +230,41 @@ class RunTest(unittest.TestCase):
             self.assertEqual(code, 0)
             self.assertEqual(text.strip().splitlines()[-1], "OK (1 units)")
             self.assertNotIn("First", text)
+
+    def state_src(self, other, tail=""):
+        return (
+            "# at import: drop RUN_TESTS_KEEP, set RUN_TESTS_LEAK, chdir elsewhere, extend sys.path\n"
+            "import os\nimport sys\n"
+            "os.environ.pop('RUN_TESTS_KEEP')\n"
+            "os.environ['RUN_TESTS_LEAK'] = '1'\n"
+            "os.chdir(%r)\n"
+            "sys.path.append('/run-tests-leak')\n" % str(other)
+        ) + tail
+
+    def check_state_restored(self, src_tail, expected):
+        self.addCleanup(os.chdir, os.getcwd())
+        self.addCleanup(sys.path.__setitem__, slice(None), list(sys.path))
+        with mock.patch.dict(os.environ, {"RUN_TESTS_KEEP": "1"}), \
+                tempfile.TemporaryDirectory() as d, tempfile.TemporaryDirectory() as other:
+            write(d, "test_state.py", self.state_src(pathlib.Path(other).resolve(), src_tail))
+            before_cwd, before_path = os.getcwd(), list(sys.path)
+            units = run_tests.collect_units(pathlib.Path(d), set())
+            with self.subTest("units"):
+                self.assertEqual(units, expected)
+            with self.subTest("kept"):
+                self.assertEqual(os.environ.get("RUN_TESTS_KEEP"), "1")
+            with self.subTest("leak"):
+                self.assertNotIn("RUN_TESTS_LEAK", os.environ)
+            with self.subTest("cwd"):
+                self.assertEqual(os.getcwd(), before_cwd)
+            with self.subTest("path"):
+                self.assertEqual(sys.path, before_path)
+
+    def test_collection_restores_environment_cwd_and_path(self):
+        self.check_state_restored(OK_SRC.format(name="State"), ["test_state.State.test_a"])
+
+    def test_collection_restores_state_after_a_failed_import(self):
+        self.check_state_restored("raise RuntimeError('boom')\n", ["test_state"])
 
 
 class MainTest(unittest.TestCase):

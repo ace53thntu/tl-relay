@@ -92,6 +92,9 @@ def _inside(path, root) -> bool:
 def collect_units(tests_dir, skip) -> List[str]:
     saved = dict(sys.modules)
     root = pathlib.Path(tests_dir).resolve()
+    recorded_env = dict(os.environ)
+    recorded_cwd = os.getcwd()
+    recorded_path = list(sys.path)
     sys.path.insert(0, str(tests_dir))
     units = []
     try:
@@ -127,7 +130,12 @@ def collect_units(tests_dir, skip) -> List[str]:
             else:
                 units.extend(sorted(found))
     finally:
-        sys.path.remove(str(tests_dir))
+        sys.path[:] = recorded_path
+        for key in list(os.environ):
+            if key not in recorded_env:
+                del os.environ[key]
+        os.environ.update(recorded_env)
+        os.chdir(recorded_cwd)
         for name in list(sys.modules):
             if name in saved and sys.modules[name] is saved[name]:
                 continue
