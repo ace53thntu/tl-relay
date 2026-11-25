@@ -14,9 +14,9 @@ trap 'exit 129' HUP
 {
   mkdir -p "$TMP/styles/config/vocabularies/Home" &&
   ln -s "$DIR/styles/Google" "$TMP/styles/Google" &&
-  ln -s "$DIR/styles/AiSdlc" "$TMP/styles/AiSdlc" &&
-  ln -s "$DIR/styles/config/vocabularies/AiSdlc" "$TMP/styles/config/vocabularies/AiSdlc" &&
+  ln -s "$DIR/styles/TlRelay" "$TMP/styles/TlRelay" &&
+  ln -s "$DIR/styles/config/vocabularies/TlRelay" "$TMP/styles/config/vocabularies/TlRelay" &&
   cp "$HOME_VOCAB" "$TMP/styles/config/vocabularies/Home/accept.txt" &&
-  sed -e "s|^StylesPath = .*|StylesPath = $TMP/styles|" -e 's|^Vocab = .*|Vocab = AiSdlc, Home|' "$DIR/.vale.ini" > "$TMP/.vale.ini"
+  sed -e "s|^StylesPath = .*|StylesPath = $TMP/styles|" -e 's|^Vocab = .*|Vocab = TlRelay, Home|' "$DIR/.vale.ini" > "$TMP/.vale.ini"
 } || exit 1
 vale --config "$TMP/.vale.ini" "$@"

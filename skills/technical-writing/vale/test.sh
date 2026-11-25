@@ -12,10 +12,10 @@ while IFS= read -r rule; do
   printf '%s' "$out" | grep -q "\"Check\": \"$rule\"" || { echo "FAIL $rule did not fire on dirty.md"; fail=1; }
 done < "$DIR/fixtures/expected-rules.txt"
 
-for f in "$DIR"/styles/AiSdlc/*.yml; do
+for f in "$DIR"/styles/TlRelay/*.yml; do
   [ -e "$f" ] || continue
-  rule="AiSdlc.$(basename "$f" .yml)"
-  [ "$rule" = "AiSdlc.SemicolonsTable" ] && continue
+  rule="TlRelay.$(basename "$f" .yml)"
+  [ "$rule" = "TlRelay.SemicolonsTable" ] && continue
   grep -qx "$rule" "$DIR/fixtures/expected-rules.txt" || { echo "FAIL $rule has no line in expected-rules.txt"; fail=1; }
 done
 
@@ -27,7 +27,7 @@ if printf '%s' "$clean" | grep -q '"Check"'; then
 fi
 
 table=$(vale --output=JSON --config "$INI" "$DIR/fixtures/table.md") || { echo "FAIL a semicolon in a table cell raised an error"; fail=1; }
-printf '%s' "$table" | grep -q '"Check": "AiSdlc.SemicolonsTable"' || { echo "FAIL AiSdlc.SemicolonsTable did not fire on table.md"; fail=1; }
+printf '%s' "$table" | grep -q '"Check": "TlRelay.SemicolonsTable"' || { echo "FAIL TlRelay.SemicolonsTable did not fire on table.md"; fail=1; }
 
 ( cd / && vale --config "$INI" "$DIR/fixtures/clean.md" >/dev/null ) || { echo "FAIL vale did not exit 0 on clean.md when run from /"; fail=1; }
 
@@ -45,7 +45,7 @@ printf '%s' "$plain" | grep -q "'leverages'" || { echo "FAIL dirty.md does not f
 printf '%s' "$withhome" | grep -q "'leverages'" && { echo "FAIL run.sh still flags a word in the extra vocabulary"; fail=1; }
 homejson=$(TL_RELAY_VALE_VOCAB="$HOMETMP/vocab.txt" sh "$DIR/run.sh" --no-exit --output=JSON "$DIR/fixtures/dirty.md")
 while IFS= read -r rule; do
-  [ -n "$rule" ] && [ "$rule" != "AiSdlc.ContextWords" ] || continue
+  [ -n "$rule" ] && [ "$rule" != "TlRelay.ContextWords" ] || continue
   printf '%s' "$homejson" | grep -q "\"Check\": \"$rule\"" || { echo "FAIL $rule did not fire through run.sh with an extra vocabulary"; fail=1; }
 done < "$DIR/fixtures/expected-rules.txt"
 TL_RELAY_VALE_VOCAB="$HOMETMP/vocab.txt" sh "$DIR/run.sh" "$DIR/fixtures/dirty.md" >/dev/null 2>&1 && { echo "FAIL run.sh exited 0 on dirty.md with an extra vocabulary"; fail=1; }

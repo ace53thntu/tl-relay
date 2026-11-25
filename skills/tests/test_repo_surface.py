@@ -69,7 +69,7 @@ class RepoSurfaceTest(unittest.TestCase):
                 self.assertNotIn(needle, text, "%s names %s" % (path, needle))
 
     def test_no_legacy_names_outside_the_allowlist(self):
-        old = re.compile(r"AI_SDLC_|ai-sdlc|ai_sdlc")
+        old = re.compile(r"AI_SDLC_|ai-sdlc|ai_sdlc|AiSdlc")
         guards = {"skills/tests/test_package.py", "skills/tests/test_portable_tl_design.py",
                   "skills/tests/test_portable_tl_implement.py", "skills/tests/test_repo_surface.py",
                   "skills/tests/test_layout.py", "maintainer/runtime/tests/test_config.py",
