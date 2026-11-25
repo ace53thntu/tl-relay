@@ -52,7 +52,7 @@ A rule is what `lens-qa-conformance` § Rules counts as a rule. Scenarios are te
 
 ## Run state
 
-Run state is runtime data. It lives under `<runtime>`, outside the repo:
+Run state is runtime data. It lives under `<runtime>`, outside the hub and the repo:
 `<runtime>/designs/<handle>/runs/<row>/` (the run dir). It holds:
 
 - `run-state.md`, created from `templates/run-state.md`.
