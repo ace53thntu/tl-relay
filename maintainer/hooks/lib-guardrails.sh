@@ -1,17 +1,13 @@
 # Sourced, never executed. No `set -e`: callers decide what a problem means.
 # `sdlc.py install` writes $TL_RELAY_HOME/env.sh. A variable already set in the
 # environment wins, even when empty. env.sh is read once, in a subshell.
-# An install from before the rename sets AI_SDLC_HOME and writes AI_SDLC_<v>
-# names; those are read only when the TL_RELAY_ name yields nothing.
 # TL_RELAY_USER_SETTINGS is colon-separated, one entry per Claude Code config directory.
 _lg_vars="ROOT USER_FRAGMENT FRAGMENT USER_SETTINGS SETTINGS"
-[ -n "${TL_RELAY_HOME:-}" ] || TL_RELAY_HOME=${AI_SDLC_HOME:-}
 _lg_env=
 if [ -n "${TL_RELAY_HOME:-}" ] && [ -f "$TL_RELAY_HOME/env.sh" ]; then
   _lg_env=$(. "$TL_RELAY_HOME/env.sh" >/dev/null 2>&1
     for _lg_v in $_lg_vars; do
       eval "printf 'N %s=%s\\n' \$_lg_v \"\${TL_RELAY_$_lg_v:-}\""
-      eval "printf 'O %s=%s\\n' \$_lg_v \"\${AI_SDLC_$_lg_v:-}\""
     done)
 fi
 for _lg_v in $_lg_vars; do
@@ -19,10 +15,8 @@ for _lg_v in $_lg_vars; do
   _lg_new=$(printf '%s\n' "$_lg_env" | sed -n "s/^N $_lg_v=//p")
   if [ -n "$_lg_new" ]; then
     eval "TL_RELAY_$_lg_v=\$_lg_new"
-  elif eval "[ \"\${AI_SDLC_$_lg_v+x}\" = x ]"; then
-    eval "TL_RELAY_$_lg_v=\$AI_SDLC_$_lg_v"
   else
-    eval "TL_RELAY_$_lg_v=\$(printf '%s\\n' \"\$_lg_env\" | sed -n \"s/^O \$_lg_v=//p\")"
+    eval "TL_RELAY_$_lg_v="
   fi
 done
 : "${TL_RELAY_COMPARE:=$(dirname "$0")/compare.jq}"

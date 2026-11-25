@@ -11,8 +11,8 @@ class ConfigError(Exception):
     pass
 
 
-HOME_VARS = ("TL_RELAY_HOME", "AI_SDLC_HOME")
-HOME_FILES = ("tl-relay.yaml", "ai-sdlc.yaml")
+HOME_VARS = ("TL_RELAY_HOME",)
+HOME_FILES = ("tl-relay.yaml",)
 
 
 def default_home():
@@ -20,8 +20,6 @@ def default_home():
         if os.environ.get(name):
             return pathlib.Path(os.environ[name])
     home = pathlib.Path.home()
-    if not (home / ".tl-relay").exists() and (home / ".ai-sdlc").exists():
-        return home / ".ai-sdlc"
     return home / ".tl-relay"
 
 

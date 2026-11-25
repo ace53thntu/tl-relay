@@ -63,7 +63,7 @@ class Sandbox:
         temp = root / "tmp"
         temp.mkdir()
         self.env = {k: v for k, v in os.environ.items() if k not in GIT_ENV_DROP and k not in OPERATOR_CONFIG
-                    and not k.startswith(("AI_SDLC_", "TL_RELAY_"))}
+                    and not k.startswith(("TL_RELAY_",))}
         self.env.update(
             HOME=str(self.home),
             GIT_CONFIG_NOSYSTEM="1",

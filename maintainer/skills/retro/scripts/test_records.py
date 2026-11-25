@@ -2,7 +2,7 @@ import json
 import unittest
 from pathlib import Path
 
-from records import ai_sdlc_skills, compile_patterns, extract, redact
+from records import repo_skills, compile_patterns, extract, redact
 
 FIXTURES = Path(__file__).resolve().parent / "fixtures"
 REPO = Path(__file__).resolve().parents[4]
@@ -76,7 +76,7 @@ class ExtractTest(unittest.TestCase):
         entries[4]["message"]["content"] = "từ giờ chọn A"
         self.assertNotIn("từ giờ", [r.get("marker") for r in run(entries)])
 
-    def test_skill_runs_count_only_ai_sdlc_skills(self):
+    def test_skill_runs_count_only_repo_skills(self):
         entries = load()
         entries.append({"type": "user", "uuid": "z1", "sessionId": "s1", "timestamp": "2026-11-23T12:00:00Z",
                         "message": {"role": "user", "content":
@@ -168,8 +168,8 @@ class ExtractTest(unittest.TestCase):
 
 
 class HelperTest(unittest.TestCase):
-    def test_ai_sdlc_skills_lists_folders_with_skill_md(self):
-        names = ai_sdlc_skills(REPO)
+    def test_repo_skills_lists_folders_with_skill_md(self):
+        names = repo_skills(REPO)
         self.assertIn("run-plan", names)
         self.assertIn("write-skill", names)
         self.assertNotIn("tests", names)

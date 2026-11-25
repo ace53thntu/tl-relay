@@ -29,7 +29,7 @@ class NeutralCommands(unittest.TestCase):
         (home / "tl-relay.yaml").write_text(
             "neutrality:\n  patterns:\n    - LEAK[W]ORD\n  identity_allow:\n    - dev@example.invalid\n"
         )
-        self.env = {k: v for k, v in os.environ.items() if not k.startswith(("GIT_", "AI_SDLC_", "TL_RELAY_"))}
+        self.env = {k: v for k, v in os.environ.items() if not k.startswith(("GIT_", "TL_RELAY_"))}
         self.env["TL_RELAY_HOME"] = str(home)
         self.git("init", "-q", "-b", "main", str(self.repo), cwd=root)
         self.commit("clean\n")

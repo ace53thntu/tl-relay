@@ -69,13 +69,13 @@ This folder holds the operator's tooling. Claude Code never loads it, though the
 
 `--git-hook` also writes `<git-common-dir>/hooks/pre-push`, which runs `maintainer/skills/write-skill/scripts/final_run.py check` from the main checkout before every push. A plain `install` never writes it and prints one line when it is missing or names another home. `install --git-hook` exits 1 and changes nothing on a `pre-push` it did not write, when `core.hooksPath` is set, and when the main checkout lacks `final_run.py` or `maintainer/sdlc.py`. A plain `install` also prints one line for those cases and for a hook that is not executable.
 
-`install` writes `<home>/env.sh` and the rendered hook fragments under `<home>/hooks/`. It merges the hooks into the `settings.json` of each directory in `install.claude_config_dirs`, and into `<project.root>/.claude/settings.json`. A second run with the same `--home` changes nothing. A bare rerun in a shell without `TL_RELAY_HOME` or `AI_SDLC_HOME` looks in the default home (see Fallbacks). It exits 1 when a user `settings.json` names a different home. Without a local config, `install` exits 1.
+`install` writes `<home>/env.sh` and the rendered hook fragments under `<home>/hooks/`. It merges the hooks into the `settings.json` of each directory in `install.claude_config_dirs`, and into `<project.root>/.claude/settings.json`. A second run with the same `--home` changes nothing. A bare rerun in a shell without `TL_RELAY_HOME` looks in the default home `~/.tl-relay`. It exits 1 when a user `settings.json` names a different home. Without a local config, `install` exits 1.
 
 `install` also writes `TL_RELAY_HOME` into the `env` block of each user `settings.json`, and keeps the other `env` keys. `install` never adds `TL_RELAY_HOME` to `<project.root>/.claude/settings.json`. When that file names a different home, `install` exits 1, and `install --home` removes the key. When `settings.local.json` names a different home, `install` exits 1 and asks you to delete the key.
 
 - Open Claude Code sessions pick up the new home after a restart.
-- Without `--home`, `install` uses `TL_RELAY_HOME` from the shell, else `AI_SDLC_HOME`, else the default home (see Fallbacks). It exits 1 when a user `settings.json` already names a different home. Pass `--home` to replace it.
-- `maintainer/sdlc.py` run outside Claude Code needs `TL_RELAY_HOME` or `AI_SDLC_HOME` in your shell profile, or it uses the default home.
+- Without `--home`, `install` uses `TL_RELAY_HOME` from the shell, else the default home `~/.tl-relay`. It exits 1 when a user `settings.json` already names a different home. Pass `--home` to replace it.
+- `maintainer/sdlc.py` run outside Claude Code needs `TL_RELAY_HOME` in your shell profile, or it uses the default home.
 - When the home sits on a volume that is not mounted, `require-guardrails.sh` denies every other tool in every Claude Code session. Read, Edit, Write, Glob and Grep stay allowed. Mount the volume to fix it.
 - When the tl-relay checkout sits on the unmounted volume, the hook script is missing and `/bin/sh` exits 127. Claude Code treats that exit code as non-blocking, so the guardrails are off.
 - Inside Claude Code, the `settings.json` value beats a shell `export`. One Claude config directory therefore holds one home, and the last `install --home` wins in user settings. Each `<project.root>/.claude/settings.json` keeps the old home in its hook commands until `install` runs again for that `project.root`.
@@ -89,30 +89,9 @@ Config has two layers.
 | Repository | `maintainer/tl-relay.yaml` | `apiVersion` and `kind` only |
 | Local | `<home>/tl-relay.yaml` | Workspace root (`project.root`), Claude config directories (`install`), neutrality patterns, and the `operator_language` that `retro` reads |
 
-`<home>` is `$TL_RELAY_HOME`, else `$AI_SDLC_HOME`, else the default home (see Fallbacks). `sdlc.py`, `install` and `retro` find the home this way. The guardrail hooks take it from `TL_RELAY_HOME`, else `AI_SDLC_HOME`, and use no default home. Choose it with `install --home`, which writes `TL_RELAY_HOME` into each user `settings.json`.
+`<home>` is `$TL_RELAY_HOME`, else the default home `~/.tl-relay`. `sdlc.py`, `install` and `retro` find the home this way. The guardrail hooks take it from `TL_RELAY_HOME` and use no default home. Choose it with `install --home`, which writes `TL_RELAY_HOME` into each user `settings.json`.
 
 The public skills read `.tl-relay/config.yaml` in the workspace, never the local config. The publish command and the ticket comment template live there. The local config keeps only what the maintainer tooling reads. `maintainer/tl-relay.example.yaml` shows the template.
-
-## Fallbacks
-
-Installs from before the rename keep working through these fallbacks. The new name always wins.
-
-- `TL_RELAY_HOME` wins. `sdlc.py`, `install`, `retro` and the guardrail hooks read `AI_SDLC_HOME` when `TL_RELAY_HOME` is unset or empty.
-- The default home is `~/.tl-relay`, or `~/.ai-sdlc` when only that one exists.
-- `<home>/tl-relay.yaml` wins. The tooling reads `<home>/ai-sdlc.yaml` when it is the only file. `apiVersion: ai-sdlc/v2` still loads.
-- The guardrail hooks read `AI_SDLC_HOME` and the five `AI_SDLC_<v>` names from the environment or `env.sh` when the new names are missing.
-- `install` replaces a same-home `AI_SDLC_HOME` key with `TL_RELAY_HOME` in each user `settings.json`. It refuses a key that names another home unless you pass `--home`. The project `settings.json` keeps a same-home `AI_SDLC_HOME`. `install` never edits `settings.local.json`.
-- `install` and the write-skill gate accept the old pre-push hook marker.
-
-Not migrated:
-
-- `install` never renames `<home>/ai-sdlc.yaml` and never moves `~/.ai-sdlc`.
-- A pre-push hook installed before the rename blocks the pushes the write-skill gate checks until you rerun `sdlc.py install --git-hook`. `install` prints a notice. The gate checks changes under `skills/` and `maintainer/skills/`, changes to `hooks/session-start-skills.sh`, annotated tags, and tag or notes pushes with commits not on `origin/main`.
-- The write-skill scripts (`final_run.py`) read `TL_RELAY_HOME` only. The `gates.md` commands take the home from `TL_RELAY_HOME`, else `AI_SDLC_HOME`, and set or export `TL_RELAY_HOME` on each command.
-- `TL_RELAY_TRIGGER_*` and every other internal variable read no old name.
-- The write-skill scripts do not read records under `<git common dir>/ai-sdlc/`. They score branches again that a run before the rename scored.
-- A checkout from before the rename reads only `AI_SDLC_HOME`, else `~/.ai-sdlc`. After `install` replaces `AI_SDLC_HOME` in a user `settings.json`, that checkout still finds `~/.ai-sdlc`. It loses any other home.
-- To roll back, rerun `install --home <home>` from the older checkout. It writes `AI_SDLC_HOME` back but leaves `TL_RELAY_HOME`, which this checkout still prefers. Delete `TL_RELAY_HOME` by hand when you mean the rollback to last.
 
 ## Commands
 

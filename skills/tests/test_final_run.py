@@ -1984,13 +1984,6 @@ class ScoreGuards(ScoreBase):
         self.assertEqual(done.returncode, 2, done.stderr)
         self.assertEqual(list(bare.iterdir()), [])
 
-    def test_lock_accepts_a_legacy_home_file(self):
-        legacy = self.sb.home / "legacy-home"
-        legacy.mkdir()
-        (legacy / "ai-sdlc.yaml").write_text("neutrality:\n  patterns: []\n")
-        with mock.patch.dict(os.environ, {"TL_RELAY_HOME": str(legacy)}):
-            self.assertEqual(fr_lock._home(), legacy)
-
     def test_a_when_to_use_change_needs_a_heldout(self):
         text = "---\nname: alpha\ndescription: Use when alpha applies.\nwhen_to_use: later\n---\n\nBody of alpha.\n"
         self.sb.commit(ALPHA, text)
@@ -2037,7 +2030,7 @@ class ScoreGuards(ScoreBase):
         self.sb.install_hook(home=other)
         self.refused(self.score(), "names home")
 
-    def test_score_refuses_a_legacy_hook_that_names_another_home(self):
+    def test_score_ignores_a_hook_with_only_the_old_marker(self):
         other = self.sb.home / "other-home"
         other.mkdir()
         (other / "tl-relay.yaml").write_text("neutrality:\n  patterns: []\n")
@@ -2045,7 +2038,10 @@ class ScoreGuards(ScoreBase):
         hook = self.sb.repo / ".git" / "hooks" / "pre-push"
         hook.write_text(hook.read_text().replace("# tl-relay pre-push hook", "# ai-sdlc pre-push hook"))
         self.assertIn("# ai-sdlc pre-push hook", hook.read_text())
-        self.refused(self.score(), "names home")
+        self.sb.agent_plan({ALPHA_PROMPT: "alpha"})
+        done = self.score()
+        self.assertEqual(done.returncode, 0)
+        self.assertNotIn("names home", done.stderr)
 
     def test_score_accepts_a_hook_that_names_this_home(self):
         self.sb.install_hook()
