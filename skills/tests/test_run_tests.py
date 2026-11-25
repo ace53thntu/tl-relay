@@ -67,6 +67,16 @@ class ChangedPathsTest(unittest.TestCase):
                 self.assertIn(expected, result)
 
 
+class RelativePathsTest(unittest.TestCase):
+    def test_paths_are_relative_to_a_repo_below_the_git_top_level(self):
+        with tempfile.TemporaryDirectory() as parent:
+            make_repo(parent, {"sub/README.md": "a\n"})
+            write(parent, "sub/maintainer/x.txt", "x\n")
+            git(parent, "add", "-A")
+            git(parent, "commit", "-q", "-m", "change")
+            self.assertIn("maintainer/x.txt", run_tests.changed_paths(pathlib.Path(parent) / "sub"))
+
+
 class DecodeTest(unittest.TestCase):
     def test_non_utf8_path_does_not_raise(self):
         real = run_tests.git_output
@@ -90,7 +100,7 @@ class DecodeTest(unittest.TestCase):
 class RunTest(unittest.TestCase):
     def run_dir(self, directory, skip=()):
         out = io.StringIO()
-        code = run_tests.run(pathlib.Path(directory), set(skip), 2, out)
+        code = run_tests.run(run_tests.suite_units(pathlib.Path(directory), run_tests.Suite(".", "py", None), set(skip)), 2, out)
         return code, out.getvalue()
 
     def test_all_pass(self):
@@ -109,6 +119,48 @@ class RunTest(unittest.TestCase):
             self.assertIn("test_bad.BadCase", text)
             self.assertEqual(text.strip().splitlines()[-1], "FAILED (1 of 3 units)")
             self.assertEqual(self.run_dir(d, skip={"test_bad"})[0], 0)
+
+    def test_units_are_test_methods(self):
+        with tempfile.TemporaryDirectory() as d:
+            write(d, "test_ok.py", TWO_OK + "\n\nclass Three(unittest.TestCase):\n    def test_a(self):\n        pass\n\n    def test_b(self):\n        pass\n")
+            units = run_tests.collect_units(pathlib.Path(d), set())
+            self.assertEqual(sorted(units), ["test_ok.One.test_a", "test_ok.Three.test_a", "test_ok.Three.test_b",
+                                             "test_ok.Two.test_a"])
+
+    def test_an_imported_testcase_is_named_by_the_importing_module(self):
+        with tempfile.TemporaryDirectory() as d:
+            write(d, "test_base.py", OK_SRC.format(name="Shared"))
+            write(d, "test_user.py", "from test_base import Shared\n")
+            units = run_tests.collect_units(pathlib.Path(d), {"test_base"})
+            self.assertEqual(units, ["test_user.Shared.test_a"])
+
+    def test_an_imported_testcase_runs_through_the_importing_module(self):
+        with tempfile.TemporaryDirectory() as d:
+            write(d, "test_base.py", OK_SRC.format(name="Shared"))
+            write(d, "test_user.py", "from test_base import Shared\n")
+            out = io.StringIO()
+            units = run_tests.suite_units(pathlib.Path(d), run_tests.Suite(".", "py", None), {"test_base"})
+            self.assertEqual(run_tests.run(units, 2, out), 0)
+            self.assertEqual(out.getvalue().strip().splitlines()[-1], "OK (1 units)")
+
+    def test_an_aliased_testcase_is_named_by_its_alias(self):
+        with tempfile.TemporaryDirectory() as d:
+            write(d, "test_base.py", OK_SRC.format(name="Shared"))
+            write(d, "test_user.py", "from test_base import Shared as Alias\n")
+            units = run_tests.collect_units(pathlib.Path(d), {"test_base"})
+            self.assertEqual(units, ["test_user.Alias.test_a"])
+            out = io.StringIO()
+            suite = run_tests.suite_units(pathlib.Path(d), run_tests.Suite(".", "py", None), {"test_base"})
+            self.assertEqual(run_tests.run(suite, 2, out), 0)
+            self.assertEqual(out.getvalue().strip().splitlines()[-1], "OK (1 units)")
+
+    def test_two_classes_sharing_a_name_keep_both_units(self):
+        with tempfile.TemporaryDirectory() as d:
+            write(d, "test_dup.py", "import unittest\n\n\ndef make():\n    class T(unittest.TestCase):\n"
+                  "        def test_b(self):\n            pass\n    return T\n\n\n"
+                  "class T(unittest.TestCase):\n    def test_a(self):\n        pass\n\n\nB = make()\n")
+            units = run_tests.collect_units(pathlib.Path(d), set())
+            self.assertEqual(units, ["test_dup.B.test_b", "test_dup.T.test_a"])
 
     def test_import_errors(self):
         for name, body in (("test_broken", "raise RuntimeError('boom')\n"), ("test_imp", "import nosuchmod_xyz\n")):
@@ -171,47 +223,219 @@ class RunTest(unittest.TestCase):
 
 
 class MainTest(unittest.TestCase):
-    def setup_dirs(self, repo, tests):
-        make_repo(repo, {"skills/brainstorm/SKILL.md": "a\n"})
+    SUITES = (run_tests.Suite("skills/tests", "py", None),)
+
+    def setup_dirs(self, repo):
+        make_repo(repo, {"skills/brainstorm/SKILL.md": "a\n",
+                         "skills/tests/test_ok.py": OK_SRC.format(name="One"),
+                         "skills/tests/test_final_run.py": HEAVY_BAD_SRC,
+                         "skills/tests/test_triggers.py": HEAVY_BAD_SRC.replace("planted-heavy-failure", "planted-triggers-failure")})
         write(repo, "skills/brainstorm/SKILL.md", "b\n")
         git(repo, "commit", "-q", "-am", "change")
-        write(tests, "test_ok.py", OK_SRC.format(name="One"))
-        write(tests, "test_final_run.py", HEAVY_BAD_SRC)
-        write(tests, "test_triggers.py", HEAVY_BAD_SRC.replace("planted-heavy-failure", "planted-triggers-failure"))
 
     def test_skips_heavy_for_text_only_diff(self):
-        with tempfile.TemporaryDirectory() as repo, tempfile.TemporaryDirectory() as tests:
-            self.setup_dirs(repo, tests)
+        with tempfile.TemporaryDirectory() as repo:
+            self.setup_dirs(repo)
             out = io.StringIO()
-            code = run_tests.main([], repo=pathlib.Path(repo), tests_dir=pathlib.Path(tests), out=out)
+            code = run_tests.main([], repo=pathlib.Path(repo), suites=self.SUITES, out=out)
             self.assertEqual(code, 0)
             self.assertTrue(out.getvalue().startswith("skipped: test_final_run, test_triggers (diff touches no write-skill scripts, skills/tests, runtime, hooks, sdlc.py or using-tl-relay)\n"))
 
     def test_all_flag_runs_heavy(self):
-        with tempfile.TemporaryDirectory() as repo, tempfile.TemporaryDirectory() as tests:
-            self.setup_dirs(repo, tests)
+        with tempfile.TemporaryDirectory() as repo:
+            self.setup_dirs(repo)
             out = io.StringIO()
-            code = run_tests.main(["--all"], repo=pathlib.Path(repo), tests_dir=pathlib.Path(tests), out=out)
+            code = run_tests.main(["--all"], repo=pathlib.Path(repo), suites=self.SUITES, out=out)
             self.assertEqual(code, 1)
             self.assertIn("planted-heavy-failure", out.getvalue())
             self.assertIn("planted-triggers-failure", out.getvalue())
 
     def test_not_a_repo_falls_back_to_running_everything(self):
-        with tempfile.TemporaryDirectory() as repo, tempfile.TemporaryDirectory() as tests:
-            write(tests, "test_ok.py", OK_SRC.format(name="One"))
-            write(tests, "test_final_run.py", HEAVY_BAD_SRC)
+        with tempfile.TemporaryDirectory() as repo:
+            write(repo, "skills/tests/test_ok.py", OK_SRC.format(name="One"))
+            write(repo, "skills/tests/test_final_run.py", HEAVY_BAD_SRC)
             out = io.StringIO()
-            code = run_tests.main([], repo=pathlib.Path(repo), tests_dir=pathlib.Path(tests), out=out)
+            code = run_tests.main([], repo=pathlib.Path(repo), suites=self.SUITES, out=out)
             self.assertEqual(code, 1)
             self.assertIn("planted-heavy-failure", out.getvalue())
             self.assertNotIn("skipped:", out.getvalue())
 
     def test_unknown_flag_exits_2(self):
-        with tempfile.TemporaryDirectory() as repo, tempfile.TemporaryDirectory() as tests:
-            write(tests, "test_ok.py", OK_SRC.format(name="One"))
+        with tempfile.TemporaryDirectory() as repo:
+            write(repo, "skills/tests/test_ok.py", OK_SRC.format(name="One"))
             with self.assertRaises(SystemExit) as ctx:
-                run_tests.main(["--bogus"], repo=pathlib.Path(repo), tests_dir=pathlib.Path(tests), out=io.StringIO())
+                run_tests.main(["--bogus"], repo=pathlib.Path(repo), suites=self.SUITES, out=io.StringIO())
             self.assertEqual(ctx.exception.code, 2)
+
+
+class SuitesTest(unittest.TestCase):
+    def test_two_python_suites_and_a_shell_suite_share_one_run(self):
+        with tempfile.TemporaryDirectory() as repo:
+            write(repo, "a/test_ok.py", OK_SRC.format(name="InA"))
+            write(repo, "b/test_ok.py", OK_SRC.format(name="InB"))
+            write(repo, "s.sh", "exit 0\n")
+            suites = (run_tests.Suite("a", "py", None), run_tests.Suite("b", "py", None), run_tests.Suite("s.sh", "sh", None))
+            out = io.StringIO()
+            self.assertEqual(run_tests.main(["--all"], repo=pathlib.Path(repo), suites=suites, out=out), 0)
+            self.assertEqual(out.getvalue().strip().splitlines()[-1], "OK (3 units)")
+
+    def test_a_shell_suite_fails_on_exit_code_alone(self):
+        with tempfile.TemporaryDirectory() as repo:
+            write(repo, "s.sh", "echo OK\necho 'FAIL planted-sh-cause'\necho OK >&2\nexit 1\n")
+            out = io.StringIO()
+            code = run_tests.main(["--all"], repo=pathlib.Path(repo), suites=(run_tests.Suite("s.sh", "sh", None),), out=out)
+            self.assertEqual(code, 1)
+            self.assertIn("\nFAIL s.sh\n", "\n" + out.getvalue())
+            self.assertIn("planted-sh-cause", out.getvalue())
+
+    def test_final_run_units_run_first(self):
+        with tempfile.TemporaryDirectory() as repo:
+            write(repo, "t/test_aaa.py", OK_SRC.format(name="A"))
+            write(repo, "t/test_final_run.py", OK_SRC.format(name="F"))
+            units = run_tests.order(run_tests.suite_units(pathlib.Path(repo), run_tests.Suite("t", "py", None), set()))
+            self.assertIn("test_final_run", units[0].argv[-1])
+
+    def test_final_run_and_shell_units_run_before_other_units(self):
+        with tempfile.TemporaryDirectory() as repo:
+            write(repo, "t/test_aaa.py", OK_SRC.format(name="A"))
+            write(repo, "t/test_final_run.py", OK_SRC.format(name="F"))
+            write(repo, "s.sh", "exit 0\n")
+            units = run_tests.suite_units(pathlib.Path(repo), run_tests.Suite("t", "py", None), set())
+            units += run_tests.suite_units(pathlib.Path(repo), run_tests.Suite("s.sh", "sh", None), set())
+            first = {u.suite if u.kind == "sh" else u.argv[-1].split(".")[0] for u in run_tests.order(units)[:2]}
+            self.assertEqual(first, {"s.sh", "test_final_run"})
+
+    WARM_SUITES = (run_tests.Suite("skills/write-contract/scripts", "py", None), run_tests.Suite("t", "py", None))
+
+    def warm_calls(self, suites):
+        with tempfile.TemporaryDirectory() as repo:
+            write(repo, "skills/write-contract/scripts/test_a.py", OK_SRC.format(name="A"))
+            write(repo, "t/test_b.py", OK_SRC.format(name="B"))
+            calls = []
+            code = run_tests.main(["--all"], repo=pathlib.Path(repo), suites=suites, out=io.StringIO(),
+                                  warmup=lambda: calls.append(1))
+            self.assertEqual(code, 0)
+            return len(calls)
+
+    def test_the_npx_cache_warms_once_when_a_write_contract_unit_is_queued(self):
+        self.assertEqual(self.warm_calls(self.WARM_SUITES), 1)
+
+    def test_a_stalled_npx_warm_up_prints_one_line_and_returns(self):
+        spec = run_tests.redocly_spec(pathlib.Path(run_tests.__file__).resolve().parents[2])
+
+        def stall(*args, **kwargs):
+            raise subprocess.TimeoutExpired(args[0], kwargs["timeout"])
+
+        real = run_tests.subprocess.run
+        run_tests.subprocess.run = stall
+        try:
+            out = io.StringIO()
+            run_tests.npx_warmup(pathlib.Path(run_tests.__file__).resolve().parents[2], out)
+        finally:
+            run_tests.subprocess.run = real
+        self.assertEqual(out.getvalue(), "warmup: npx --yes %s --version timed out after 120s\n" % spec)
+
+    def test_the_redocly_spec_is_read_from_the_real_contract_script(self):
+        repo = pathlib.Path(run_tests.__file__).resolve().parents[2]
+        self.assertTrue(run_tests.redocly_spec(repo).startswith("@redocly/cli@"))
+
+    def test_the_npx_cache_stays_cold_without_a_write_contract_unit(self):
+        self.assertEqual(self.warm_calls(self.WARM_SUITES[1:]), 0)
+
+    def test_default_suites_exist_in_the_repo(self):
+        repo = pathlib.Path(run_tests.__file__).resolve().parents[2]
+        for suite in run_tests.SUITES:
+            self.assertTrue((repo / suite.path).exists(), suite.path)
+
+    SKIP_SUITES = (run_tests.Suite("t", "py", None), run_tests.Suite("c", "py", "c/"))
+    SKIP_FILES = {"README.md": "a\n", "c/old.txt": "x\n", "t/test_ok.py": OK_SRC.format(name="One"),
+                  "c/test_bad.py": BAD_SRC.replace("self.fail('nope')", "self.fail('planted-c-failure')")}
+
+    def run_main(self, repo, argv, suites=None):
+        out = io.StringIO()
+        code = run_tests.main(argv, repo=pathlib.Path(repo), suites=suites or self.SKIP_SUITES, out=out)
+        return code, out.getvalue()
+
+    def main_with_change(self, name, *argv):
+        with tempfile.TemporaryDirectory() as repo:
+            make_repo(repo, self.SKIP_FILES)
+            write(repo, name, "changed\n")
+            git(repo, "add", "-A")
+            git(repo, "commit", "-q", "-m", "change")
+            return self.run_main(repo, list(argv))
+
+    def main_with_rename(self, old, new):
+        with tempfile.TemporaryDirectory() as repo:
+            make_repo(repo, self.SKIP_FILES)
+            (pathlib.Path(repo) / new).parent.mkdir(parents=True, exist_ok=True)
+            git(repo, "mv", old, new)
+            git(repo, "commit", "-q", "-m", "rename")
+            return self.run_main(repo, [])
+
+    def main_without_base(self):
+        with tempfile.TemporaryDirectory() as repo:
+            git(repo, "init", "-q")
+            for name, text in self.SKIP_FILES.items():
+                write(repo, name, text)
+            git(repo, "add", "-A")
+            git(repo, "commit", "-q", "-m", "base")
+            return self.run_main(repo, [])
+
+    def main_with_heavy_and_change(self, name):
+        files = dict(self.SKIP_FILES)
+        files["skills/tests/test_final_run.py"] = HEAVY_BAD_SRC
+        suites = (run_tests.Suite("skills/tests", "py", None), run_tests.Suite("c", "py", "c/"))
+        with tempfile.TemporaryDirectory() as repo:
+            make_repo(repo, files)
+            write(repo, name, "changed\n")
+            git(repo, "add", "-A")
+            git(repo, "commit", "-q", "-m", "change")
+            return self.run_main(repo, [], suites)
+
+    def test_a_suite_skips_when_the_diff_misses_its_prefix(self):
+        code, text = self.main_with_change("README.md")
+        self.assertEqual(code, 0)
+        self.assertIn("skipped: c (diff touches nothing under c/)\n", text)
+
+    def test_a_suite_runs_when_the_diff_touches_its_prefix(self):
+        code, text = self.main_with_change("c/x.txt")
+        self.assertEqual(code, 1)
+        self.assertIn("planted-c-failure", text)
+
+    def test_a_rename_out_of_the_prefix_still_runs_the_suite(self):
+        code, text = self.main_with_rename("c/old.txt", "lib/new.txt")
+        self.assertEqual(code, 1)
+        self.assertIn("planted-c-failure", text)
+        self.assertNotIn("skipped: c", text)
+
+    def test_a_runner_change_runs_every_skippable_suite(self):
+        code, text = self.main_with_change("skills/tests/run_tests.py")
+        self.assertEqual(code, 1)
+        self.assertIn("planted-c-failure", text)
+        self.assertNotIn("skipped: c", text)
+
+    def test_all_runs_a_skippable_suite(self):
+        code, text = self.main_with_change("README.md", "--all")
+        self.assertEqual(code, 1)
+        self.assertNotIn("skipped: c", text)
+
+    def test_no_origin_main_skips_nothing(self):
+        code, text = self.main_without_base()
+        self.assertEqual(code, 1)
+        self.assertNotIn("skipped:", text)
+
+    def test_default_skip_prefixes(self):
+        rules = {s.path: s.skip_unless for s in run_tests.SUITES}
+        self.assertEqual(rules["skills/write-contract/scripts"], "skills/write-contract/")
+        self.assertEqual(rules["maintainer/runtime/tests"], "maintainer/")
+        self.assertEqual([p for p, r in rules.items() if r], ["maintainer/runtime/tests", "skills/write-contract/scripts"])
+
+    def test_the_heavy_line_prints_before_suite_skip_lines(self):
+        code, text = self.main_with_heavy_and_change("README.md")
+        self.assertEqual(code, 0)
+        lines = text.splitlines()
+        self.assertTrue(lines[0].startswith("skipped: test_final_run, test_triggers"))
+        self.assertEqual(lines[1], "skipped: c (diff touches nothing under c/)")
 
 
 if __name__ == "__main__":

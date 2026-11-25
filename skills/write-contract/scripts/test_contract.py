@@ -2,6 +2,7 @@ import copy
 import os
 import sys
 import unittest
+from unittest import mock
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
@@ -30,6 +31,14 @@ DOC = {"paths": {
 
 
 class ContractTest(unittest.TestCase):
+    def test_run_redocly_turns_telemetry_off(self):
+        with mock.patch.object(c.subprocess, "run") as run, mock.patch.dict(os.environ, {"KEEP_ME": "1"}):
+            c.run_redocly(["lint", "x.yaml"])
+        env = run.call_args.kwargs["env"]
+        self.assertEqual(env["REDOCLY_TELEMETRY"], "off")
+        self.assertEqual(env["KEEP_ME"], "1")
+        self.assertEqual(run.call_args.args[0], ["npx", "--yes", c.REDOCLY, "lint", "x.yaml"])
+
     def test_example_error_code_reads_a_nested_body_code(self):
         self.assertEqual(c.example_error_code({"status": "FAILED", "body": {"message": "token expired", "code": 401}}), "401")
         self.assertIsNone(c.example_error_code({"status": 401, "body": {"message": "Invalid Token"}}))

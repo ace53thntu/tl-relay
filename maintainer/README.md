@@ -203,20 +203,16 @@ launchd runs a missed job at the next wake when the Mac sleeps through 22:00. Ru
 
 ## Tests
 
-Run each command from the checkout root, one suite at a time. CI runs the same list from `.github/workflows/test.yml`:
+From the checkout root, the first command runs the suites your diff affects, and `--all` runs every suite:
 
 ```sh
+/usr/bin/python3 skills/tests/run_tests.py
 /usr/bin/python3 skills/tests/run_tests.py --all
-/usr/bin/python3 -m unittest discover -s maintainer/runtime/tests -p 'test_*.py'
-sh maintainer/hooks/tests/run.sh
-for s in ingest-sources tl-design write-contract write-task-breakdown; do
-  /usr/bin/python3 -m unittest discover -s skills/$s/scripts -p 'test_*.py'
-done
-/usr/bin/python3 -m unittest discover -s maintainer/skills/retro/scripts -p 'test_*.py'
-sh skills/technical-writing/vale/test.sh
 ```
 
-Copy `maintainer/ci/stub-claude` to a folder first on `PATH` as `claude`, and set `CLAUDE_STUB_LOG` to an empty file. No suite may call the real `claude`, so the log stays empty. `run_tests.py` runs the units in parallel. Without `--all` it skips `test_final_run` and `test_triggers` when the diff from `origin/main` touches none of their inputs.
+Copy `maintainer/ci/stub-claude` to a folder first on `PATH` as `claude`, and set `CLAUDE_STUB_LOG` to an empty file. No suite may call the real `claude`, so the log stays empty.
+
+`run_tests.py` runs every suite in one pool, one unit per Python test method and one unit per shell suite. Without `--all`, it skips `test_final_run` and `test_triggers` when the diff from `origin/main` touches none of their inputs. Without `--all`, it skips `skills/write-contract/scripts` when the diff touches nothing under `skills/write-contract/`, and `maintainer/runtime/tests` when it touches nothing under `maintainer/`. A diff that changes `skills/tests/run_tests.py` itself disables those two directory skips. `--all` disables every skip. Nothing skips when `run_tests.py` cannot resolve `origin/main`. CI runs the suites from `.github/workflows/test.yml`, most as their own step, and four skill script suites in one step.
 
 ## Trigger suite
 
