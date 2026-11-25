@@ -16,7 +16,7 @@ from runtime import neutral  # noqa: E402
 
 LOCAL_ENV = subprocess.run(["git", "rev-parse", "--local-env-vars"], check=True, capture_output=True,
                            text=True).stdout.split()
-ENV = {k: v for k, v in os.environ.items() if k not in LOCAL_ENV}
+ENV = {k: v for k, v in os.environ.items() if k not in LOCAL_ENV and not k.startswith(("AI_SDLC_", "TL_RELAY_"))}
 
 
 def git(repo, *args):
@@ -50,9 +50,9 @@ class CheckNeutralTest(unittest.TestCase):
         if text is None and patterns:
             text = "neutrality:\n  patterns: [%s]\n" % ", ".join("'%s'" % p for p in patterns)
         if text:
-            (self.home / "ai-sdlc.yaml").write_text(text)
+            (self.home / "tl-relay.yaml").write_text(text)
         out, err = io.StringIO(), io.StringIO()
-        env = {"AI_SDLC_HOME": str(self.home), "AI_SDLC_REPO": str(sdlc_repo or self.home), **(env or {})}
+        env = {"TL_RELAY_HOME": str(self.home), "TL_RELAY_REPO": str(sdlc_repo or self.home), **(env or {})}
         before = os.getcwd()
         with mock.patch.dict(os.environ, env), contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
             for name in drop:
@@ -78,7 +78,16 @@ class CheckNeutralTest(unittest.TestCase):
     def test_empty_patterns_exit_2(self):
         code, _, err = self.run_check([])
         self.assertEqual(code, 2)
-        self.assertEqual(err.strip(), "neutrality.patterns is empty in %s/ai-sdlc.yaml" % self.home)
+        self.assertEqual(err.strip(), "neutrality.patterns is empty in %s/tl-relay.yaml" % self.home)
+
+    def test_check_neutral_reads_a_legacy_home(self):
+        (self.home / "ai-sdlc.yaml").write_text("neutrality:\n  patterns: ['zzz']\n")
+        out, err = io.StringIO(), io.StringIO()
+        env = {"AI_SDLC_HOME": str(self.home)}
+        with mock.patch.dict(os.environ, env), contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+            os.environ.pop("TL_RELAY_HOME", None)
+            code = sdlc.main(["check-neutral", "--repo", str(self.repo)])
+        self.assertEqual((code, out.getvalue()), (0, ""))
 
     def test_untracked_file_is_ignored(self):
         (self.repo / "b.md").write_text("zzz-secret\n")
@@ -139,7 +148,7 @@ class CheckNeutralTest(unittest.TestCase):
         self.assertEqual((code, out.splitlines()), (1, ["a.md:1: acme"]))
 
     def test_repo_layer_patterns_do_not_count(self):
-        self.commit("ai-sdlc.yaml", "neutrality:\n  patterns: ['acme']\n")
+        self.commit("tl-relay.yaml", "neutrality:\n  patterns: ['acme']\n")
         code, _, err = self.run_check([], sdlc_repo=self.repo)
         self.assertEqual(code, 2)
         self.assertIn("is empty", err)
@@ -729,9 +738,9 @@ class AsciiStdout(unittest.TestCase):
             git(repo, "init", "-q")
             git(repo, "add", ".")
             git(repo, "commit", "-qm", "x")
-            (home / "ai-sdlc.yaml").write_text('neutrality:\n  patterns: ["caf\u00e9"]\n', encoding="utf-8")
-            env = dict(ENV, AI_SDLC_HOME=str(home), PYTHONIOENCODING="ascii")
-            env.pop("AI_SDLC_REPO", None)
+            (home / "tl-relay.yaml").write_text('neutrality:\n  patterns: ["caf\u00e9"]\n', encoding="utf-8")
+            env = dict(ENV, TL_RELAY_HOME=str(home), PYTHONIOENCODING="ascii")
+            env.pop("TL_RELAY_REPO", None)
             done = subprocess.run([sys.executable, str(pathlib.Path(sdlc.__file__)), "check-neutral", "--repo", str(repo)],
                                   capture_output=True, env=env)
         self.assertEqual(done.returncode, 1, done.stderr)

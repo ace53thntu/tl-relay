@@ -138,7 +138,7 @@ def main(argv):
         sys.stderr.write("usage: triggers.py watch <expect> [timeout-marker]\n")
         return 2
     sys.stdin.reconfigure(errors="replace")
-    verdict, reason = watch(argv[2], sys.stdin, argv[3] if len(argv) == 4 else None, os.environ.get("AI_SDLC_TRIGGER_SEEN"))
+    verdict, reason = watch(argv[2], sys.stdin, argv[3] if len(argv) == 4 else None, os.environ.get("TL_RELAY_TRIGGER_SEEN"))
     if verdict == "PASS":
         print("PASS")
         return 0

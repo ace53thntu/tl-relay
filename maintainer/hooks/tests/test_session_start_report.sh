@@ -15,16 +15,17 @@ printf '{"hooks":{}}\n' > "$TMP/empty.json"
 # HOME points at the fixture so the scan for config directories never reads the
 # real ones.
 run() { # user-settings
-  env -u AI_SDLC_HOME HOME="$TMP/home" AI_SDLC_ROOT="${AI_SDLC_ROOT:-$TMP/root}" AI_SDLC_COMPARE="$(dirname "$0")/../compare.jq" \
-  AI_SDLC_USER_FRAGMENT="$TMP/ufrag.json" AI_SDLC_FRAGMENT="$TMP/ufrag.json" \
-  AI_SDLC_USER_SETTINGS="$1" AI_SDLC_SETTINGS="$1" \
-  AI_SDLC_IN_TESTS=1 sh "$H" </dev/null 2>/dev/null
+  env -u AI_SDLC_HOME -u AI_SDLC_REPO -u AI_SDLC_ROOT -u AI_SDLC_USER_FRAGMENT -u AI_SDLC_FRAGMENT -u AI_SDLC_USER_SETTINGS -u AI_SDLC_SETTINGS -u TL_RELAY_HOME -u TL_RELAY_MEMORY -u TL_RELAY_MEMORY_BUDGET -u TL_RELAY_MEMORY_MAXLINES HOME="$TMP/home" ${MEM:+TL_RELAY_MEMORY="$MEM"} TL_RELAY_ROOT="${TL_RELAY_ROOT:-$TMP/root}" TL_RELAY_COMPARE="$(dirname "$0")/../compare.jq" \
+  TL_RELAY_USER_FRAGMENT="$TMP/ufrag.json" TL_RELAY_FRAGMENT="$TMP/ufrag.json" \
+  TL_RELAY_USER_SETTINGS="$1" TL_RELAY_SETTINGS="$1" \
+  TL_RELAY_IN_TESTS=1 sh "$H" </dev/null 2>/dev/null
 }
 
 o=$(run "$LIVE")
-printf '%s' "$o" | grep -qF 'check: ok' && ok "reports ok on stdout when registered" || bad "no ok on stdout"
+printf '%s' "$o" | grep -qxF 'tl-relay guardrail check: ok.' && ok "reports ok on stdout when registered" || bad "no ok on stdout"
 
 o=$(run "$TMP/empty.json")
+printf '%s' "$o" | grep -qF 'tl-relay guardrail check: FAILED.' && ok "reports FAILED on stdout when a hook is missing" || bad "no FAILED line"
 printf '%s' "$o" | grep -qF 'a.sh' && ok "names the missing hook on stdout" || bad "did not name a.sh"
 
 run "$TMP/empty.json" >/dev/null
@@ -41,7 +42,7 @@ printf 'short\n' > "$TMP/mem_ok.md"
 head -c 30000 /dev/zero | tr '\0' 'x' > "$TMP/mem_big.md"
 i=0; while [ $i -lt 250 ]; do printf 'x\n'; i=$((i+1)); done > "$TMP/mem_tall.md"
 
-mem_run() { AI_SDLC_MEMORY="$1" run "$LIVE"; }
+mem_run() { MEM="$1" run "$LIVE"; }
 
 o=$(mem_run "$TMP/mem_big.md")
 printf '%s' "$o" | grep -qF 'MEMORY.md' && ok "warns when MEMORY.md is over its byte budget" || bad "no memory warning"
@@ -56,10 +57,10 @@ STUB=$(mktemp -d)
 
 suite_run() { # stub-exit-code
   printf '#!/bin/sh\nexit %s\n' "$1" > "$STUB/run.sh"
-  env -u AI_SDLC_HOME HOME="$TMP/home" AI_SDLC_ROOT="$TMP/root" AI_SDLC_COMPARE="$(dirname "$0")/../compare.jq" \
-  AI_SDLC_USER_FRAGMENT="$TMP/ufrag.json" AI_SDLC_FRAGMENT="$TMP/ufrag.json" \
-  AI_SDLC_USER_SETTINGS="$LIVE" AI_SDLC_SETTINGS="$LIVE" \
-  AI_SDLC_TESTS="$STUB/run.sh" AI_SDLC_IN_TESTS= sh "$H" </dev/null 2>/dev/null
+  env -u AI_SDLC_HOME -u AI_SDLC_REPO -u AI_SDLC_ROOT -u AI_SDLC_USER_FRAGMENT -u AI_SDLC_FRAGMENT -u AI_SDLC_USER_SETTINGS -u AI_SDLC_SETTINGS -u TL_RELAY_HOME -u TL_RELAY_MEMORY -u TL_RELAY_MEMORY_BUDGET -u TL_RELAY_MEMORY_MAXLINES HOME="$TMP/home" TL_RELAY_ROOT="$TMP/root" TL_RELAY_COMPARE="$(dirname "$0")/../compare.jq" \
+  TL_RELAY_USER_FRAGMENT="$TMP/ufrag.json" TL_RELAY_FRAGMENT="$TMP/ufrag.json" \
+  TL_RELAY_USER_SETTINGS="$LIVE" TL_RELAY_SETTINGS="$LIVE" \
+  TL_RELAY_TESTS="$STUB/run.sh" TL_RELAY_IN_TESTS= sh "$H" </dev/null 2>/dev/null
 }
 
 o=$(suite_run 1)
@@ -70,14 +71,14 @@ printf '%s' "$o" | grep -qi 'test suite' && bad "should be silent when the suite
 
 mkdir -p "$TMP/home/.claude/projects/-a-b-c/memory"
 head -c 30000 /dev/zero | tr '\0' 'x' > "$TMP/home/.claude/projects/-a-b-c/memory/MEMORY.md"
-o=$(AI_SDLC_ROOT=/a/b.c run "$LIVE")
-printf '%s' "$o" | grep -qF 'MEMORY.md' && ok "derives the memory path from the root" || bad "memory path not derived from AI_SDLC_ROOT"
+o=$(TL_RELAY_ROOT=/a/b.c run "$LIVE")
+printf '%s' "$o" | grep -qF 'MEMORY.md' && ok "derives the memory path from the root" || bad "memory path not derived from TL_RELAY_ROOT"
 
 o=$(run "$LIVE")
 printf '%s' "$o" | grep -qF 'install.claude_config_dirs' && ok "points unlisted config directories at the install config" || bad "message does not name install.claude_config_dirs"
 
-o=$(env -u AI_SDLC_HOME -u AI_SDLC_ROOT -u AI_SDLC_USER_FRAGMENT -u AI_SDLC_FRAGMENT -u AI_SDLC_USER_SETTINGS -u AI_SDLC_SETTINGS \
-  HOME="$TMP/home" AI_SDLC_COMPARE="$(dirname "$0")/../compare.jq" AI_SDLC_IN_TESTS=1 sh "$H" </dev/null 2>/dev/null)
+o=$(env -u AI_SDLC_HOME -u AI_SDLC_REPO -u AI_SDLC_ROOT -u AI_SDLC_USER_FRAGMENT -u AI_SDLC_FRAGMENT -u AI_SDLC_USER_SETTINGS -u AI_SDLC_SETTINGS -u TL_RELAY_HOME -u TL_RELAY_ROOT -u TL_RELAY_USER_FRAGMENT -u TL_RELAY_FRAGMENT -u TL_RELAY_USER_SETTINGS -u TL_RELAY_SETTINGS \
+  HOME="$TMP/home" TL_RELAY_COMPARE="$(dirname "$0")/../compare.jq" TL_RELAY_IN_TESTS=1 sh "$H" </dev/null 2>/dev/null)
 rc=$?
 { [ $rc -eq 0 ] && printf '%s' "$o" | grep -qF 'sdlc.py install'; } && ok "exits 0 and names sdlc.py install with every variable unset" || bad "rc=$rc out='$o'"
 

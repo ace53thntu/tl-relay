@@ -59,7 +59,7 @@ def cmd_install(args):
 
 
 def cmd_check_neutral(args):
-    cfg = config._read(pathlib.Path(home()) / "ai-sdlc.yaml")
+    cfg = config._read(config.home_file(home()))
     section = cfg.get("neutrality")
     if section is not None and not isinstance(section, dict):
         raise neutral.NeutralError("neutrality must be a mapping")
@@ -74,7 +74,7 @@ def cmd_check_neutral(args):
     if not isinstance(allow, list) or not all(isinstance(a, str) and a.strip() for a in allow):
         raise neutral.NeutralError("neutrality.identity_allow must be a list of non-empty email addresses")
     if not patterns:
-        print("neutrality.patterns is empty in %s/ai-sdlc.yaml" % home(), file=sys.stderr)
+        print("neutrality.patterns is empty in %s" % config.home_file(home()), file=sys.stderr)
         return 2
     if args.tag_object is not None:
         found = neutral.tag_hits(args.repo, patterns, args.tag_object, allow)

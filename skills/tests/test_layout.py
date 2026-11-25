@@ -23,10 +23,10 @@ class LayoutTest(unittest.TestCase):
             home, claude, work = tmp / "home", tmp / "claude-a", tmp / "work"
             for d in (home, work):
                 d.mkdir()
-            (home / "ai-sdlc.yaml").write_text(
-                "apiVersion: ai-sdlc/v2\nkind: Config\nproject:\n  name: t\n  root: %s\n"
+            (home / "tl-relay.yaml").write_text(
+                "apiVersion: tl-relay/v1\nkind: Config\nproject:\n  name: t\n  root: %s\n"
                 "install:\n  claude_config_dirs: [\"%s\"]\n" % (work, claude))
-            env = {"PATH": "/usr/bin:/bin", "AI_SDLC_HOME": str(home), "AI_SDLC_REPO": str(ROOT)}
+            env = {"PATH": "/usr/bin:/bin", "TL_RELAY_HOME": str(home), "TL_RELAY_REPO": str(ROOT)}
             proc = subprocess.run(
                 [sys.executable, str(ROOT / "maintainer/sdlc.py"), "install", "--dry-run"],
                 capture_output=True, text=True, env=env)

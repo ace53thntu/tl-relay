@@ -1,2 +1,2 @@
 expect: write-skill
-Use write-skill to add a release-notes skill to ai-sdlc/skills, so agents draft release notes the same way every time.
+Use write-skill to add a release-notes skill to tl-relay/skills, so agents draft release notes the same way every time.

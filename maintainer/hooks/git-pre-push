@@ -6,4 +6,4 @@ if [ ! -f "$script" ]; then
   echo "tl-relay pre-push: $script is missing; check out a branch that has it in $main, rerun sdlc.py install --git-hook, or stop and ask the operator, who decides on --no-verify" >&2
   exit 1
 fi
-AI_SDLC_HOME={home} AI_SDLC_REPO="$main" exec /usr/bin/python3 "$script" check "$@"
+TL_RELAY_HOME={home} TL_RELAY_REPO="$main" exec /usr/bin/python3 "$script" check "$@"

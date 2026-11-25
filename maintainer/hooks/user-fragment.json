@@ -4,32 +4,32 @@
       {
         "matcher": "Bash",
         "hooks": [
-          { "type": "command", "command": "AI_SDLC_HOME='{home}' /bin/sh '{repo}/maintainer/hooks/block-env-dump.sh'" }
+          { "type": "command", "command": "TL_RELAY_HOME='{home}' /bin/sh '{repo}/maintainer/hooks/block-env-dump.sh'" }
         ]
       },
       {
         "matcher": "Bash",
         "hooks": [
-          { "type": "command", "command": "AI_SDLC_HOME='{home}' /usr/bin/python3 '{repo}/maintainer/hooks/wrap-bash-exit-code.py'" }
+          { "type": "command", "command": "TL_RELAY_HOME='{home}' /usr/bin/python3 '{repo}/maintainer/hooks/wrap-bash-exit-code.py'" }
         ]
       },
       {
         "matcher": "*",
         "hooks": [
-          { "type": "command", "command": "AI_SDLC_HOME='{home}' /bin/sh '{repo}/maintainer/hooks/require-guardrails.sh'" }
+          { "type": "command", "command": "TL_RELAY_HOME='{home}' /bin/sh '{repo}/maintainer/hooks/require-guardrails.sh'" }
         ]
       },
       {
         "matcher": "Skill",
         "hooks": [
-          { "type": "command", "command": "AI_SDLC_HOME='{home}' TL_RELAY_LESSONS='{home}/lessons' /bin/sh '{repo}/hooks/inject-lesson.sh'" }
+          { "type": "command", "command": "TL_RELAY_HOME='{home}' TL_RELAY_LESSONS='{home}/lessons' /bin/sh '{repo}/hooks/inject-lesson.sh'" }
         ]
       }
     ],
     "UserPromptSubmit": [
       {
         "hooks": [
-          { "type": "command", "command": "AI_SDLC_HOME='{home}' TL_RELAY_LESSONS='{home}/lessons' /bin/sh '{repo}/hooks/inject-lesson.sh'" }
+          { "type": "command", "command": "TL_RELAY_HOME='{home}' TL_RELAY_LESSONS='{home}/lessons' /bin/sh '{repo}/hooks/inject-lesson.sh'" }
         ]
       }
     ],
@@ -37,7 +37,7 @@
       {
         "matcher": "*",
         "hooks": [
-          { "type": "command", "command": "AI_SDLC_HOME='{home}' /usr/bin/python3 '{repo}/maintainer/hooks/redact-secrets-output.py'" }
+          { "type": "command", "command": "TL_RELAY_HOME='{home}' /usr/bin/python3 '{repo}/maintainer/hooks/redact-secrets-output.py'" }
         ]
       }
     ],
@@ -45,7 +45,7 @@
       {
         "matcher": "startup|clear|compact",
         "hooks": [
-          { "type": "command", "command": "AI_SDLC_HOME='{home}' /bin/sh '{repo}/hooks/session-start-skills.sh'" }
+          { "type": "command", "command": "TL_RELAY_HOME='{home}' /bin/sh '{repo}/hooks/session-start-skills.sh'" }
         ]
       }
     ]

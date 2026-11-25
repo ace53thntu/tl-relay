@@ -1,8 +1,8 @@
 #!/bin/bash
 here=$(dirname "$0")
-marker=${AI_SDLC_STUB_MARKER:-unset}
+marker=${TL_RELAY_STUB_MARKER:-unset}
 sleepers='(exec -a "$0" sleep 300) & exec -a "$0" sleep 300'
-case "${AI_SDLC_STUB_MODE:-}" in
+case "${TL_RELAY_STUB_MODE:-}" in
   linger)
     cat "$here/read-then-skill.jsonl"
     exec bash -c "$sleepers" "$marker"
@@ -50,7 +50,7 @@ files = sorted(f[2:] for f in found if f)
 links = {n: os.path.realpath(".claude/skills/" + n) for n in os.listdir(".claude/skills")}
 settings = json.load(open(".claude/settings.json"))
 dump = {"cwd": os.path.realpath("."), "args": sys.argv[1:], "files": files, "settings": settings, "links": links}
-json.dump(dump, open(os.environ["AI_SDLC_STUB_DUMP"], "w"))
+json.dump(dump, open(os.environ["TL_RELAY_STUB_DUMP"], "w"))
 PY
     cat "$here/read-then-skill.jsonl" ;;
   *stub:bad-utf8*) printf '\377\376\n' ;;

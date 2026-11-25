@@ -41,8 +41,8 @@ The blind author also writes at least one held-out prompt. Held-out prompts scor
 
 ## Tuning and scoring
 
-1. Reuse `<home>` if this run validated it. Otherwise, resolve it with the command at the top of [gates.md](gates.md). Then run `AI_SDLC_HOME='<home>' /usr/bin/python3 <repo>/maintainer/skills/write-skill/scripts/final_run.py --repo <repo> tune <name> --runs 5`. The command scores the tuning prompts against the working tree.
+1. Reuse `<home>` if this run validated it. Otherwise, resolve it with the command at the top of [gates.md](gates.md). Then run `TL_RELAY_HOME='<home>' /usr/bin/python3 <repo>/maintainer/skills/write-skill/scripts/final_run.py --repo <repo> tune <name> --runs 5`. The command scores the tuning prompts against the working tree.
 2. Tune the description until each tuning prompt picks its expected skill. A FAIL during tuning stops nothing.
-3. Know what `tune` does not do. It writes no record. It refuses `--heldout`, `AI_SDLC_TRIGGER_PROMPTS` and a skill with no prompt files.
+3. Know what `tune` does not do. It writes no record. It refuses `--heldout`, `TL_RELAY_TRIGGER_PROMPTS` and a skill with no prompt files.
 4. When the description is ready, stop tuning. The held-out set and the neighbour prompts get scored only in "Final run" in [gates.md](gates.md).
 5. If the final run fails, the operator chooses drop or a new tuning pass. A new pass meets the exit 1 rule in [gates.md](gates.md) and restarts at step 1 with a fresh held-out set.

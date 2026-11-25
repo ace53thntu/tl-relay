@@ -6,14 +6,14 @@
 # Code, so an unbound variable or a missing library would silently disable this
 # hook. Every unplanned exit becomes a block instead, and the allow paths clear
 # the trap explicitly.
-trap 'printf "ai-sdlc: require-guardrails.sh stopped before reaching a decision. Run it by hand with the payload to see why.\n" >&2; exit 2' EXIT
+trap 'printf "tl-relay: require-guardrails.sh stopped before reaching a decision. Run it by hand with the payload to see why.\n" >&2; exit 2' EXIT
 set -u
 
 # Without jq the deny below prints nothing, and empty output means "continue".
 # This check comes before the allowlist: with no jq nothing can be decided, and
 # the repair is made from a terminal.
 command -v jq >/dev/null 2>&1 || {
-  printf 'ai-sdlc: jq not found, cannot verify guardrails.\n' >&2
+  printf 'tl-relay: jq not found, cannot verify guardrails.\n' >&2
   trap - EXIT
   exit 2
 }
@@ -45,7 +45,7 @@ fi
 
 jq -n --arg p "$(printf '%s' "$problems" | tr '\n' ';')" \
   '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:"deny",
-    permissionDecisionReason:("ai-sdlc: guardrails are not in place. " + $p +
+    permissionDecisionReason:("tl-relay: guardrails are not in place. " + $p +
       " Read, Edit and Write are never denied: restore the registration with them, then retry.")}}' || exit 2
 trap - EXIT
 exit 0

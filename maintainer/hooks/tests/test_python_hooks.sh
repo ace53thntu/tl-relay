@@ -5,9 +5,9 @@ R="$(dirname "$0")/../redact-secrets-output.py"
 
 py() { printf '%s' "$2" | /usr/bin/python3 "$1" 2>/dev/null; }
 
-o=$(py "$W" '{"tool_name":"Bash","tool_input":{"command":"ls /nonexistent-ai-sdlc"}}')
+o=$(py "$W" '{"tool_name":"Bash","tool_input":{"command":"ls /nonexistent-tl-relay"}}')
 c=$(printf '%s' "$o" | jq -r '.hookSpecificOutput.updatedInput.command // ""' 2>/dev/null)
-{ printf '%s' "$c" | grep -qF 'ls /nonexistent-ai-sdlc' && printf '%s' "$c" | grep -qF "trap '__cc_rc="; } \
+{ printf '%s' "$c" | grep -qF 'ls /nonexistent-tl-relay' && printf '%s' "$c" | grep -qF "trap '__cc_rc="; } \
   && ok "wraps a command in the exit trap" || bad "no wrapped command in updatedInput"
 
 out=$(/bin/sh -c "$c" 2>/dev/null); rc=$?

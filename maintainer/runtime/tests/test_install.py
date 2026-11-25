@@ -21,29 +21,34 @@ from runtime import config, install
 REPO = pathlib.Path(__file__).resolve().parents[3]
 
 
+def pinned(env):
+    kept = {k: v for k, v in os.environ.items() if not k.startswith(("AI_SDLC_", "TL_RELAY_"))}
+    return dict(kept, **env)
+
+
 def make(tmp, dirs=("claude-a",), root="work"):
     tmp = pathlib.Path(tmp)
     home = tmp / "home"
     home.mkdir(exist_ok=True)
     (tmp / root).mkdir(exist_ok=True)
     listing = ", ".join('"%s"' % (tmp / d) for d in dirs)
-    (home / "ai-sdlc.yaml").write_text(
-        "apiVersion: ai-sdlc/v2\nkind: Config\nproject:\n  name: t\n  root: %s\ninstall:\n  claude_config_dirs: [%s]\n" % (tmp / root, listing))
+    (home / "tl-relay.yaml").write_text(
+        "apiVersion: tl-relay/v1\nkind: Config\nproject:\n  name: t\n  root: %s\ninstall:\n  claude_config_dirs: [%s]\n" % (tmp / root, listing))
     return home
 
 
 def run_cli(home, *argv):
     out, err = io.StringIO(), io.StringIO()
-    env = {"AI_SDLC_HOME": str(home), "AI_SDLC_REPO": str(REPO)}
-    with unittest.mock.patch.dict(os.environ, env), contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+    env = {"TL_RELAY_HOME": str(home), "TL_RELAY_REPO": str(REPO)}
+    with unittest.mock.patch.dict(os.environ, pinned(env), clear=True), contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
         code = sdlc.main(["install"] + list(argv))
     return code, out.getvalue(), err.getvalue()
 
 
 def run_cli_decoy(decoy, *argv):
     out, err = io.StringIO(), io.StringIO()
-    env = {"AI_SDLC_HOME": str(decoy), "AI_SDLC_REPO": str(REPO)}
-    with unittest.mock.patch.dict(os.environ, env), contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+    env = {"TL_RELAY_HOME": str(decoy), "TL_RELAY_REPO": str(REPO)}
+    with unittest.mock.patch.dict(os.environ, pinned(env), clear=True), contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
         code = sdlc.main(["install"] + list(argv))
     return code, out.getvalue(), err.getvalue()
 
@@ -61,8 +66,8 @@ class Install(unittest.TestCase):
             with self.subTest(argv=argv), tempfile.TemporaryDirectory() as other:
                 home = make(other)
                 err = io.StringIO()
-                env = {"AI_SDLC_HOME": str(home), "AI_SDLC_REPO": str(REPO)}
-                with unittest.mock.patch.dict(os.environ, env), contextlib.redirect_stdout(Closed()), \
+                env = {"TL_RELAY_HOME": str(home), "TL_RELAY_REPO": str(REPO)}
+                with unittest.mock.patch.dict(os.environ, pinned(env), clear=True), contextlib.redirect_stdout(Closed()), \
                         contextlib.redirect_stderr(err):
                     code = sdlc.main(["install"] + list(argv))
                 self.assertEqual(code, 1)
@@ -75,7 +80,7 @@ class Install(unittest.TestCase):
         home = make(self.tmp.name)
         read, write = os.pipe()
         os.close(read)
-        env = dict(os.environ, AI_SDLC_HOME=str(home), AI_SDLC_REPO=str(REPO))
+        env = pinned({"TL_RELAY_HOME": str(home), "TL_RELAY_REPO": str(REPO)})
         try:
             done = subprocess.run([sys.executable, str(REPO / "maintainer" / "sdlc.py"), "install"],
                                   stdout=write, stderr=subprocess.PIPE, env=env)
@@ -97,7 +102,7 @@ class Install(unittest.TestCase):
         other = "/bin/sh '/elsewhere/mine.sh'"
         live = {"hooks": {"PreToolUse": [
             {"matcher": "Bash", "hooks": [{"type": "command", "command": old}, {"type": "command", "command": other}]}]}}
-        new = "AI_SDLC_HOME='/h' /bin/sh '/r/hooks/block-env-dump.sh'"
+        new = "TL_RELAY_HOME='/h' /bin/sh '/r/hooks/block-env-dump.sh'"
         fragment = {"hooks": {"PreToolUse": [{"matcher": "Bash", "hooks": [{"type": "command", "command": new}]}]}}
         commands = [h["command"] for g in install.merge_settings(live, fragment)["hooks"]["PreToolUse"] for h in g["hooks"]]
         self.assertIn(new, commands)
@@ -106,7 +111,7 @@ class Install(unittest.TestCase):
 
     def test_install_drops_a_stale_task_hook_registration(self):
         home = make(self.tmp.name)
-        stale = "AI_SDLC_HOME='/old' /bin/sh '/old/ai-sdlc/hooks/block-test-edit.sh'"
+        stale = "TL_RELAY_HOME='/old' /bin/sh '/old/ai-sdlc/hooks/block-test-edit.sh'"
         path = self._settings(json.dumps({"hooks": {"PreToolUse": [
             {"matcher": "Edit|Write|NotebookEdit", "hooks": [{"type": "command", "command": stale}]}]}}))
         install.apply(install.plan(REPO, home))
@@ -156,7 +161,7 @@ class Install(unittest.TestCase):
         code, _, err = run_cli(home)
         self.assertEqual(code, 0, err)
         env = json.loads((tmp / "claude-a" / "settings.json").read_text())["env"]
-        self.assertEqual(env, {"KEEP": "1", "AI_SDLC_HOME": str(home.resolve())})
+        self.assertEqual(env, {"KEEP": "1", "TL_RELAY_HOME": str(home.resolve())})
         project = json.loads((tmp / "work" / ".claude" / "settings.json").read_text())
         self.assertNotIn("env", project)
 
@@ -171,7 +176,7 @@ class Install(unittest.TestCase):
         code, _, err = run_cli_decoy(decoy, "--home", "home")
         self.assertEqual(code, 0, err)
         env = json.loads((tmp / "claude-a" / "settings.json").read_text())["env"]
-        self.assertEqual(env["AI_SDLC_HOME"], str(home.resolve()))
+        self.assertEqual(env["TL_RELAY_HOME"], str(home.resolve()))
 
     def _settings(self, text):
         tmp = pathlib.Path(self.tmp.name)
@@ -182,7 +187,7 @@ class Install(unittest.TestCase):
 
     def test_differing_home_in_settings_without_flag_exits_1(self):
         home = make(self.tmp.name)
-        path = self._settings('{"env": {"AI_SDLC_HOME": "/elsewhere"}}')
+        path = self._settings('{"env": {"TL_RELAY_HOME": "/elsewhere"}}')
         code, _, err = run_cli(home)
         self.assertEqual(code, 1)
         self.assertIn(str(path), err)
@@ -190,25 +195,76 @@ class Install(unittest.TestCase):
         self.assertIn("--home", err)
         self.assertNotIn("Traceback", err)
 
-    def test_home_flag_replaces_a_differing_home(self):
+    def test_a_same_home_legacy_key_is_replaced(self):
         home = make(self.tmp.name)
-        path = self._settings('{"env": {"AI_SDLC_HOME": "/elsewhere"}}')
+        path = self._settings(json.dumps({"env": {"AI_SDLC_HOME": str(home), "KEEP": "1"}}))
+        code, _, err = run_cli(home)
+        self.assertEqual(code, 0, err)
+        self.assertEqual(json.loads(path.read_text())["env"], {"KEEP": "1", "TL_RELAY_HOME": str(home.resolve())})
+
+    def test_a_foreign_legacy_key_is_refused(self):
+        home = make(self.tmp.name)
+        path = self._settings('{"env": {"AI_SDLC_HOME": "/other"}}')
+        before = path.read_bytes()
+        code, _, err = run_cli(home)
+        self.assertEqual(code, 1)
+        self.assertIn("%s: env.AI_SDLC_HOME is /other; pass --home to replace it" % path, err)
+        self.assertEqual(path.read_bytes(), before)
+        self.assertFalse((home / "env.sh").exists())
+
+    def test_home_given_replaces_a_foreign_legacy_key(self):
+        home = make(self.tmp.name)
+        path = self._settings('{"env": {"AI_SDLC_HOME": "/other"}}')
         code, _, err = run_cli(home, "--home", str(home))
         self.assertEqual(code, 0, err)
-        self.assertEqual(json.loads(path.read_text())["env"]["AI_SDLC_HOME"], str(home.resolve()))
+        self.assertEqual(json.loads(path.read_text())["env"], {"TL_RELAY_HOME": str(home.resolve())})
+
+    def test_project_settings_drop_a_foreign_legacy_key(self):
+        home = make(self.tmp.name).resolve()
+        live = {"env": {"AI_SDLC_HOME": "/elsewhere", "KEEP": "1"}}
+        with self.assertRaises(install.InstallError):
+            install.without_stale_home(live, "p", home, False)
+        self.assertEqual(install.without_stale_home(live, "p", home, True), {"env": {"KEEP": "1"}})
+        same = {"env": {"AI_SDLC_HOME": str(home)}}
+        self.assertEqual(install.without_stale_home(same, "p", home, False), same)
+        path = pathlib.Path(self.tmp.name) / "local.json"
+        path.write_text(json.dumps(live))
+        with self.assertRaises(install.InstallError):
+            install.check_local_home(path, home)
+
+    def test_install_accepts_a_legacy_home_file(self):
+        home = make(self.tmp.name)
+        (home / "tl-relay.yaml").rename(home / "ai-sdlc.yaml")
+        plan = install.plan(REPO, home)
+        self.assertTrue(plan)
+        self.assertEqual(sorted(p.name for p in home.iterdir()), ["ai-sdlc.yaml"])
+        self.assertNotIn("ai-sdlc.yaml", [pathlib.Path(item[0]).name for item in plan])
+
+    def test_the_hook_home_reads_either_prefix(self):
+        for prefix in ("TL_RELAY", "AI_SDLC"):
+            with self.subTest(prefix=prefix):
+                text = "#!/bin/sh\n%s_HOME=/h %s_REPO=x exec /usr/bin/python3 s\n" % (prefix, prefix)
+                self.assertEqual(install._hook_home(text), "/h")
+
+    def test_home_flag_replaces_a_differing_home(self):
+        home = make(self.tmp.name)
+        path = self._settings('{"env": {"TL_RELAY_HOME": "/elsewhere"}}')
+        code, _, err = run_cli(home, "--home", str(home))
+        self.assertEqual(code, 0, err)
+        self.assertEqual(json.loads(path.read_text())["env"]["TL_RELAY_HOME"], str(home.resolve()))
 
     def test_same_home_spelled_differently_is_not_a_conflict(self):
         home = make(self.tmp.name)
-        path = self._settings(json.dumps({"env": {"AI_SDLC_HOME": str(home) + "/"}}))
+        path = self._settings(json.dumps({"env": {"TL_RELAY_HOME": str(home) + "/"}}))
         code, _, err = run_cli(home)
         self.assertEqual(code, 0, err)
-        self.assertEqual(json.loads(path.read_text())["env"]["AI_SDLC_HOME"], str(home.resolve()))
+        self.assertEqual(json.loads(path.read_text())["env"]["TL_RELAY_HOME"], str(home.resolve()))
 
     def test_non_string_home_in_settings_exits_1(self):
         home = make(self.tmp.name)
         for value in (1, "", None, ["x"]):
             with self.subTest(value=value):
-                path = self._settings(json.dumps({"env": {"AI_SDLC_HOME": value}}))
+                path = self._settings(json.dumps({"env": {"TL_RELAY_HOME": value}}))
                 code, _, err = run_cli(home)
                 self.assertEqual(code, 1)
                 self.assertIn(str(path), err)
@@ -218,16 +274,16 @@ class Install(unittest.TestCase):
         home = make(self.tmp.name)
         for value in (1, "", None, ["x"]):
             with self.subTest(value=value):
-                path = self._settings(json.dumps({"env": {"AI_SDLC_HOME": value}}))
+                path = self._settings(json.dumps({"env": {"TL_RELAY_HOME": value}}))
                 code, _, err = run_cli(home, "--home", str(home))
                 self.assertEqual(code, 0, err)
-                self.assertEqual(json.loads(path.read_text())["env"]["AI_SDLC_HOME"], str(home.resolve()))
+                self.assertEqual(json.loads(path.read_text())["env"]["TL_RELAY_HOME"], str(home.resolve()))
 
     def test_unresolvable_home_in_settings_exits_1(self):
         home = make(self.tmp.name)
         for value in ("~nosuchuser/x", "a\x00b"):
             with self.subTest(value=value):
-                path = self._settings(json.dumps({"env": {"AI_SDLC_HOME": value}}))
+                path = self._settings(json.dumps({"env": {"TL_RELAY_HOME": value}}))
                 code, _, err = run_cli(home)
                 self.assertEqual(code, 1)
                 self.assertIn(str(path), err)
@@ -238,7 +294,7 @@ class Install(unittest.TestCase):
         path = self._settings('{"env": null}')
         code, _, err = run_cli(home)
         self.assertEqual(code, 0, err)
-        self.assertEqual(json.loads(path.read_text())["env"], {"AI_SDLC_HOME": str(home.resolve())})
+        self.assertEqual(json.loads(path.read_text())["env"], {"TL_RELAY_HOME": str(home.resolve())})
 
     def test_empty_home_flag_exits_1(self):
         make(self.tmp.name)
@@ -257,7 +313,7 @@ class Install(unittest.TestCase):
         decoy.mkdir()
         code, out, err = run_cli_decoy(decoy, "--dry-run", "--home", str(home))
         self.assertEqual(code, 0, err)
-        self.assertIn('"AI_SDLC_HOME": ', out)
+        self.assertIn('"TL_RELAY_HOME": ', out)
 
     def test_non_object_env_in_settings_exits_1(self):
         home = make(self.tmp.name)
@@ -272,7 +328,7 @@ class Install(unittest.TestCase):
 
     def test_second_install_changes_nothing(self):
         home = make(self.tmp.name)
-        with unittest.mock.patch.dict(os.environ, {"AI_SDLC_HOME": str(home), "AI_SDLC_REPO": str(REPO)}):
+        with unittest.mock.patch.dict(os.environ, pinned({"TL_RELAY_HOME": str(home), "TL_RELAY_REPO": str(REPO)}), clear=True):
             install.apply(install.plan(REPO, home))
             again = install.plan(REPO, home)
         self.assertEqual([p for p, old, new in again if old != new], [])
@@ -281,31 +337,31 @@ class Install(unittest.TestCase):
         home = make(self.tmp.name, dirs=("a", "b"))
         text = install.env_text(config.load(REPO, home), REPO, home)
         tmp = pathlib.Path(self.tmp.name)
-        self.assertIn("export AI_SDLC_USER_SETTINGS='%s:%s'" % (tmp / "a" / "settings.json", tmp / "b" / "settings.json"), text)
+        self.assertIn("export TL_RELAY_USER_SETTINGS='%s:%s'" % (tmp / "a" / "settings.json", tmp / "b" / "settings.json"), text)
         for name in ("ROOT", "USER_FRAGMENT", "FRAGMENT", "SETTINGS"):
-            self.assertIn("export AI_SDLC_%s=" % name, text)
+            self.assertIn("export TL_RELAY_%s=" % name, text)
 
     @unittest.skipUnless(fixture.CAN_SYMLINK, "cannot create symlinks")
     def test_env_writes_project_root_resolved(self):
         tmp = pathlib.Path(self.tmp.name).resolve()
         home = make(tmp)
         (tmp / "link").symlink_to(tmp / "work", target_is_directory=True)
-        yaml = (home / "ai-sdlc.yaml").read_text()
-        (home / "ai-sdlc.yaml").write_text(yaml.replace(str(tmp / "work"), str(tmp / "link")))
+        yaml = (home / "tl-relay.yaml").read_text()
+        (home / "tl-relay.yaml").write_text(yaml.replace(str(tmp / "work"), str(tmp / "link")))
         text = install.env_text(config.load(REPO, home), REPO, home)
-        self.assertIn("export AI_SDLC_ROOT='%s'\n" % (tmp / "work"), text)
-        self.assertIn("export AI_SDLC_SETTINGS='%s'\n" % (tmp / "work" / ".claude" / "settings.json"), text)
-        (home / "ai-sdlc.yaml").write_text(re.sub(r"root: .*", "root: ~/work", yaml))
-        with unittest.mock.patch.dict(os.environ, {"HOME": str(tmp)}):
+        self.assertIn("export TL_RELAY_ROOT='%s'\n" % (tmp / "work"), text)
+        self.assertIn("export TL_RELAY_SETTINGS='%s'\n" % (tmp / "work" / ".claude" / "settings.json"), text)
+        (home / "tl-relay.yaml").write_text(re.sub(r"root: .*", "root: ~/work", yaml))
+        with unittest.mock.patch.dict(os.environ, pinned({"HOME": str(tmp)}), clear=True):
             text = install.env_text(config.load(REPO, home), REPO, home)
-        self.assertIn("export AI_SDLC_ROOT='%s'\n" % (tmp / "work"), text)
+        self.assertIn("export TL_RELAY_ROOT='%s'\n" % (tmp / "work"), text)
 
     def test_dry_run_writes_nothing(self):
         home = make(self.tmp.name)
         code, out, _ = run_cli(home, "--dry-run")
         self.assertEqual(code, 0)
         self.assertIn("settings.json", out)
-        self.assertEqual(sorted(p.name for p in home.iterdir()), ["ai-sdlc.yaml"])
+        self.assertEqual(sorted(p.name for p in home.iterdir()), ["tl-relay.yaml"])
         self.assertFalse((pathlib.Path(self.tmp.name) / "claude-a").exists())
 
     def test_install_writes_every_file(self):
@@ -323,7 +379,7 @@ class Install(unittest.TestCase):
         home.mkdir()
         code, _, err = run_cli(home)
         self.assertEqual(code, 1)
-        self.assertIn("copy ai-sdlc.example.yaml to %s and set project.root" % (home.resolve() / "ai-sdlc.yaml"), err)
+        self.assertIn("copy tl-relay.example.yaml to %s and set project.root" % (home.resolve() / "tl-relay.yaml"), err)
 
     def test_render_escapes_quotes_in_home_and_repo(self):
         home, repo = "/h'o\"me\\x", "/r\"e\\po"
@@ -333,7 +389,7 @@ class Install(unittest.TestCase):
                 for group in groups:
                     for hook in group["hooks"]:
                         words = shlex.split(hook["command"])
-                        self.assertEqual(words[0], "AI_SDLC_HOME=" + home)
+                        self.assertEqual(words[0], "TL_RELAY_HOME=" + home)
                         self.assertTrue(words[-1].startswith((repo + "/maintainer/hooks/", repo + "/hooks/")), words)
 
     def test_rerun_with_quotes_in_the_home_changes_nothing(self):
@@ -341,10 +397,10 @@ class Install(unittest.TestCase):
         home = base / "home"
         home.mkdir(parents=True)
         (base / "work").mkdir()
-        (home / "ai-sdlc.yaml").write_text(
-            "apiVersion: ai-sdlc/v2\nkind: Config\nproject:\n  name: t\n  root: %s\ninstall:\n  claude_config_dirs: [%s]\n"
+        (home / "tl-relay.yaml").write_text(
+            "apiVersion: tl-relay/v1\nkind: Config\nproject:\n  name: t\n  root: %s\ninstall:\n  claude_config_dirs: [%s]\n"
             % (json.dumps(str(base / "work")), json.dumps(str(base / "claude-a"))))
-        with unittest.mock.patch.dict(os.environ, {"AI_SDLC_HOME": str(home), "AI_SDLC_REPO": str(REPO)}):
+        with unittest.mock.patch.dict(os.environ, pinned({"TL_RELAY_HOME": str(home), "TL_RELAY_REPO": str(REPO)}), clear=True):
             install.apply(install.plan(REPO, home))
             again = install.plan(REPO, home)
         self.assertEqual([p for p, old, new in again if old != new], [])
@@ -386,8 +442,8 @@ class Install(unittest.TestCase):
         home = make(self.tmp.name)
         bad = pathlib.Path(self.tmp.name) / "bad\nroot"
         bad.mkdir()
-        (home / "ai-sdlc.yaml").write_text(
-            "apiVersion: ai-sdlc/v2\nkind: Config\nproject:\n  name: t\n  root: %s\ninstall:\n  claude_config_dirs: [%s]\n"
+        (home / "tl-relay.yaml").write_text(
+            "apiVersion: tl-relay/v1\nkind: Config\nproject:\n  name: t\n  root: %s\ninstall:\n  claude_config_dirs: [%s]\n"
             % (json.dumps(str(bad)), json.dumps(str(pathlib.Path(self.tmp.name) / "claude-a"))))
         code, _, err = run_cli(home)
         self.assertEqual(code, 1)
@@ -397,8 +453,8 @@ class Install(unittest.TestCase):
 
     def test_carriage_return_in_a_config_dir_exits_1(self):
         home = make(self.tmp.name)
-        (home / "ai-sdlc.yaml").write_text(
-            "apiVersion: ai-sdlc/v2\nkind: Config\nproject:\n  name: t\n  root: %s\ninstall:\n  claude_config_dirs: [%s]\n"
+        (home / "tl-relay.yaml").write_text(
+            "apiVersion: tl-relay/v1\nkind: Config\nproject:\n  name: t\n  root: %s\ninstall:\n  claude_config_dirs: [%s]\n"
             % (json.dumps(str(pathlib.Path(self.tmp.name) / "work")), json.dumps(str(pathlib.Path(self.tmp.name) / "bad\rdir"))))
         code, _, err = run_cli(home)
         self.assertEqual(code, 1)
@@ -427,8 +483,8 @@ class Install(unittest.TestCase):
         home = self.seed('{"note": "caf\\u00e9"}')
         raw = io.BytesIO()
         out = io.TextIOWrapper(raw, encoding="ascii")
-        env = {"AI_SDLC_HOME": str(home), "AI_SDLC_REPO": str(REPO)}
-        with unittest.mock.patch.dict(os.environ, env), contextlib.redirect_stdout(out), \
+        env = {"TL_RELAY_HOME": str(home), "TL_RELAY_REPO": str(REPO)}
+        with unittest.mock.patch.dict(os.environ, pinned(env), clear=True), contextlib.redirect_stdout(out), \
                 contextlib.redirect_stderr(io.StringIO()):
             code = sdlc.main(["install", "--dry-run"])
         out.flush()
@@ -490,7 +546,7 @@ class Install(unittest.TestCase):
 
     def test_non_list_config_dirs_exit_1(self):
         home = make(self.tmp.name)
-        (home / "ai-sdlc.yaml").write_text((home / "ai-sdlc.yaml").read_text().split("install:")[0] + "install:\n  claude_config_dirs: /one/dir\n")
+        (home / "tl-relay.yaml").write_text((home / "tl-relay.yaml").read_text().split("install:")[0] + "install:\n  claude_config_dirs: /one/dir\n")
         code, _, err = run_cli(home)
         self.assertEqual(code, 1)
         self.assertIn("claude_config_dirs", err)
@@ -502,8 +558,8 @@ class Install(unittest.TestCase):
         for entry in ("", "relative/dir", "/one:two", "/one\\ntwo"):
             with self.subTest(entry=entry):
                 home = make(self.tmp.name)
-                text = (home / "ai-sdlc.yaml").read_text()
-                (home / "ai-sdlc.yaml").write_text(text.split("install:")[0] + 'install:\n  claude_config_dirs: ["%s"]\n' % entry)
+                text = (home / "tl-relay.yaml").read_text()
+                (home / "tl-relay.yaml").write_text(text.split("install:")[0] + 'install:\n  claude_config_dirs: ["%s"]\n' % entry)
                 for argv in (("--dry-run",), ()):
                     code, _, err = run_cli(home, *argv)
                     self.assertEqual(code, 1, (entry, err))
@@ -515,25 +571,25 @@ class Install(unittest.TestCase):
         for value in ('""', "false", "0", "{}"):
             with self.subTest(value=value):
                 home = make(self.tmp.name)
-                text = (home / "ai-sdlc.yaml").read_text()
-                (home / "ai-sdlc.yaml").write_text(text.split("install:")[0] + "install:\n  claude_config_dirs: %s\n" % value)
-                with unittest.mock.patch.dict(os.environ, {"HOME": self.tmp.name}):
+                text = (home / "tl-relay.yaml").read_text()
+                (home / "tl-relay.yaml").write_text(text.split("install:")[0] + "install:\n  claude_config_dirs: %s\n" % value)
+                with unittest.mock.patch.dict(os.environ, pinned({"HOME": self.tmp.name}), clear=True):
                     code, _, err = run_cli(home, "--dry-run")
                 self.assertEqual(code, 1, (value, err))
                 self.assertIn("install.claude_config_dirs must be a list of paths", err)
 
     def test_same_home_and_repo_exit_1(self):
         home = make(self.tmp.name)
-        env = {"AI_SDLC_HOME": str(home), "AI_SDLC_REPO": str(home)}
+        env = {"TL_RELAY_HOME": str(home), "TL_RELAY_REPO": str(home)}
         out, err = io.StringIO(), io.StringIO()
-        with unittest.mock.patch.dict(os.environ, env), contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+        with unittest.mock.patch.dict(os.environ, pinned(env), clear=True), contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
             code = sdlc.main(["install"])
         self.assertEqual(code, 1)
         self.assertIn("overwrite", err.getvalue())
 
     def test_relative_home_renders_absolute_paths(self):
         home = make(self.tmp.name)
-        with unittest.mock.patch.dict(os.environ, {"HOME": self.tmp.name}):
+        with unittest.mock.patch.dict(os.environ, pinned({"HOME": self.tmp.name}), clear=True):
             cwd = os.getcwd()
             os.chdir(self.tmp.name)
             try:
@@ -541,14 +597,14 @@ class Install(unittest.TestCase):
             finally:
                 os.chdir(cwd)
         text = {p.name: new for p, old, new in changes}
-        self.assertIn("AI_SDLC_HOME='%s'" % home.resolve(), text["user-fragment.json"])
-        self.assertIn("export AI_SDLC_FRAGMENT='%s/hooks/settings-fragment.json'" % home.resolve(), text["env.sh"])
+        self.assertIn("TL_RELAY_HOME='%s'" % home.resolve(), text["user-fragment.json"])
+        self.assertIn("export TL_RELAY_FRAGMENT='%s/hooks/settings-fragment.json'" % home.resolve(), text["env.sh"])
 
     def test_plan_expands_home_before_checking_config(self):
         home = make(self.tmp.name)
         (home.parent / "x").mkdir()
-        (home / "ai-sdlc.yaml").rename(home.parent / "x" / "ai-sdlc.yaml")
-        with unittest.mock.patch.dict(os.environ, {"HOME": self.tmp.name}):
+        (home / "tl-relay.yaml").rename(home.parent / "x" / "tl-relay.yaml")
+        with unittest.mock.patch.dict(os.environ, pinned({"HOME": self.tmp.name}), clear=True):
             changes = install.plan(REPO, "~/x")
         self.assertTrue(changes)
 
@@ -641,8 +697,8 @@ class Install(unittest.TestCase):
     def test_unresolvable_repo_env_exits_1(self):
         home = make(self.tmp.name)
         out, err = io.StringIO(), io.StringIO()
-        env = {"AI_SDLC_HOME": str(home), "AI_SDLC_REPO": "~nosuchuser/x"}
-        with unittest.mock.patch.dict(os.environ, env), contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+        env = {"TL_RELAY_HOME": str(home), "TL_RELAY_REPO": "~nosuchuser/x"}
+        with unittest.mock.patch.dict(os.environ, pinned(env), clear=True), contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
             code = sdlc.main(["install"])
         self.assertEqual(code, 1)
         self.assertIn('repo: "~nosuchuser/x" is not a usable path', err.getvalue())
@@ -651,8 +707,8 @@ class Install(unittest.TestCase):
 
     def test_non_string_project_root_exits_1(self):
         home = make(self.tmp.name)
-        text = (home / "ai-sdlc.yaml").read_text()
-        (home / "ai-sdlc.yaml").write_text(re.sub(r"root: .*", "root: 123", text))
+        text = (home / "tl-relay.yaml").read_text()
+        (home / "tl-relay.yaml").write_text(re.sub(r"root: .*", "root: 123", text))
         code, _, err = run_cli(home)
         self.assertEqual(code, 1)
         self.assertIn("project.root", err)
@@ -661,8 +717,8 @@ class Install(unittest.TestCase):
 
     def test_nul_in_config_dirs_exits_1(self):
         home = make(self.tmp.name)
-        text = (home / "ai-sdlc.yaml").read_text()
-        (home / "ai-sdlc.yaml").write_text(text.split("install:")[0] + 'install:\n  claude_config_dirs: ["a\\0b"]\n')
+        text = (home / "tl-relay.yaml").read_text()
+        (home / "tl-relay.yaml").write_text(text.split("install:")[0] + 'install:\n  claude_config_dirs: ["a\\0b"]\n')
         for argv in (("--dry-run",), ()):
             with self.subTest(argv=argv):
                 code, _, err = run_cli(home, *argv)
@@ -672,7 +728,7 @@ class Install(unittest.TestCase):
                 self.assert_nothing_written(home)
 
     def _config(self, home, text):
-        (home / "ai-sdlc.yaml").write_text("apiVersion: ai-sdlc/v2\nkind: Config\n" + text)
+        (home / "tl-relay.yaml").write_text("apiVersion: tl-relay/v1\nkind: Config\n" + text)
 
     def test_non_mapping_project_or_install_exits_1(self):
         tmp = pathlib.Path(self.tmp.name)
@@ -695,7 +751,7 @@ class Install(unittest.TestCase):
         tmp = pathlib.Path(self.tmp.name).resolve()
         home = make(self.tmp.name)
         self._config(home, "project:\n  name: t\n  root: %s\ninstall:\n" % (tmp / "work"))
-        with unittest.mock.patch.dict(os.environ, {"HOME": str(tmp)}):
+        with unittest.mock.patch.dict(os.environ, pinned({"HOME": str(tmp)}), clear=True):
             code, _, err = run_cli(home)
         self.assertEqual(code, 0, err)
         self.assertTrue((tmp / ".claude" / "settings.json").is_file())
@@ -710,7 +766,7 @@ class Install(unittest.TestCase):
         for value in ("/elsewhere", 123):
             with self.subTest(value=value):
                 home = make(self.tmp.name)
-                path = self._project({"env": {"AI_SDLC_HOME": value}})
+                path = self._project({"env": {"TL_RELAY_HOME": value}})
                 code, _, err = run_cli(home)
                 self.assertEqual(code, 1)
                 self.assertIn(str(path), err)
@@ -721,28 +777,28 @@ class Install(unittest.TestCase):
 
     def test_home_flag_removes_a_differing_project_home(self):
         home = make(self.tmp.name)
-        path = self._project({"env": {"AI_SDLC_HOME": "/elsewhere", "KEEP": "1"}})
+        path = self._project({"env": {"TL_RELAY_HOME": "/elsewhere", "KEEP": "1"}})
         code, _, err = run_cli(home, "--home", str(home))
         self.assertEqual(code, 0, err)
         self.assertEqual(json.loads(path.read_text())["env"], {"KEEP": "1"})
 
     def test_home_flag_drops_an_emptied_project_env(self):
         home = make(self.tmp.name)
-        path = self._project({"env": {"AI_SDLC_HOME": "/elsewhere"}})
+        path = self._project({"env": {"TL_RELAY_HOME": "/elsewhere"}})
         code, _, err = run_cli(home, "--home", str(home))
         self.assertEqual(code, 0, err)
         self.assertNotIn("env", json.loads(path.read_text()))
 
     def test_same_project_home_is_left_alone(self):
         home = make(self.tmp.name)
-        path = self._project({"env": {"AI_SDLC_HOME": str(home)}})
+        path = self._project({"env": {"TL_RELAY_HOME": str(home)}})
         code, _, err = run_cli(home)
         self.assertEqual(code, 0, err)
-        self.assertEqual(json.loads(path.read_text())["env"], {"AI_SDLC_HOME": str(home)})
+        self.assertEqual(json.loads(path.read_text())["env"], {"TL_RELAY_HOME": str(home)})
 
     def test_differing_local_home_exits_1_even_with_flag(self):
         home = make(self.tmp.name)
-        path = self._project({"env": {"AI_SDLC_HOME": "/elsewhere"}}, "settings.local.json")
+        path = self._project({"env": {"TL_RELAY_HOME": "/elsewhere"}}, "settings.local.json")
         before = path.read_bytes()
         for argv in ((), ("--home", str(home)), ("--dry-run",)):
             with self.subTest(argv=argv):
@@ -775,8 +831,8 @@ class Install(unittest.TestCase):
         tmp = pathlib.Path(self.tmp.name).resolve()
         home = tmp / "home"
         home.mkdir()
-        (home / "ai-sdlc.yaml").write_text(
-            "apiVersion: ai-sdlc/v2\nkind: Config\nproject:\n  name: t\n  root: %s\ninstall:\n  claude_config_dirs: [%s]\n"
+        (home / "tl-relay.yaml").write_text(
+            "apiVersion: tl-relay/v1\nkind: Config\nproject:\n  name: t\n  root: %s\ninstall:\n  claude_config_dirs: [%s]\n"
             % (json.dumps(str(tmp)), json.dumps(str(tmp / ".claude"))))
         return home, tmp / ".claude" / "settings.json"
 
@@ -786,7 +842,7 @@ class Install(unittest.TestCase):
         self.assertEqual([p for p, _, _ in changes].count(shared), 1)
         install.apply(changes)
         doc = json.loads(shared.read_text())
-        self.assertEqual(doc["env"]["AI_SDLC_HOME"], str(home))
+        self.assertEqual(doc["env"]["TL_RELAY_HOME"], str(home))
         commands = [h["command"] for groups in doc["hooks"].values() for g in groups for h in g["hooks"]]
         self.assert_fragment_hooks_in(home, commands)
         self.assertEqual([p for p, old, new in install.plan(REPO, home) if old != new], [])
@@ -823,14 +879,14 @@ class Install(unittest.TestCase):
         target = tmp / "Root" / ".claude" / "settings.json"
         target.write_text("{}")
         os.link(target, tmp / "other" / ".claude" / "settings.json")
-        (home / "ai-sdlc.yaml").write_text(
-            "apiVersion: ai-sdlc/v2\nkind: Config\nproject:\n  name: t\n  root: %s\ninstall:\n  claude_config_dirs: [%s]\n"
+        (home / "tl-relay.yaml").write_text(
+            "apiVersion: tl-relay/v1\nkind: Config\nproject:\n  name: t\n  root: %s\ninstall:\n  claude_config_dirs: [%s]\n"
             % (json.dumps(str(tmp / "Root")), json.dumps(str(tmp / "other" / ".claude"))))
         changes = install.plan(REPO, home)
         self.assertEqual(len([p for p, _, _ in changes if p.name == "settings.json"]), 1)
         install.apply(changes)
         doc = json.loads(target.read_text())
-        self.assertEqual(doc["env"]["AI_SDLC_HOME"], str(home))
+        self.assertEqual(doc["env"]["TL_RELAY_HOME"], str(home))
         commands = [h["command"] for groups in doc["hooks"].values() for g in groups for h in g["hooks"]]
         self.assert_fragment_hooks_in(home, commands)
 
@@ -842,8 +898,8 @@ class Install(unittest.TestCase):
         home = tmp / "home"
         home.mkdir()
         (tmp / "Proj" / ".claude").mkdir(parents=True)
-        (home / "ai-sdlc.yaml").write_text(
-            "apiVersion: ai-sdlc/v2\nkind: Config\nproject:\n  name: t\n  root: %s\ninstall:\n  claude_config_dirs: [%s]\n"
+        (home / "tl-relay.yaml").write_text(
+            "apiVersion: tl-relay/v1\nkind: Config\nproject:\n  name: t\n  root: %s\ninstall:\n  claude_config_dirs: [%s]\n"
             % (json.dumps(str(tmp / "Proj")), json.dumps(str(tmp / "proj" / ".claude"))))
         changes = install.plan(REPO, home)
         target = (tmp / "Proj" / ".claude" / "settings.json").resolve()
@@ -851,7 +907,7 @@ class Install(unittest.TestCase):
         self.assertEqual(len(same), 1)
         install.apply(changes)
         doc = json.loads(target.read_text())
-        self.assertEqual(doc["env"]["AI_SDLC_HOME"], str(home))
+        self.assertEqual(doc["env"]["TL_RELAY_HOME"], str(home))
         commands = [h["command"] for groups in doc["hooks"].values() for g in groups for h in g["hooks"]]
         self.assert_fragment_hooks_in(home, commands)
 
@@ -1028,12 +1084,12 @@ class Install(unittest.TestCase):
                 user = pathlib.Path(other) / "claude-a" / "settings.json"
                 user.parent.mkdir()
                 user.write_bytes(b'{"keep": 1}\r\n')
-                env = {"AI_SDLC_HOME": str(home), "AI_SDLC_REPO": str(REPO)}
-                with unittest.mock.patch.dict(os.environ, env):
+                env = {"TL_RELAY_HOME": str(home), "TL_RELAY_REPO": str(REPO)}
+                with unittest.mock.patch.dict(os.environ, pinned(env), clear=True):
                     project = install.plan(REPO, home)[-1][0]
                 out, err = io.StringIO(), io.StringIO()
                 try:
-                    with unittest.mock.patch.dict(os.environ, env), self._interrupting(project, how), \
+                    with unittest.mock.patch.dict(os.environ, pinned(env), clear=True), self._interrupting(project, how), \
                             contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
                         code = sdlc.main(["install"])
                 except KeyboardInterrupt:
@@ -1056,11 +1112,11 @@ class Install(unittest.TestCase):
                 with self.subTest(stage=stage, argv=argv), tempfile.TemporaryDirectory() as other:
                     home = make(other)
                     out, err = (io.StringIO() if stage == "plan" else Interrupting()), io.StringIO()
-                    env = {"AI_SDLC_HOME": str(home), "AI_SDLC_REPO": str(REPO)}
+                    env = {"TL_RELAY_HOME": str(home), "TL_RELAY_REPO": str(REPO)}
                     patched = (unittest.mock.patch.object(install, "plan", side_effect=KeyboardInterrupt)
                                if stage == "plan" else contextlib.nullcontext())
                     try:
-                        with unittest.mock.patch.dict(os.environ, env), patched, \
+                        with unittest.mock.patch.dict(os.environ, pinned(env), clear=True), patched, \
                                 contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
                             code = sdlc.main(["install"] + list(argv))
                     except KeyboardInterrupt:
@@ -1104,7 +1160,7 @@ class Install(unittest.TestCase):
 
     def test_a_closed_stdout_is_refused_before_anything_is_written(self):
         home = make(self.tmp.name)
-        env = dict(os.environ, AI_SDLC_HOME=str(home), AI_SDLC_REPO=str(REPO))
+        env = pinned({"TL_RELAY_HOME": str(home), "TL_RELAY_REPO": str(REPO)})
         done = subprocess.run([sys.executable, str(REPO / "maintainer" / "sdlc.py"), "install"], env=env,
                               stdin=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True,
                               preexec_fn=lambda: os.close(1))
@@ -1138,7 +1194,7 @@ def make_clone(tmp, name="clone", init=True):
     (clone / "maintainer" / "hooks").mkdir(parents=True)
     for template in ("settings-fragment.json", "user-fragment.json", "git-pre-push"):
         shutil.copy(REPO / "maintainer" / "hooks" / template, clone / "maintainer" / "hooks" / template)
-    shutil.copy(REPO / "maintainer" / "ai-sdlc.yaml", clone / "maintainer" / "ai-sdlc.yaml")
+    shutil.copy(REPO / "maintainer" / "tl-relay.yaml", clone / "maintainer" / "tl-relay.yaml")
     (clone / "maintainer" / "skills" / "write-skill" / "scripts").mkdir(parents=True)
     (clone / "maintainer" / "skills" / "write-skill" / "scripts" / "final_run.py").write_text("")
     (clone / "maintainer" / "sdlc.py").write_text("")
@@ -1149,8 +1205,8 @@ def make_clone(tmp, name="clone", init=True):
 
 def run_clone(clone, home, *argv):
     out, err = io.StringIO(), io.StringIO()
-    env = dict({"AI_SDLC_HOME": str(home), "AI_SDLC_REPO": str(clone)}, **ISOLATED_GIT)
-    with unittest.mock.patch.dict(os.environ, env), contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+    env = pinned(dict({"TL_RELAY_HOME": str(home), "TL_RELAY_REPO": str(clone)}, **ISOLATED_GIT))
+    with unittest.mock.patch.dict(os.environ, pinned(env), clear=True), contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
         code = sdlc.main(["install", "--home", str(home)] + list(argv))
     return code, out.getvalue(), err.getvalue()
 
@@ -1179,8 +1235,16 @@ class GitHook(unittest.TestCase):
             "rerun sdlc.py install --git-hook, or stop and ask the operator, who decides on --no-verify\" >&2\n"
             "  exit 1\n"
             "fi\n"
-            "AI_SDLC_HOME=%s AI_SDLC_REPO=\"$main\" exec /usr/bin/python3 \"$script\" check \"$@\"\n"
+            "TL_RELAY_HOME=%s TL_RELAY_REPO=\"$main\" exec /usr/bin/python3 \"$script\" check \"$@\"\n"
             % (install.HOOK_MARKER, main, shlex.quote(str(self.home)))))
+
+    def test_the_rendered_hook_uses_new_names(self):
+        code, _, err = run_clone(self.clone, self.home, "--git-hook")
+        self.assertEqual(code, 0, err)
+        text = self.hook.read_text()
+        self.assertIn("TL_RELAY_HOME=", text)
+        self.assertIn("TL_RELAY_REPO=", text)
+        self.assertNotIn("AI_SDLC_", text)
 
     def test_a_plain_install_writes_no_hook(self):
         code, _, err = run_clone(self.clone, self.home)
@@ -1294,7 +1358,7 @@ class GitHook(unittest.TestCase):
     def test_a_home_with_a_space_draws_no_warning(self):
         spaced = pathlib.Path(self.tmp.name).resolve() / "a b"
         spaced.mkdir()
-        shutil.copy(self.home / "ai-sdlc.yaml", spaced / "ai-sdlc.yaml")
+        shutil.copy(self.home / "tl-relay.yaml", spaced / "tl-relay.yaml")
         self.assertEqual(run_clone(self.clone, spaced, "--git-hook")[0], 0)
         code, out, err = run_clone(self.clone, spaced)
         self.assertEqual(code, 0, err)
@@ -1321,6 +1385,25 @@ class GitHook(unittest.TestCase):
     def test_a_plain_install_notes_a_foreign_hook(self):
         self.hook.write_text("#!/bin/sh\necho mine\n")
         self.notice("not written by tl-relay")
+
+    def test_a_plain_install_notes_a_hook_rendered_from_the_old_template(self):
+        run_clone(self.clone, self.home, "--git-hook")
+        text = self.hook.read_text().replace("TL_RELAY_HOME=", "AI_SDLC_HOME=").replace("TL_RELAY_REPO=", "AI_SDLC_REPO=")
+        self.hook.write_text(text)
+        self.notice("uses the old variable names")
+
+    def test_a_plain_install_notes_the_oldest_hook(self):
+        run_clone(self.clone, self.home, "--git-hook")
+        text = self.hook.read_text().replace(install.HOOK_MARKER, "# ai-sdlc pre-push hook")
+        text = text.replace("TL_RELAY_HOME=", "AI_SDLC_HOME=").replace("TL_RELAY_REPO=", "AI_SDLC_REPO=")
+        self.hook.write_text(text)
+        self.notice("uses the old variable names")
+
+    def test_a_plain_install_draws_no_notice_for_a_current_hook(self):
+        run_clone(self.clone, self.home, "--git-hook")
+        code, out, err = run_clone(self.clone, self.home)
+        self.assertEqual(code, 0, err)
+        self.assertEqual([l for l in err.splitlines() if "pre-push" in l], [])
 
     def test_the_marker_names_tl_relay(self):
         self.assertEqual(install.HOOK_MARKER, "# tl-relay pre-push hook")

@@ -26,11 +26,11 @@ class NeutralCommands(unittest.TestCase):
         self.repo = root / "repo"
         home = root / "home"
         home.mkdir()
-        (home / "ai-sdlc.yaml").write_text(
+        (home / "tl-relay.yaml").write_text(
             "neutrality:\n  patterns:\n    - LEAK[W]ORD\n  identity_allow:\n    - dev@example.invalid\n"
         )
-        self.env = {k: v for k, v in os.environ.items() if not k.startswith("GIT_")}
-        self.env["AI_SDLC_HOME"] = str(home)
+        self.env = {k: v for k, v in os.environ.items() if not k.startswith(("GIT_", "AI_SDLC_", "TL_RELAY_"))}
+        self.env["TL_RELAY_HOME"] = str(home)
         self.git("init", "-q", "-b", "main", str(self.repo), cwd=root)
         self.commit("clean\n")
         self.git("update-ref", "refs/remotes/origin/main", "HEAD")
@@ -49,7 +49,7 @@ class NeutralCommands(unittest.TestCase):
 
     def run_page(self, page):
         line = command(page).replace("<repo>/maintainer/sdlc.py", str(REPO / "maintainer" / "sdlc.py"))
-        line = line.replace("export AI_SDLC_HOME='<home>'; ", "").replace("<repo>", str(self.repo))
+        line = line.replace("export TL_RELAY_HOME='<home>'; ", "").replace("<repo>", str(self.repo))
         return subprocess.run(["/bin/sh", "-c", line], env=self.env, capture_output=True, text=True).returncode
 
     def test_a_clean_branch_passes(self):

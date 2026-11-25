@@ -5,6 +5,10 @@ import errno
 import fcntl
 import os
 import pathlib
+import sys
+
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3]))
+from runtime import config
 
 
 class LockHeld(Exception):
@@ -20,12 +24,12 @@ class HomeError(LockError):
 
 
 def _home() -> pathlib.Path:
-    value = os.environ.get("AI_SDLC_HOME")
+    value = os.environ.get("TL_RELAY_HOME")
     if not value:
-        raise LockError("AI_SDLC_HOME is not set")
+        raise LockError("TL_RELAY_HOME is not set")
     home = pathlib.Path(value)
-    if not (home / "ai-sdlc.yaml").is_file():
-        raise HomeError("%s has no ai-sdlc.yaml, so it is not an ai-sdlc home" % home)
+    if not any((home / name).is_file() for name in config.HOME_FILES):
+        raise HomeError("%s has no tl-relay.yaml, so it is not a tl-relay home" % home)
     return home
 
 
