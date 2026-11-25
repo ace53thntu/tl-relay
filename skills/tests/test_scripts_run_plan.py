@@ -684,6 +684,12 @@ class SddWorkspaceTests(Case):
         self.assertEqual((r.code, r.out, r.err), (2, "", "sdd-workspace: --runs-dir must be an absolute path: rel\n"))
         self.assertFalse((repo / "rel").exists())
 
+    def test_drive_letter_runs_dir_passes_the_absolute_path_check(self):
+        repo = self.repo()
+        self.write(repo / "plan.md", "# p\n")
+        r = self.run_script("sdd-workspace", ["--runs-dir", "C:/tl-relay-test-runs", "plan.md"], cwd=repo, runs=False)
+        self.assertNotIn("must be an absolute path", r.err)
+
     def test_works_in_a_repository_without_commit(self):
         repo = self.repo(commit=False)
         self.plan(repo, "plan.md")

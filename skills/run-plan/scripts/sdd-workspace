@@ -78,7 +78,7 @@ usage="usage: sdd-workspace [-C DIR] --runs-dir DIR PLAN_FILE"
 [ "${1-}" = "--runs-dir" ] && [ "$#" -eq 3 ] || quit 2 "$usage"
 runs_arg=$2
 case $runs_arg in
-  /*) ;;
+  /*|[A-Za-z]:/*) ;;
   *) quit 2 "sdd-workspace: --runs-dir must be an absolute path: $runs_arg" ;;
 esac
 plan=$3
