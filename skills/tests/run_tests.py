@@ -92,6 +92,12 @@ def _inside(path, root) -> bool:
 def collect_units(tests_dir, skip) -> List[str]:
     saved = dict(sys.modules)
     root = pathlib.Path(tests_dir).resolve()
+    recorded_env = dict(os.environ)
+    try:
+        recorded_cwd = os.getcwd()
+    except OSError:
+        recorded_cwd = None
+    recorded_path = list(sys.path)
     sys.path.insert(0, str(tests_dir))
     units = []
     try:
@@ -127,7 +133,16 @@ def collect_units(tests_dir, skip) -> List[str]:
             else:
                 units.extend(sorted(found))
     finally:
-        sys.path.remove(str(tests_dir))
+        sys.path[:] = recorded_path
+        for key in list(os.environ):
+            if key not in recorded_env:
+                del os.environ[key]
+        os.environ.update(recorded_env)
+        if recorded_cwd is not None:
+            try:
+                os.chdir(recorded_cwd)
+            except OSError:
+                pass
         for name in list(sys.modules):
             if name in saved and sys.modules[name] is saved[name]:
                 continue
@@ -160,24 +175,26 @@ def redocly_spec(repo) -> Optional[str]:
     return match.group(1) if match else None
 
 
-def npx_warmup(repo, out) -> None:
+def npx_warmup(repo, out, env=None) -> None:
     spec = redocly_spec(repo)
     if spec is None:
         return
     try:
         subprocess.run(["npx", "--yes", spec, "--version"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-                       env=dict(os.environ, REDOCLY_TELEMETRY="off"), timeout=WARMUP_TIMEOUT)
+                       env=dict(env if env is not None else os.environ, REDOCLY_TELEMETRY="off"), timeout=WARMUP_TIMEOUT)
     except subprocess.TimeoutExpired:
         out.write("warmup: npx --yes %s --version timed out after %ds\n" % (spec, WARMUP_TIMEOUT))
     except OSError:
         return
 
 
-def run(units, jobs, out) -> int:
+def run(units, jobs, out, env=None) -> int:
     units = order(units)
+    env = dict(os.environ) if env is None else env
 
     def run_unit(unit):
-        return subprocess.run(unit.argv, cwd=str(unit.cwd), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        return subprocess.run(unit.argv, cwd=str(unit.cwd), stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                              env=env)
 
     with ThreadPoolExecutor(max(1, jobs)) as pool:
         results = list(pool.map(run_unit, units))
@@ -207,6 +224,7 @@ def main(argv, repo=None, suites=None, out=sys.stdout, warmup=None) -> int:
     parser.add_argument("--all", action="store_true")
     parser.add_argument("--jobs", type=int, default=os.cpu_count() or 1)
     parsed = parser.parse_args(list(argv))
+    env = dict(os.environ)
     suites = SUITES if suites is None else suites
     repo = pathlib.Path(repo) if repo else pathlib.Path(__file__).resolve().parents[2]
     heavy_skip = set()
@@ -221,8 +239,8 @@ def main(argv, repo=None, suites=None, out=sys.stdout, warmup=None) -> int:
             continue
         units.extend(suite_units(repo, suite, heavy_skip if suite.path == HEAVY_SUITE else set()))
     if any(unit.suite == CONTRACT_SUITE for unit in units):
-        (warmup or (lambda: npx_warmup(repo, out)))()
-    return run(units, parsed.jobs, out)
+        (warmup or (lambda: npx_warmup(repo, out, env)))()
+    return run(units, parsed.jobs, out, env)
 
 
 if __name__ == "__main__":
