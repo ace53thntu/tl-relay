@@ -454,7 +454,7 @@ class SuitesTest(unittest.TestCase):
         real = run_tests.run
         with mock.patch.dict(os.environ, {}), tempfile.TemporaryDirectory() as repo:
             write(repo, "a/test_set.py", self.LEAK_SET)
-            expected = {k: v for k, v in os.environ.items() if k not in run_tests.GIT_ENV_DROP}
+            expected = run_tests.without_git_vars(os.environ)
             run_tests.run = record
             try:
                 run_tests.main(["--all"], repo=pathlib.Path(repo), suites=(run_tests.Suite("a", "py", None),), out=io.StringIO())
@@ -466,21 +466,24 @@ class SuitesTest(unittest.TestCase):
     def test_main_drops_git_location_vars_from_the_child_env(self):
         recorded = {}
 
-        def record(units, jobs, out, env=None):
-            recorded["env"] = env
+        def record_run(units, jobs, out, env=None):
+            recorded["run"] = env
             return 0
 
-        planted = {name: "/run-tests-leak" for name in run_tests.GIT_ENV_DROP}
-        real = run_tests.run
-        with mock.patch.dict(os.environ, dict(planted, RUN_TESTS_KEEP="1")), tempfile.TemporaryDirectory() as repo:
-            write(repo, "a/test_ok.py", OK_SRC.format(name="One"))
-            run_tests.run = record
-            try:
-                run_tests.main(["--all"], repo=pathlib.Path(repo), suites=(run_tests.Suite("a", "py", None),), out=io.StringIO())
-            finally:
-                run_tests.run = real
-        self.assertEqual([name for name in run_tests.GIT_ENV_DROP if name in recorded["env"]], [])
-        self.assertEqual(recorded["env"].get("RUN_TESTS_KEEP"), "1")
+        def record_warmup(repo, out, env=None):
+            recorded["warmup"] = env
+
+        dropped = list(run_tests.GIT_ENV_DROP) + ["GIT_CONFIG_KEY_0", "GIT_CONFIG_VALUE_0"]
+        planted = dict({name: "/run-tests-leak" for name in dropped}, RUN_TESTS_KEEP="1", GIT_CONFIG_GLOBAL="/keep")
+        with mock.patch.dict(os.environ, planted), tempfile.TemporaryDirectory() as repo, \
+                mock.patch.object(run_tests, "run", record_run), mock.patch.object(run_tests, "npx_warmup", record_warmup):
+            write(repo, run_tests.CONTRACT_SUITE + "/test_ok.py", OK_SRC.format(name="One"))
+            run_tests.main(["--all"], repo=pathlib.Path(repo), suites=(run_tests.Suite(run_tests.CONTRACT_SUITE, "py", None),),
+                           out=io.StringIO())
+        for name in ("run", "warmup"):
+            self.assertEqual([var for var in dropped if var in recorded[name]], [], name)
+            self.assertEqual(recorded[name].get("RUN_TESTS_KEEP"), "1", name)
+            self.assertEqual(recorded[name].get("GIT_CONFIG_GLOBAL"), "/keep", name)
 
     def test_the_redocly_spec_is_read_from_the_real_contract_script(self):
         repo = pathlib.Path(run_tests.__file__).resolve().parents[2]

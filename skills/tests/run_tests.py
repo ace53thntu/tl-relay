@@ -12,7 +12,10 @@ from typing import List, Optional, Tuple
 HEAVY = ("test_final_run", "test_triggers")
 HEAVY_PREFIXES = ("maintainer/skills/write-skill/scripts/", "maintainer/runtime/", "maintainer/hooks/", "hooks/",
                   "skills/tests/", "skills/using-tl-relay/")
-GIT_ENV_DROP = ("GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE", "GIT_COMMON_DIR", "GIT_OBJECT_DIRECTORY")
+GIT_ENV_DROP = ("GIT_ALTERNATE_OBJECT_DIRECTORIES", "GIT_CONFIG", "GIT_CONFIG_PARAMETERS", "GIT_CONFIG_COUNT",
+                "GIT_OBJECT_DIRECTORY", "GIT_DIR", "GIT_WORK_TREE", "GIT_IMPLICIT_WORK_TREE", "GIT_GRAFT_FILE",
+                "GIT_INDEX_FILE", "GIT_NO_REPLACE_OBJECTS", "GIT_REPLACE_REF_BASE", "GIT_PREFIX", "GIT_SHALLOW_FILE",
+                "GIT_COMMON_DIR")
 HEAVY_SUITE = "skills/tests"
 RUNNER = "skills/tests/run_tests.py"
 CONTRACT_SUITE = "skills/write-contract/scripts"
@@ -45,8 +48,13 @@ def needs_heavy(paths) -> bool:
     return False
 
 
+def without_git_vars(environ) -> dict:
+    return {k: v for k, v in environ.items()
+            if k not in GIT_ENV_DROP and not k.startswith(("GIT_CONFIG_KEY_", "GIT_CONFIG_VALUE_"))}
+
+
 def git_output(repo, *args) -> Optional[bytes]:
-    env = {k: v for k, v in os.environ.items() if k not in GIT_ENV_DROP}
+    env = without_git_vars(os.environ)
     try:
         proc = subprocess.run(["git", "-C", str(repo)] + list(args), env=env,
                               stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -225,7 +233,7 @@ def main(argv, repo=None, suites=None, out=sys.stdout, warmup=None) -> int:
     parser.add_argument("--all", action="store_true")
     parser.add_argument("--jobs", type=int, default=os.cpu_count() or 1)
     parsed = parser.parse_args(list(argv))
-    env = {k: v for k, v in os.environ.items() if k not in GIT_ENV_DROP}
+    env = without_git_vars(os.environ)
     suites = SUITES if suites is None else suites
     repo = pathlib.Path(repo) if repo else pathlib.Path(__file__).resolve().parents[2]
     heavy_skip = set()
