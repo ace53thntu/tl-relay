@@ -381,6 +381,66 @@ class SuitesTest(unittest.TestCase):
             run_tests.subprocess.run = real
         self.assertEqual(out.getvalue(), "warmup: npx --yes %s --version timed out after 120s\n" % spec)
 
+    LEAK_SET = "import os\nimport unittest\nos.environ['RUN_TESTS_LEAK'] = '1'\n\nclass T(unittest.TestCase):\n    def test_it(self):\n        pass\n"
+    LEAK_CHECK = "import os\nimport unittest\n\nclass T(unittest.TestCase):\n    def test_it(self):\n        self.assertNotIn('RUN_TESTS_LEAK', os.environ)\n"
+    ENV_CHECK = ("import os\nimport unittest\n\nclass T(unittest.TestCase):\n    def test_it(self):\n"
+                 "        self.assertEqual(os.environ.get('RUN_TESTS_LEAK'), 'given')\n"
+                 "        self.assertNotIn('HOME', os.environ)\n")
+
+    def test_an_import_time_env_change_does_not_reach_another_suite(self):
+        with mock.patch.dict(os.environ, {}), tempfile.TemporaryDirectory() as repo:
+            write(repo, "a/test_set.py", self.LEAK_SET)
+            write(repo, "b/test_check.py", self.LEAK_CHECK)
+            suites = (run_tests.Suite("a", "py", None), run_tests.Suite("b", "py", None))
+            out = io.StringIO()
+            code = run_tests.main(["--all"], repo=pathlib.Path(repo), suites=suites, out=out)
+            text = out.getvalue()
+        self.assertEqual(code, 0)
+        self.assertEqual(text.strip().splitlines()[-1], "OK (2 units)")
+
+    def test_run_passes_the_given_env_to_each_child(self):
+        with tempfile.TemporaryDirectory() as repo:
+            write(repo, "t/test_env.py", self.ENV_CHECK)
+            env = {k: v for k, v in os.environ.items() if k != "HOME"}
+            env["RUN_TESTS_LEAK"] = "given"
+            units = run_tests.suite_units(pathlib.Path(repo), run_tests.Suite("t", "py", None), set())
+            out = io.StringIO()
+            code = run_tests.run(units, 2, out, env=env)
+        self.assertEqual(code, 0, out.getvalue())
+
+    def test_npx_warmup_builds_its_child_env_from_the_given_env(self):
+        recorded = {}
+
+        def record(*args, **kwargs):
+            recorded.update(kwargs)
+
+        real = run_tests.subprocess.run
+        run_tests.subprocess.run = record
+        try:
+            run_tests.npx_warmup(pathlib.Path(run_tests.__file__).resolve().parents[2], io.StringIO(), {"X": "y"})
+        finally:
+            run_tests.subprocess.run = real
+        self.assertEqual(recorded["env"], {"X": "y", "REDOCLY_TELEMETRY": "off"})
+
+    def test_main_hands_run_the_environment_from_before_collection(self):
+        recorded = {}
+
+        def record(units, jobs, out, env=None):
+            recorded["env"] = env
+            return 0
+
+        real = run_tests.run
+        with mock.patch.dict(os.environ, {}), tempfile.TemporaryDirectory() as repo:
+            write(repo, "a/test_set.py", self.LEAK_SET)
+            expected = dict(os.environ)
+            run_tests.run = record
+            try:
+                run_tests.main(["--all"], repo=pathlib.Path(repo), suites=(run_tests.Suite("a", "py", None),), out=io.StringIO())
+            finally:
+                run_tests.run = real
+        self.assertNotIn("RUN_TESTS_LEAK", recorded["env"])
+        self.assertEqual(recorded["env"], expected)
+
     def test_the_redocly_spec_is_read_from_the_real_contract_script(self):
         repo = pathlib.Path(run_tests.__file__).resolve().parents[2]
         self.assertTrue(run_tests.redocly_spec(repo).startswith("@redocly/cli@"))
