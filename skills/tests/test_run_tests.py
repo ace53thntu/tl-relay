@@ -130,7 +130,7 @@ class RunTest(unittest.TestCase):
     def test_a_module_attribute_that_raises_does_not_stop_collection(self):
         with tempfile.TemporaryDirectory() as d:
             write(d, "test_odd.py", OK_SRC.format(name="Case")
-                  + "\n\ndef __dir__():\n    return ['Aaa', 'Case']\n\n\ndef __getattr__(name):\n    if name == 'Aaa':\n        raise RuntimeError(name)\n    raise AttributeError(name)\n")
+                  + "\n\nseen = []\n\n\ndef __dir__():\n    return ['Aaa', 'Case']\n\n\ndef __getattr__(name):\n    if name != 'Aaa':\n        raise AttributeError(name)\n    if seen:\n        raise RuntimeError(name)\n    seen.append(name)\n")
             self.assertEqual(run_tests.collect_units(pathlib.Path(d), set()), ["test_odd"])
 
     def test_an_imported_testcase_is_named_by_the_importing_module(self):
