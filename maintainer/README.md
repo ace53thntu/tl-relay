@@ -203,7 +203,7 @@ launchd runs a missed job at the next wake when the Mac sleeps through 22:00. Ru
 
 ## Tests
 
-From the checkout root, the first command runs the suites your diff affects, and `--all` runs every suite:
+From the checkout root, the first command skips the suites whose inputs the diff from `origin/main` leaves untouched, and `--all` runs every suite:
 
 ```sh
 /usr/bin/python3 skills/tests/run_tests.py
