@@ -436,11 +436,13 @@ class SuitesTest(unittest.TestCase):
 
         real = run_tests.subprocess.run
         run_tests.subprocess.run = record
+        repo = pathlib.Path(run_tests.__file__).resolve().parents[2]
         try:
-            run_tests.npx_warmup(pathlib.Path(run_tests.__file__).resolve().parents[2], io.StringIO(), {"X": "y"})
+            run_tests.npx_warmup(repo, io.StringIO(), {"X": "y"})
         finally:
             run_tests.subprocess.run = real
         self.assertEqual(recorded["env"], {"X": "y", "REDOCLY_TELEMETRY": "off"})
+        self.assertEqual(recorded["cwd"], str(repo))
 
     def test_main_hands_run_the_environment_from_before_collection(self):
         recorded = {}
@@ -452,7 +454,7 @@ class SuitesTest(unittest.TestCase):
         real = run_tests.run
         with mock.patch.dict(os.environ, {}), tempfile.TemporaryDirectory() as repo:
             write(repo, "a/test_set.py", self.LEAK_SET)
-            expected = dict(os.environ)
+            expected = run_tests.without_git_vars(os.environ)
             run_tests.run = record
             try:
                 run_tests.main(["--all"], repo=pathlib.Path(repo), suites=(run_tests.Suite("a", "py", None),), out=io.StringIO())
@@ -460,6 +462,32 @@ class SuitesTest(unittest.TestCase):
                 run_tests.run = real
         self.assertNotIn("RUN_TESTS_LEAK", recorded["env"])
         self.assertEqual(recorded["env"], expected)
+
+    def test_the_drop_list_covers_the_local_env_vars_git_reports(self):
+        done = subprocess.run(["git", "rev-parse", "--local-env-vars"], stdout=subprocess.PIPE,
+                              env=run_tests.without_git_vars(os.environ), check=True)
+        self.assertLessEqual(set(done.stdout.decode().split()), set(run_tests.GIT_ENV_DROP))
+
+    def test_main_drops_git_local_env_vars_from_the_child_env(self):
+        recorded = {}
+
+        def record_run(units, jobs, out, env=None):
+            recorded["run"] = env
+            return 0
+
+        def record_warmup(repo, out, env=None):
+            recorded["warmup"] = env
+
+        dropped = list(run_tests.GIT_ENV_DROP) + ["GIT_CONFIG_KEY_0", "GIT_CONFIG_VALUE_0"]
+        kept = {"RUN_TESTS_KEEP": "1", "GIT_CONFIG_GLOBAL": "/keep", "GIT_CONFIG_SYSTEM": "/keep", "GIT_CONFIG_NOSYSTEM": "1"}
+        planted = dict({name: "/run-tests-leak" for name in dropped}, **kept)
+        with tempfile.TemporaryDirectory() as repo, mock.patch.dict(os.environ, planted, clear=True), \
+                mock.patch.object(run_tests, "run", record_run), mock.patch.object(run_tests, "npx_warmup", record_warmup):
+            write(repo, run_tests.CONTRACT_SUITE + "/test_ok.py", OK_SRC.format(name="One"))
+            run_tests.main(["--all"], repo=pathlib.Path(repo), suites=(run_tests.Suite(run_tests.CONTRACT_SUITE, "py", None),),
+                           out=io.StringIO())
+        for name in ("run", "warmup"):
+            self.assertEqual(recorded[name], kept, name)
 
     def test_the_redocly_spec_is_read_from_the_real_contract_script(self):
         repo = pathlib.Path(run_tests.__file__).resolve().parents[2]
