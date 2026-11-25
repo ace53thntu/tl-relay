@@ -47,7 +47,8 @@ def parse_marker(line):
 
 
 def run_redocly(args):
-    return subprocess.run(["npx", "--yes", REDOCLY, *args], capture_output=True, text=True)
+    return subprocess.run(["npx", "--yes", REDOCLY, *args], capture_output=True, text=True,
+                          env=dict(os.environ, REDOCLY_TELEMETRY="off"))
 
 
 def bundle(yaml_path, dereferenced=True):
