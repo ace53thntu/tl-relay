@@ -50,7 +50,21 @@ class PortableRunPlanTest(unittest.TestCase):
             self.assertNotIn("sdlc.py", (SKILLS / name / "SKILL.md").read_text(), name)
 
     def test_worktree_location_has_a_default(self):
-        self.assertIn("$HOME/worktrees", (SKILLS / "run-plan/SKILL.md").read_text())
+        text = (SKILLS / "run-plan/SKILL.md").read_text()
+        self.assertIn('the `CLAUDE.md` section "Worktree location", else `$WORKTREE_ROOT`, else `worktree_dir`, else `<state_dir>/worktrees`', text)
+        self.assertNotIn("$HOME/worktrees", text)
+
+    def test_scripts_get_the_plan_runs_dir(self):
+        for rel in ("run-plan/SKILL.md", "run-plan/references/fix-loop.md", "run-plan/references/final-review.md"):
+            text = (SKILLS / rel).read_text()
+            self.assertNotIn(".tl-relay/sdd", text, rel)
+            for line in text.splitlines():
+                if any(f"scripts/{n}" in line for n in ("sdd-workspace", "task-brief", "review-package")):
+                    self.assertIn("--runs-dir <runtime>/plan-runs", line, rel)
+
+    def test_workspace_placeholder_is_disambiguated(self):
+        self.assertIn("In this skill, `<workspace>` is the directory `sdd-workspace` prints, not the workspace name of config.md.",
+                      (SKILLS / "run-plan/SKILL.md").read_text())
 
     def test_output_paths_read_knowledge_dir(self):
         for name in ("brainstorm", "write-plan"):

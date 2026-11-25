@@ -33,7 +33,7 @@ The escalation follows the escalation rule in `route-subagents`: Sonnet has fail
 6. **Frame the hand-off.** Tell the escalated fixer the task is its own now, after two failed attempts. Point it at the report file for what the earlier implementer tried.
 7. **Collect the fix.** Expect the fix report in the same report file, appended once the covering tests have run again. Its reply follows the short contract.
 8. **Check evidence.** The fix report must show the covering tests, the command and its output. Review waits until it does.
-9. **Package.** Run `bash scripts/review-package -C <worktree> PLAN_FILE FIX_BASE HEAD` by absolute path. `FIX_BASE` is the head the previous round saw.
+9. **Package.** Run `bash scripts/review-package -C <worktree> --runs-dir <runtime>/plan-runs PLAN_FILE FIX_BASE HEAD` by absolute path. `FIX_BASE` is the head the previous round saw.
 10. **Review.** Call `review-change` with the inputs from its Inputs section. Pass `FIX_BASE` as range base; round 1's base stays the task-start `BASE`.
 11. **Sort the round's output.**
 

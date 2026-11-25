@@ -6,12 +6,12 @@ In the design-doc lane there is no final review. Go straight to Finish.
 
 1. **Range.** Compute the branch's merge base, for example `git -C <worktree> merge-base HEAD "$(git -C <worktree> symbolic-ref --short refs/remotes/origin/HEAD)"`. If origin/HEAD is unset, run `git -C <worktree> remote set-head origin --auto` once, then rerun.
 2. The merge base serves twice: as the range base, and as round 1's base in every final-review round.
-3. **Package.** Run `bash scripts/review-package -C <worktree> PLAN_FILE MERGE_BASE HEAD` by absolute path.
+3. **Package.** Run `bash scripts/review-package -C <worktree> --runs-dir <runtime>/plan-runs PLAN_FILE MERGE_BASE HEAD` by absolute path.
 4. **Review.** Give `review-change` the printed path as the diff. Also give it the ledger's deferred-minor lines; it decides which need fixing before merge.
 5. **Pre-existing.** Log each `pre-existing` finding as `Final: pre-existing: <one-liner>`. That holds for this round and for the fix-wave review. These stay out of the fix wave.
 6. **Fix wave.** If any finding not flagged `pre-existing` remains, dispatch ONE fix subagent. It gets the complete findings list. With none, skip to Finish.
 7. **Re-review.** After a fix wave, run exactly one more `review-change` round over the fix range.
-8. For that round, run `bash scripts/review-package -C <worktree> PLAN_FILE FIX_BASE HEAD` by absolute path. `FIX_BASE` is the head the previous round saw.
+8. For that round, run `bash scripts/review-package -C <worktree> --runs-dir <runtime>/plan-runs PLAN_FILE FIX_BASE HEAD` by absolute path. `FIX_BASE` is the head the previous round saw.
 9. Round 1's base stays the merge base.
 10. **Residuals.** Adjudicate what the round reports, and log each decision.
 
@@ -35,7 +35,7 @@ In the design-doc lane there is no final review. Go straight to Finish.
 
 - Every ruling in the ledger reaches "Rulings I made", with no exceptions.
 - The operator learns of decisions made in their name through that list and nowhere else. Delete the workspace first, and those rulings become secret.
-- Delete only this plan's workspace, and leave every neighbouring directory under `.tl-relay/sdd/` untouched: each one is another plan's.
+- Delete only this plan's workspace, and leave every neighbouring directory under `<runtime>/plan-runs/` untouched: each one is another plan's.
 
 ## Ledger lines
 
