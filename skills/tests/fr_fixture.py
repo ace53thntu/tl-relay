@@ -8,6 +8,8 @@ import subprocess
 import sys
 import tempfile
 
+from run_tests import GIT_ENV_DROP
+
 HERE = pathlib.Path(__file__).resolve().parent
 REAL_REPO = HERE.parent.parent
 SCRIPTS = REAL_REPO / "maintainer" / "skills" / "write-skill" / "scripts"
@@ -41,12 +43,6 @@ print(json.dumps({"type": "result", "is_error": False}))
 """
 
 SKILL = "---\nname: %s\ndescription: Use when %s.\n---\n\nBody of %s.\n"
-LOCAL_ENV = (
-    "GIT_ALTERNATE_OBJECT_DIRECTORIES GIT_CONFIG GIT_CONFIG_PARAMETERS GIT_CONFIG_COUNT "
-    "GIT_OBJECT_DIRECTORY GIT_DIR GIT_WORK_TREE GIT_IMPLICIT_WORK_TREE GIT_GRAFT_FILE "
-    "GIT_INDEX_FILE GIT_NO_REPLACE_OBJECTS GIT_REPLACE_REF_BASE GIT_PREFIX "
-    "GIT_SHALLOW_FILE GIT_COMMON_DIR"
-).split()
 
 
 class Sandbox:
@@ -65,7 +61,7 @@ class Sandbox:
         stub.chmod(0o755)
         temp = root / "tmp"
         temp.mkdir()
-        self.env = {k: v for k, v in os.environ.items() if k not in LOCAL_ENV and k != "CLAUDE_CONFIG_DIR"
+        self.env = {k: v for k, v in os.environ.items() if k not in GIT_ENV_DROP and k != "CLAUDE_CONFIG_DIR"
                     and not k.startswith(("AI_SDLC_", "TL_RELAY_"))}
         self.env.update(
             HOME=str(self.home),
