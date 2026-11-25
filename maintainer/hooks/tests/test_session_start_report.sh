@@ -15,7 +15,7 @@ printf '{"hooks":{}}\n' > "$TMP/empty.json"
 # HOME points at the fixture so the scan for config directories never reads the
 # real ones.
 run() { # user-settings [memory-file]
-  env -u AI_SDLC_HOME -u AI_SDLC_REPO -u AI_SDLC_ROOT -u AI_SDLC_USER_FRAGMENT -u AI_SDLC_FRAGMENT -u AI_SDLC_USER_SETTINGS -u AI_SDLC_SETTINGS -u TL_RELAY_HOME -u TL_RELAY_MEMORY -u TL_RELAY_MEMORY_BUDGET -u TL_RELAY_MEMORY_MAXLINES HOME="$TMP/home" ${2:+TL_RELAY_MEMORY="$2"} TL_RELAY_ROOT="${TL_RELAY_ROOT:-$TMP/root}" TL_RELAY_COMPARE="$(dirname "$0")/../compare.jq" \
+  env -u TL_RELAY_HOME -u TL_RELAY_MEMORY -u TL_RELAY_MEMORY_BUDGET -u TL_RELAY_MEMORY_MAXLINES HOME="$TMP/home" ${2:+TL_RELAY_MEMORY="$2"} TL_RELAY_ROOT="${TL_RELAY_ROOT:-$TMP/root}" TL_RELAY_COMPARE="$(dirname "$0")/../compare.jq" \
   TL_RELAY_USER_FRAGMENT="$TMP/ufrag.json" TL_RELAY_FRAGMENT="$TMP/ufrag.json" \
   TL_RELAY_USER_SETTINGS="$1" TL_RELAY_SETTINGS="$1" \
   TL_RELAY_IN_TESTS=1 sh "$H" </dev/null 2>/dev/null
@@ -59,7 +59,7 @@ STUB=$(mktemp -d)
 
 suite_run() { # stub-exit-code
   printf '#!/bin/sh\nexit %s\n' "$1" > "$STUB/run.sh"
-  env -u AI_SDLC_HOME -u AI_SDLC_REPO -u AI_SDLC_ROOT -u AI_SDLC_USER_FRAGMENT -u AI_SDLC_FRAGMENT -u AI_SDLC_USER_SETTINGS -u AI_SDLC_SETTINGS -u TL_RELAY_HOME -u TL_RELAY_MEMORY -u TL_RELAY_MEMORY_BUDGET -u TL_RELAY_MEMORY_MAXLINES HOME="$TMP/home" TL_RELAY_ROOT="$TMP/root" TL_RELAY_COMPARE="$(dirname "$0")/../compare.jq" \
+  env -u TL_RELAY_HOME -u TL_RELAY_MEMORY -u TL_RELAY_MEMORY_BUDGET -u TL_RELAY_MEMORY_MAXLINES HOME="$TMP/home" TL_RELAY_ROOT="$TMP/root" TL_RELAY_COMPARE="$(dirname "$0")/../compare.jq" \
   TL_RELAY_USER_FRAGMENT="$TMP/ufrag.json" TL_RELAY_FRAGMENT="$TMP/ufrag.json" \
   TL_RELAY_USER_SETTINGS="$LIVE" TL_RELAY_SETTINGS="$LIVE" \
   TL_RELAY_TESTS="$STUB/run.sh" TL_RELAY_IN_TESTS= sh "$H" </dev/null 2>/dev/null
@@ -79,7 +79,7 @@ printf '%s' "$o" | grep -qF 'MEMORY.md' && ok "derives the memory path from the 
 o=$(run "$LIVE")
 printf '%s' "$o" | grep -qF 'install.claude_config_dirs' && ok "points unlisted config directories at the install config" || bad "message does not name install.claude_config_dirs"
 
-o=$(env -u AI_SDLC_HOME -u AI_SDLC_REPO -u AI_SDLC_ROOT -u AI_SDLC_USER_FRAGMENT -u AI_SDLC_FRAGMENT -u AI_SDLC_USER_SETTINGS -u AI_SDLC_SETTINGS -u TL_RELAY_HOME -u TL_RELAY_ROOT -u TL_RELAY_USER_FRAGMENT -u TL_RELAY_FRAGMENT -u TL_RELAY_USER_SETTINGS -u TL_RELAY_SETTINGS \
+o=$(env -u TL_RELAY_HOME -u TL_RELAY_ROOT -u TL_RELAY_USER_FRAGMENT -u TL_RELAY_FRAGMENT -u TL_RELAY_USER_SETTINGS -u TL_RELAY_SETTINGS \
   HOME="$TMP/home" TL_RELAY_COMPARE="$(dirname "$0")/../compare.jq" TL_RELAY_IN_TESTS=1 sh "$H" </dev/null 2>/dev/null)
 rc=$?
 { [ $rc -eq 0 ] && printf '%s' "$o" | grep -qF 'sdlc.py install'; } && ok "exits 0 and names sdlc.py install with every variable unset" || bad "rc=$rc out='$o'"

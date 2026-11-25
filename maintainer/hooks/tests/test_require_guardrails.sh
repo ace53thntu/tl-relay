@@ -103,8 +103,7 @@ printf '%s' "$o" | jq -e . >/dev/null 2>&1 && ok "deny output is valid JSON" || 
 
 bare() {
   printf '{"tool_name":"Bash","cwd":"%s","tool_input":{"command":"ls"}}' "$ROOT" \
-  | env -u AI_SDLC_HOME -u AI_SDLC_REPO -u AI_SDLC_ROOT -u AI_SDLC_USER_FRAGMENT -u AI_SDLC_FRAGMENT \
-      -u AI_SDLC_USER_SETTINGS -u AI_SDLC_SETTINGS -u TL_RELAY_HOME -u TL_RELAY_ROOT -u TL_RELAY_USER_FRAGMENT -u TL_RELAY_FRAGMENT \
+  | env -u TL_RELAY_HOME -u TL_RELAY_ROOT -u TL_RELAY_USER_FRAGMENT -u TL_RELAY_FRAGMENT \
       -u TL_RELAY_USER_SETTINGS -u TL_RELAY_SETTINGS CLAUDE_PROJECT_DIR= \
       TL_RELAY_COMPARE="$(dirname "$0")/../compare.jq" "$@" sh "$H" 2>/dev/null
   echo $? > "$TMP/rc"
@@ -128,18 +127,12 @@ mkdir "$TMP/lhome"
 printf 'AI_SDLC_ROOT=%s\nAI_SDLC_USER_FRAGMENT=%s\nAI_SDLC_FRAGMENT=%s\nAI_SDLC_USER_SETTINGS=%s\nAI_SDLC_SETTINGS=%s\n' \
   "$ROOT" "$TMP/ufrag.json" "$TMP/pfrag.json" "$TMP/usettings.json" "$TMP/psettings.json" > "$TMP/lhome/env.sh"
 o=$(bare AI_SDLC_HOME="$TMP/lhome")
-allows "$o" && ok "legacy env allows: AI_SDLC_HOME with AI_SDLC_ names in env.sh" || bad "legacy env denied: $(rsn "$o")"
-
-mkdir "$TMP/mhome" "$TMP/other"
-printf 'TL_RELAY_ROOT=%s\nAI_SDLC_ROOT=%s\nTL_RELAY_USER_FRAGMENT=%s\nTL_RELAY_FRAGMENT=%s\nTL_RELAY_USER_SETTINGS=%s\nTL_RELAY_SETTINGS=%s\n' \
-  "$ROOT" "$TMP/other" "$TMP/ufrag.json" "$TMP/pfrag.json" "$TMP/usettings.json" "$TMP/psettings.json" > "$TMP/mhome/env.sh"
-o=$(bare TL_RELAY_HOME="$TMP/mhome" TL_RELAY_SETTINGS="$TMP/empty.json")
-{ [ "$(dec "$o")" = "deny" ] && printf '%s' "$(rsn "$o")" | grep -qF "b.sh"; } && ok "new env.sh wins: TL_RELAY_ROOT is used over AI_SDLC_ROOT" || bad "AI_SDLC_ROOT won: $(rsn "$o")"
+{ [ "$(dec "$o")" = "deny" ] && printf '%s' "$(rsn "$o")" | grep -qF "TL_RELAY_ROOT is unset"; } && ok "the old home variable is ignored" || bad "AI_SDLC_HOME was honoured: $(rsn "$o")"
 
 mkdir "$TMP/nohome"
 o=$(bare TL_RELAY_HOME="$TMP/nohome" AI_SDLC_ROOT="$ROOT" AI_SDLC_USER_FRAGMENT="$TMP/ufrag.json" AI_SDLC_FRAGMENT="$TMP/pfrag.json" \
   AI_SDLC_USER_SETTINGS="$TMP/usettings.json" AI_SDLC_SETTINGS="$TMP/psettings.json")
-allows "$o" && ok "legacy env names resolve when the home has no env.sh" || bad "env fallback denied: $(rsn "$o")"
+{ [ "$(dec "$o")" = "deny" ] && printf '%s' "$(rsn "$o")" | grep -qF "TL_RELAY_ROOT is unset"; } && ok "the five old names are ignored" || bad "the old names were honoured: $(rsn "$o")"
 
 # A PATH holding everything the hook needs except jq. An empty PATH would also
 # remove cat, and the test would pass for the wrong reason.
