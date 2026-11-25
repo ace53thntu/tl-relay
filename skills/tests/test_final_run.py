@@ -1361,9 +1361,9 @@ class FixRound4(ScoreBase):
         self.change_prompt()
         self.sb.agent_plan({EDITED_PROMPT: "alpha"})
         started = time.time()
-        code = self.cli("score", ignore=(signal.SIGTERM,), TL_RELAY_TRIGGER_TIMEOUT="20")
+        code = self.cli("score", ignore=(signal.SIGTERM,), TL_RELAY_TRIGGER_TIMEOUT="10")
         self.assertEqual(code, 0)
-        self.assertLess(time.time() - started, 60)
+        self.assertLess(time.time() - started, 40)
 
     def test_a_refusal_with_a_closed_stream_exits_two(self):
         (self.sb.repo / "untracked.txt").write_text("dirty\n")
