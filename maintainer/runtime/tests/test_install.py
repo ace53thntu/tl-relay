@@ -238,6 +238,7 @@ class Install(unittest.TestCase):
         plan = install.plan(REPO, home)
         self.assertTrue(plan)
         self.assertEqual(sorted(p.name for p in home.iterdir()), ["ai-sdlc.yaml"])
+        self.assertNotIn("ai-sdlc.yaml", [pathlib.Path(item[0]).name for item in plan])
 
     def test_the_hook_home_reads_either_prefix(self):
         for prefix in ("TL_RELAY", "AI_SDLC"):
@@ -1389,7 +1390,14 @@ class GitHook(unittest.TestCase):
         run_clone(self.clone, self.home, "--git-hook")
         text = self.hook.read_text().replace("TL_RELAY_HOME=", "AI_SDLC_HOME=").replace("TL_RELAY_REPO=", "AI_SDLC_REPO=")
         self.hook.write_text(text)
-        self.notice("install --git-hook")
+        self.notice("uses the old variable names")
+
+    def test_a_plain_install_notes_the_oldest_hook(self):
+        run_clone(self.clone, self.home, "--git-hook")
+        text = self.hook.read_text().replace(install.HOOK_MARKER, "# ai-sdlc pre-push hook")
+        text = text.replace("TL_RELAY_HOME=", "AI_SDLC_HOME=").replace("TL_RELAY_REPO=", "AI_SDLC_REPO=")
+        self.hook.write_text(text)
+        self.notice("uses the old variable names")
 
     def test_a_plain_install_draws_no_notice_for_a_current_hook(self):
         run_clone(self.clone, self.home, "--git-hook")

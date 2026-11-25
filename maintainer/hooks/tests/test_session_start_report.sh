@@ -15,7 +15,7 @@ printf '{"hooks":{}}\n' > "$TMP/empty.json"
 # HOME points at the fixture so the scan for config directories never reads the
 # real ones.
 run() { # user-settings
-  env -u AI_SDLC_HOME -u AI_SDLC_REPO -u AI_SDLC_ROOT -u AI_SDLC_USER_FRAGMENT -u AI_SDLC_FRAGMENT -u AI_SDLC_USER_SETTINGS -u AI_SDLC_SETTINGS -u TL_RELAY_HOME HOME="$TMP/home" TL_RELAY_ROOT="${TL_RELAY_ROOT:-$TMP/root}" TL_RELAY_COMPARE="$(dirname "$0")/../compare.jq" \
+  env -u AI_SDLC_HOME -u AI_SDLC_REPO -u AI_SDLC_ROOT -u AI_SDLC_USER_FRAGMENT -u AI_SDLC_FRAGMENT -u AI_SDLC_USER_SETTINGS -u AI_SDLC_SETTINGS -u TL_RELAY_HOME -u TL_RELAY_MEMORY -u TL_RELAY_MEMORY_BUDGET -u TL_RELAY_MEMORY_MAXLINES HOME="$TMP/home" ${MEM:+TL_RELAY_MEMORY="$MEM"} TL_RELAY_ROOT="${TL_RELAY_ROOT:-$TMP/root}" TL_RELAY_COMPARE="$(dirname "$0")/../compare.jq" \
   TL_RELAY_USER_FRAGMENT="$TMP/ufrag.json" TL_RELAY_FRAGMENT="$TMP/ufrag.json" \
   TL_RELAY_USER_SETTINGS="$1" TL_RELAY_SETTINGS="$1" \
   TL_RELAY_IN_TESTS=1 sh "$H" </dev/null 2>/dev/null
@@ -42,7 +42,7 @@ printf 'short\n' > "$TMP/mem_ok.md"
 head -c 30000 /dev/zero | tr '\0' 'x' > "$TMP/mem_big.md"
 i=0; while [ $i -lt 250 ]; do printf 'x\n'; i=$((i+1)); done > "$TMP/mem_tall.md"
 
-mem_run() { TL_RELAY_MEMORY="$1" run "$LIVE"; }
+mem_run() { MEM="$1" run "$LIVE"; }
 
 o=$(mem_run "$TMP/mem_big.md")
 printf '%s' "$o" | grep -qF 'MEMORY.md' && ok "warns when MEMORY.md is over its byte budget" || bad "no memory warning"
@@ -57,7 +57,7 @@ STUB=$(mktemp -d)
 
 suite_run() { # stub-exit-code
   printf '#!/bin/sh\nexit %s\n' "$1" > "$STUB/run.sh"
-  env -u AI_SDLC_HOME -u AI_SDLC_REPO -u AI_SDLC_ROOT -u AI_SDLC_USER_FRAGMENT -u AI_SDLC_FRAGMENT -u AI_SDLC_USER_SETTINGS -u AI_SDLC_SETTINGS -u TL_RELAY_HOME HOME="$TMP/home" TL_RELAY_ROOT="$TMP/root" TL_RELAY_COMPARE="$(dirname "$0")/../compare.jq" \
+  env -u AI_SDLC_HOME -u AI_SDLC_REPO -u AI_SDLC_ROOT -u AI_SDLC_USER_FRAGMENT -u AI_SDLC_FRAGMENT -u AI_SDLC_USER_SETTINGS -u AI_SDLC_SETTINGS -u TL_RELAY_HOME -u TL_RELAY_MEMORY -u TL_RELAY_MEMORY_BUDGET -u TL_RELAY_MEMORY_MAXLINES HOME="$TMP/home" TL_RELAY_ROOT="$TMP/root" TL_RELAY_COMPARE="$(dirname "$0")/../compare.jq" \
   TL_RELAY_USER_FRAGMENT="$TMP/ufrag.json" TL_RELAY_FRAGMENT="$TMP/ufrag.json" \
   TL_RELAY_USER_SETTINGS="$LIVE" TL_RELAY_SETTINGS="$LIVE" \
   TL_RELAY_TESTS="$STUB/run.sh" TL_RELAY_IN_TESTS= sh "$H" </dev/null 2>/dev/null

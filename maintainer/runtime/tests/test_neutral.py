@@ -16,7 +16,7 @@ from runtime import neutral  # noqa: E402
 
 LOCAL_ENV = subprocess.run(["git", "rev-parse", "--local-env-vars"], check=True, capture_output=True,
                            text=True).stdout.split()
-ENV = {k: v for k, v in os.environ.items() if k not in LOCAL_ENV and not k.startswith("AI_SDLC_")}
+ENV = {k: v for k, v in os.environ.items() if k not in LOCAL_ENV and not k.startswith(("AI_SDLC_", "TL_RELAY_"))}
 
 
 def git(repo, *args):
