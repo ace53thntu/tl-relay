@@ -9,6 +9,7 @@ import re
 import shutil
 import signal
 import subprocess
+import tempfile
 import time
 import unittest
 from unittest import mock
@@ -2308,6 +2309,45 @@ class UnmergedRefs(unittest.TestCase):
         done = self.sb.push("push", "origin", "v1")
         self.assertNotEqual(done.returncode, 0, done.stderr)
         self.assertIn("blocked by rule 7:", done.stderr)
+
+
+class SandboxGitConfig(unittest.TestCase):
+    SIGNING = "[commit]\n\tgpgsign = true\n[gpg]\n\tprogram = false\n"
+
+    def planted(self, root, name):
+        if name == "GIT_TEMPLATE_DIR":
+            hook = root / "hooks" / "pre-commit"
+            hook.parent.mkdir(parents=True)
+            hook.write_text("#!/bin/sh\nexit 1\n")
+            hook.chmod(0o755)
+            return str(root)
+        if name == "XDG_CONFIG_HOME":
+            (root / "git").mkdir()
+            (root / "git" / "config").write_text(self.SIGNING)
+            return str(root)
+        if name == "CLAUDE_CONFIG_DIR":
+            return str(root)
+        (root / "gitconfig").write_text(self.SIGNING)
+        return str(root / "gitconfig")
+
+    def sandbox(self):
+        try:
+            return fr_fixture.Sandbox()
+        except subprocess.CalledProcessError as error:
+            self.fail("sandbox build failed: %s %s" % (error.cmd, error.stderr))
+
+    def test_the_operator_git_config_does_not_reach_the_sandbox(self):
+        env = {}
+        for name in fr_fixture.OPERATOR_CONFIG:
+            with self.subTest(name=name), tempfile.TemporaryDirectory() as tmp:
+                with mock.patch.dict(os.environ, {name: self.planted(pathlib.Path(tmp), name)}):
+                    sb = self.sandbox()
+                try:
+                    self.assertNotIn(name, sb.env)
+                    env = sb.env
+                finally:
+                    sb.cleanup()
+        self.assertEqual(env.get("GIT_CONFIG_NOSYSTEM"), "1")
 
 
 if __name__ == "__main__":
