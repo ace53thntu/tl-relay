@@ -203,7 +203,7 @@ launchd runs a missed job at the next wake when the Mac sleeps through 22:00. Ru
 
 ## Tests
 
-Run one command from the checkout root to test every suite:
+From the checkout root, the first command runs the suites your diff affects, and `--all` runs every suite:
 
 ```sh
 /usr/bin/python3 skills/tests/run_tests.py
@@ -212,7 +212,7 @@ Run one command from the checkout root to test every suite:
 
 Copy `maintainer/ci/stub-claude` to a folder first on `PATH` as `claude`, and set `CLAUDE_STUB_LOG` to an empty file. No suite may call the real `claude`, so the log stays empty.
 
-`run_tests.py` runs every suite in one pool, one unit per test method. Without `--all`, it skips `test_final_run` and `test_triggers` when the diff from `origin/main` touches none of their inputs. Without `--all`, it skips `skills/write-contract/scripts` when the diff touches nothing under `skills/write-contract/`, and `maintainer/runtime/tests` when it touches nothing under `maintainer/`. A diff that changes `skills/tests/run_tests.py` itself disables those two directory skips. `--all` disables every skip. Nothing skips when `run_tests.py` cannot resolve `origin/main`. CI runs each suite as its own step from `.github/workflows/test.yml`.
+`run_tests.py` runs every suite in one pool, one unit per Python test method and one unit per shell suite. Without `--all`, it skips `test_final_run` and `test_triggers` when the diff from `origin/main` touches none of their inputs. Without `--all`, it skips `skills/write-contract/scripts` when the diff touches nothing under `skills/write-contract/`, and `maintainer/runtime/tests` when it touches nothing under `maintainer/`. A diff that changes `skills/tests/run_tests.py` itself disables those two directory skips. `--all` disables every skip. Nothing skips when `run_tests.py` cannot resolve `origin/main`. CI runs the suites from `.github/workflows/test.yml`, most as their own step, and four skill script suites in one step.
 
 ## Trigger suite
 
