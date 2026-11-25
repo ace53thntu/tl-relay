@@ -5,10 +5,10 @@
 # Unset: skills skip every hub step.
 # knowledge_dir: _knowledge
 
-# Root of the runtime store. Specs, plans, design sets, plan runs and worktrees live under <state_dir>/<workspace>/.
+# Root of the runtime store. Specs, plans, design sets and plan runs live under <state_dir>/<workspace>/. Worktrees fall back to <state_dir>/worktrees.
 state_dir: ~/.tl-relay
 
-# Worktree root after $WORKTREE_ROOT.
+# Worktree root after $WORKTREE_ROOT. Unset: worktrees fall back to <state_dir>/worktrees.
 # worktree_dir: ~/worktrees
 
 # Language of the questions tl-design and tl-implement ask the operator.

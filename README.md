@@ -140,7 +140,7 @@ vale:
 | Key | Default | Effect | Read by |
 |---|---|---|---|
 | `knowledge_dir` | unset | A shared hub that skills read, and that receives ADRs, glossary terms and index entries | `technical-writing`, `write-hla`, `write-lld`, `tl-design` |
-| `state_dir` | `~/.tl-relay` | Root of `<runtime>`, which holds specs, plans, design sets, plan runs and worktrees | every skill that writes |
+| `state_dir` | `~/.tl-relay` | Root of `<runtime>`, which holds specs, plans, design sets and plan runs. Worktrees fall back to `<state_dir>/worktrees` | every skill that writes |
 | `worktree_dir` | unset | Worktree root after `$WORKTREE_ROOT` | `run-plan`, `tl-implement` |
 | `operator_language` | `en` | Language of the questions the workflows ask you | `tl-design`, `tl-implement` |
 | `publish.command` | unset: the publish step reports a skip | Publishes the staged design pages. `{dir}` is the staged tree and `{target}` is the target you name | `tl-design` |

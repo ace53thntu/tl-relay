@@ -10,7 +10,7 @@ Every skill resolves its paths from this page. Each skill runs with no config fi
 
 ## Workspace
 
-- The workspace root is the directory holding the found workspace config. Without one, it is the git top level of the start directory, else the start directory.
+- The workspace root is the directory that holds the `.tl-relay/` of the found workspace config. Without one, it is the git top level of the start directory, else the start directory.
 - `<workspace>` is the root's basename. Two workspace roots with the same basename share one `<runtime>`; set `state_dir` in one of them.
 
 ## Paths
