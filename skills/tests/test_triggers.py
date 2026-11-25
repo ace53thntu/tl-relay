@@ -113,7 +113,7 @@ class KillPaths(unittest.TestCase):
     def setUp(self):
         self.root = tempfile.TemporaryDirectory()
         self.addCleanup(self.root.cleanup)
-        self.marker = "ai-sdlc-stub-" + uuid.uuid4().hex
+        self.marker = "tl-relay-stub-" + uuid.uuid4().hex
         self.addCleanup(lambda: subprocess.run(["pkill", "-9", "-f", self.marker]))
         self.prompts = pathlib.Path(self.root.name) / "prompts"
         self.prompts.mkdir()
@@ -122,15 +122,15 @@ class KillPaths(unittest.TestCase):
         self.tmpdir.mkdir()
 
     def start(self, mode, timeout=None, pgid_file=None):
-        extra = {"AI_SDLC_TRIGGER_TIMEOUT": str(timeout)} if timeout else {}
+        extra = {"TL_RELAY_TRIGGER_TIMEOUT": str(timeout)} if timeout else {}
         if pgid_file:
-            extra["AI_SDLC_TRIGGER_PGID_FILE"] = str(pgid_file)
+            extra["TL_RELAY_TRIGGER_PGID_FILE"] = str(pgid_file)
         env = dict(
             os.environ,
-            AI_SDLC_TRIGGER_AGENT=str(FIXTURES / "stub-agent.sh"),
-            AI_SDLC_TRIGGER_PROMPTS=str(self.prompts),
-            AI_SDLC_STUB_MODE=mode,
-            AI_SDLC_STUB_MARKER=self.marker,
+            TL_RELAY_TRIGGER_AGENT=str(FIXTURES / "stub-agent.sh"),
+            TL_RELAY_TRIGGER_PROMPTS=str(self.prompts),
+            TL_RELAY_STUB_MODE=mode,
+            TL_RELAY_STUB_MARKER=self.marker,
             TMPDIR=str(self.tmpdir),
             **extra,
         )
@@ -263,7 +263,7 @@ class Workspace(unittest.TestCase):
             result = Runner.run_runner(
                 self,
                 {"a-dump.txt": "expect: debug-issue\nstub:dump\n"},
-                extra_env={"AI_SDLC_STUB_DUMP": str(dump)},
+                extra_env={"TL_RELAY_STUB_DUMP": str(dump)},
             )
             self.assertIn("PASS a-dump", result.stdout)
             return json.loads(dump.read_text())
@@ -294,8 +294,8 @@ class Runner(unittest.TestCase):
                 (prompts / name).write_text(body)
             env = dict(
                 os.environ,
-                AI_SDLC_TRIGGER_AGENT=str(FIXTURES / "stub-agent.sh"),
-                AI_SDLC_TRIGGER_PROMPTS=str(prompts),
+                TL_RELAY_TRIGGER_AGENT=str(FIXTURES / "stub-agent.sh"),
+                TL_RELAY_TRIGGER_PROMPTS=str(prompts),
                 TMPDIR=tmp,
                 **(extra_env or {}),
             )
@@ -336,7 +336,7 @@ class Runner(unittest.TestCase):
             keep = pathlib.Path(tmp) / "keep" / "x"
             result = self.run_runner(
                 {"a-fail.txt": "expect: debug-issue\nstub:clean\n"},
-                extra_env={"AI_SDLC_TRIGGER_KEEP": str(keep)},
+                extra_env={"TL_RELAY_TRIGGER_KEEP": str(keep)},
             )
             files = list(keep.glob("a-fail.*.jsonl"))
             self.assertEqual(len(files), 1)
@@ -348,7 +348,7 @@ class Runner(unittest.TestCase):
             keep = pathlib.Path(tmp) / "keep"
             self.run_runner(
                 {"a-pass.txt": "expect: debug-issue\nwhy does this fail\n"},
-                extra_env={"AI_SDLC_TRIGGER_KEEP": str(keep)},
+                extra_env={"TL_RELAY_TRIGGER_KEEP": str(keep)},
             )
             self.assertEqual(list(keep.glob("*")), [])
 
@@ -358,7 +358,7 @@ class Runner(unittest.TestCase):
             blocker.write_text("")
             result = self.run_runner(
                 {"a-fail.txt": "expect: debug-issue\nstub:clean\n"},
-                extra_env={"AI_SDLC_TRIGGER_KEEP": str(blocker)},
+                extra_env={"TL_RELAY_TRIGGER_KEEP": str(blocker)},
             )
             lines = result.stdout.splitlines()
             self.assertTrue(any(l.startswith("FAIL a-fail") for l in lines), lines)

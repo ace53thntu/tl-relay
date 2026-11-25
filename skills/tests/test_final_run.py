@@ -1207,7 +1207,7 @@ class FixRound2(ScoreBase):
 class FixRound3(ScoreBase):
     RUNNER = (
         "#!/bin/bash\nset -m\nsleep 300 &\nagent=$!\necho \"$agent\" > \"$FAKE_SIDE\"\n"
-        "[ -n \"${AI_SDLC_TRIGGER_PGID_FILE:-}\" ] && echo \"$agent\" > \"$AI_SDLC_TRIGGER_PGID_FILE\"\n"
+        "[ -n \"${TL_RELAY_TRIGGER_PGID_FILE:-}\" ] && echo \"$agent\" > \"$TL_RELAY_TRIGGER_PGID_FILE\"\n"
         "trap '' TERM\ntouch \"$FAKE_READY\"\nwait\n"
     )
 
@@ -1361,7 +1361,7 @@ class FixRound4(ScoreBase):
         self.change_prompt()
         self.sb.agent_plan({EDITED_PROMPT: "alpha"})
         started = time.time()
-        code = self.cli("score", ignore=(signal.SIGTERM,), AI_SDLC_TRIGGER_TIMEOUT="8")
+        code = self.cli("score", ignore=(signal.SIGTERM,), TL_RELAY_TRIGGER_TIMEOUT="8")
         self.assertEqual(code, 0)
         self.assertLess(time.time() - started, 8)
 
@@ -1484,10 +1484,10 @@ class Tune(ScoreBase):
         self.assertEqual(self.sb.agent_calls(), [])
 
     def test_tune_refuses_a_prompts_override(self):
-        env = dict(self.sb.env, AI_SDLC_TRIGGER_PROMPTS=str(self.sb.home))
+        env = dict(self.sb.env, TL_RELAY_TRIGGER_PROMPTS=str(self.sb.home))
         done = self.tune(env=env)
         self.assertEqual(done.returncode, 2)
-        self.assertIn("AI_SDLC_TRIGGER_PROMPTS", done.stderr)
+        self.assertIn("TL_RELAY_TRIGGER_PROMPTS", done.stderr)
         self.assertEqual(self.sb.agent_calls(), [])
 
     def test_tune_without_ai_sdlc_home_exits_two(self):

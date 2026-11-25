@@ -15,11 +15,11 @@ sys.path.insert(0, str(SCRIPTS))
 
 STUB = """#!/usr/bin/python3
 import json, os, sys
-plan = json.load(open(os.environ["AI_SDLC_STUB_PLAN"]))
+plan = json.load(open(os.environ["TL_RELAY_STUB_PLAN"]))
 prompt = sys.argv[2]
 entry = {"prompt": prompt, "cwd": os.getcwd(), "pid": os.getpid(), "ppid": os.getppid(),
          "bootstrap": os.environ.get("TL_RELAY_BOOTSTRAP_SKILL")}
-log_path = os.environ["AI_SDLC_STUB_LOG"]
+log_path = os.environ["TL_RELAY_STUB_LOG"]
 seen = 0
 if os.path.exists(log_path):
     seen = sum(1 for line in open(log_path) if json.loads(line)["prompt"] == prompt)
@@ -71,10 +71,10 @@ class Sandbox:
             TMPDIR=str(temp),
             PYTHONDONTWRITEBYTECODE="1",
             AI_SDLC_HOME=str(self.home / "ai-sdlc-home"),
-            AI_SDLC_TRIGGER_AGENT=str(stub),
+            TL_RELAY_TRIGGER_AGENT=str(stub),
             AI_SDLC_REPO=str(REAL_REPO),
-            AI_SDLC_STUB_PLAN=str(self.plan_file),
-            AI_SDLC_STUB_LOG=str(self.log_file),
+            TL_RELAY_STUB_PLAN=str(self.plan_file),
+            TL_RELAY_STUB_LOG=str(self.log_file),
         )
         ai_home = pathlib.Path(self.env["AI_SDLC_HOME"])
         ai_home.mkdir()

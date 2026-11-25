@@ -5,9 +5,9 @@ set -m
 here=$(dirname "${BASH_SOURCE[0]}")
 skills=$(CDPATH= cd -- "$here/.." && pwd -P)
 root=$(dirname "$skills")
-agent=${AI_SDLC_TRIGGER_AGENT:-claude}
-prompts=${AI_SDLC_TRIGGER_PROMPTS:-$here/prompts}
-limit=${AI_SDLC_TRIGGER_TIMEOUT:-120}
+agent=${TL_RELAY_TRIGGER_AGENT:-claude}
+prompts=${TL_RELAY_TRIGGER_PROMPTS:-$here/prompts}
+limit=${TL_RELAY_TRIGGER_TIMEOUT:-120}
 
 tmp=
 agent_pid=
@@ -26,7 +26,7 @@ stop_agent() {
   done
   kill -KILL -- "-$agent_pid" 2>/dev/null
   wait 2>/dev/null
-  [ -z "${AI_SDLC_TRIGGER_PGID_FILE:-}" ] || : >"$AI_SDLC_TRIGGER_PGID_FILE"
+  [ -z "${TL_RELAY_TRIGGER_PGID_FILE:-}" ] || : >"$TL_RELAY_TRIGGER_PGID_FILE"
   agent_pid=
   dog_pid=
   watch_pid=
@@ -89,11 +89,11 @@ for file in "$prompts"/*.txt; do
       --setting-sources project --model opus
   ) >"$tmp/stream" 2>>"$tmp/err" &
   agent_pid=$!
-  [ -z "${AI_SDLC_TRIGGER_PGID_FILE:-}" ] || printf '%s\n' "$agent_pid" >"$AI_SDLC_TRIGGER_PGID_FILE"
+  [ -z "${TL_RELAY_TRIGGER_PGID_FILE:-}" ] || printf '%s\n' "$agent_pid" >"$TL_RELAY_TRIGGER_PGID_FILE"
   (sleep "$limit"; touch "$tmp/timeout"; kill -TERM -- "-$agent_pid" 2>/dev/null; sleep 5; kill -KILL -- "-$agent_pid" 2>/dev/null) &
   dog_pid=$!
 
-  AI_SDLC_TRIGGER_SEEN="$tmp/seen.jsonl" python3 "$here/triggers.py" watch "$expect" "$tmp/timeout" <"$tmp/stream" >"$tmp/verdict" 2>>"$tmp/err" &
+  TL_RELAY_TRIGGER_SEEN="$tmp/seen.jsonl" python3 "$here/triggers.py" watch "$expect" "$tmp/timeout" <"$tmp/stream" >"$tmp/verdict" 2>>"$tmp/err" &
   watch_pid=$!
   wait "$watch_pid"
   status=$?
@@ -118,9 +118,9 @@ for file in "$prompts"/*.txt; do
     if [ -s "$tmp/err" ]; then
       line="$line"$'\n'"$(tail -n 3 "$tmp/err" | sed 's/^/  stderr: /')"
     fi
-    if [ "$kind" = FAIL ] && [ -n "${AI_SDLC_TRIGGER_KEEP:-}" ]; then
-      keep_err=$(mkdir -p "$AI_SDLC_TRIGGER_KEEP" 2>&1 \
-        && cp "$tmp/seen.jsonl" "$AI_SDLC_TRIGGER_KEEP/$name.$(date +%s).$$.jsonl" 2>&1) \
+    if [ "$kind" = FAIL ] && [ -n "${TL_RELAY_TRIGGER_KEEP:-}" ]; then
+      keep_err=$(mkdir -p "$TL_RELAY_TRIGGER_KEEP" 2>&1 \
+        && cp "$tmp/seen.jsonl" "$TL_RELAY_TRIGGER_KEEP/$name.$(date +%s).$$.jsonl" 2>&1) \
         || line="$line"$'\n'"  keep: $keep_err"
     fi
   fi

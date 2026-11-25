@@ -216,7 +216,7 @@ def _run_prompt(export, key, data, env) -> str:
     with tempfile.TemporaryDirectory(prefix="final-run-prompt.") as prompts:
         pathlib.Path(prompts, key.split("/", 1)[1]).write_bytes(data)
         pgid_file = os.path.join(prompts, "agent.pgid")
-        env = dict(env, AI_SDLC_TRIGGER_PROMPTS=prompts, AI_SDLC_TRIGGER_PGID_FILE=pgid_file)
+        env = dict(env, TL_RELAY_TRIGGER_PROMPTS=prompts, TL_RELAY_TRIGGER_PGID_FILE=pgid_file)
         proc = subprocess.Popen(
             ["/bin/bash", str(export / "skills" / "tests" / "run-triggers.sh")],
             env=env, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL if sys.stderr is None else None,
@@ -308,7 +308,7 @@ def _score(repo, heldout) -> int:
         export = _export(repo, sha)
         try:
             env = dict(os.environ, TL_RELAY_BOOTSTRAP_SKILL=str(export / "skills" / "using-tl-relay" / "SKILL.md"),
-                       AI_SDLC_TRIGGER_KEEP=str(fr_record.path(repo).parent / "final-run-streams"))
+                       TL_RELAY_TRIGGER_KEEP=str(fr_record.path(repo).parent / "final-run-streams"))
             result = _run_all(repo, sha, fp, digest, files, change, skills, export, env)
         finally:
             try:
@@ -352,8 +352,8 @@ def _tune_prompts(top, skill, names) -> dict:
 
 
 def _tune(repo, skill, runs) -> int:
-    if os.environ.get("AI_SDLC_TRIGGER_PROMPTS"):
-        raise Refused("tune refuses AI_SDLC_TRIGGER_PROMPTS, unset it")
+    if os.environ.get("TL_RELAY_TRIGGER_PROMPTS"):
+        raise Refused("tune refuses TL_RELAY_TRIGGER_PROMPTS, unset it")
     if runs < 1:
         raise Refused("--runs must be at least 1")
     _check_config_dir()
@@ -362,7 +362,7 @@ def _tune(repo, skill, runs) -> int:
     skills = _tune_skills(top, skill)
     prompts = _tune_prompts(top, skill, sorted(skills))
     env = dict(os.environ, TL_RELAY_BOOTSTRAP_SKILL=str(top / "skills" / "using-tl-relay" / "SKILL.md"),
-               AI_SDLC_TRIGGER_KEEP=str(fr_record.path(top).parent / "final-run-streams"))
+               TL_RELAY_TRIGGER_KEEP=str(fr_record.path(top).parent / "final-run-streams"))
     failed = False
     for name, data in prompts.items():
         results = []
