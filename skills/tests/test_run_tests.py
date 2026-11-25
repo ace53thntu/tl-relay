@@ -1,6 +1,7 @@
 import io
 import os
 import pathlib
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -265,6 +266,26 @@ class RunTest(unittest.TestCase):
 
     def test_collection_restores_state_after_a_failed_import(self):
         self.check_state_restored("raise RuntimeError('boom')\n", ["test_state"])
+
+    def test_collection_works_from_a_deleted_cwd(self):
+        self.addCleanup(os.chdir, os.getcwd())
+        with tempfile.TemporaryDirectory() as d:
+            write(d, "test_gone.py", OK_SRC.format(name="Gone"))
+            gone = tempfile.mkdtemp()
+            os.chdir(gone)
+            os.rmdir(gone)
+            units = run_tests.collect_units(pathlib.Path(d), set())
+        self.assertEqual(units, ["test_gone.Gone.test_a"])
+
+    def test_collection_restores_modules_when_the_recorded_cwd_vanishes(self):
+        self.addCleanup(os.chdir, os.getcwd())
+        self.addCleanup(sys.modules.pop, "test_vanish", None)
+        with tempfile.TemporaryDirectory() as d:
+            doomed = tempfile.mkdtemp()
+            os.chdir(doomed)
+            write(d, "test_vanish.py", "import shutil\nshutil.rmtree(%r)\n" % doomed)
+            run_tests.collect_units(pathlib.Path(d), set())
+        self.assertNotIn("test_vanish", sys.modules)
 
 
 class MainTest(unittest.TestCase):
