@@ -16,6 +16,7 @@ GIT_ENV_DROP = ("GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE", "GIT_COMMON_DIR", 
 HEAVY_SUITE = "skills/tests"
 RUNNER = "skills/tests/run_tests.py"
 CONTRACT_SUITE = "skills/write-contract/scripts"
+WARMUP_TIMEOUT = 120
 
 Suite = namedtuple("Suite", "path kind skip_unless")
 Unit = namedtuple("Unit", "suite kind cwd argv")
@@ -110,14 +111,17 @@ def collect_units(tests_dir, skip) -> List[str]:
                 units.append(module)
                 continue
             loaded = sys.modules.get(module)
-            names = sorted(dir(loaded)) if loaded is not None else []
-            found = set()
-            for t in tests:
-                attr = next((n for n in names if getattr(loaded, n, None) is type(t)), None)
-                if attr is None:
-                    found = None
-                    break
-                found.add("%s.%s.%s" % (module, attr, t._testMethodName))
+            try:
+                names = sorted(dir(loaded)) if loaded is not None else []
+                found = set()
+                for t in tests:
+                    attr = next((n for n in names if getattr(loaded, n, None) is type(t)), None)
+                    if attr is None:
+                        found = None
+                        break
+                    found.add("%s.%s.%s" % (module, attr, t._testMethodName))
+            except (Exception, SystemExit):
+                found = None
             if found is None:
                 units.append(module)
             else:
@@ -162,9 +166,9 @@ def npx_warmup(repo, out) -> None:
         return
     try:
         subprocess.run(["npx", "--yes", spec, "--version"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-                       env=dict(os.environ, REDOCLY_TELEMETRY="off"), timeout=120)
+                       env=dict(os.environ, REDOCLY_TELEMETRY="off"), timeout=WARMUP_TIMEOUT)
     except subprocess.TimeoutExpired:
-        out.write("warmup: npx --yes %s --version timed out after 120s\n" % spec)
+        out.write("warmup: npx --yes %s --version timed out after %ds\n" % (spec, WARMUP_TIMEOUT))
     except OSError:
         return
 

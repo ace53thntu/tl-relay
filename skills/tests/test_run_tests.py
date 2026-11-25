@@ -127,6 +127,15 @@ class RunTest(unittest.TestCase):
             self.assertEqual(sorted(units), ["test_ok.One.test_a", "test_ok.Three.test_a", "test_ok.Three.test_b",
                                              "test_ok.Two.test_a"])
 
+    def test_a_module_attribute_that_raises_does_not_stop_collection(self):
+        for failure in ("raise RuntimeError(name)", "sys.exit(3)"):
+            with self.subTest(failure=failure), tempfile.TemporaryDirectory() as d:
+                write(d, "test_odd.py", "import sys\n" + OK_SRC.format(name="Case")
+                      + "\n\nseen = []\n\n\ndef __dir__():\n    return ['Aaa', 'Case']\n\n\ndef __getattr__(name):\n"
+                      "    if name != 'Aaa':\n        raise AttributeError(name)\n    if seen:\n        %s\n"
+                      "    seen.append(name)\n" % failure)
+                self.assertEqual(run_tests.collect_units(pathlib.Path(d), set()), ["test_odd"])
+
     def test_an_imported_testcase_is_named_by_the_importing_module(self):
         with tempfile.TemporaryDirectory() as d:
             write(d, "test_base.py", OK_SRC.format(name="Shared"))
@@ -324,6 +333,7 @@ class SuitesTest(unittest.TestCase):
         spec = run_tests.redocly_spec(pathlib.Path(run_tests.__file__).resolve().parents[2])
 
         def stall(*args, **kwargs):
+            self.assertEqual(kwargs["timeout"], 120)
             raise subprocess.TimeoutExpired(args[0], kwargs["timeout"])
 
         real = run_tests.subprocess.run
