@@ -113,7 +113,7 @@ For a revision, write the page only after G-ingest.
 6. Scan the impact. The root is `$K/designs/$H`.
 
    ```bash
-   python3 "$SK/impact.py" --root "<design root>" --ids-file "$WS/ids-to-scan.txt" --out "$WS/impact.tsv"
+   python3 "$SK/impact.py" --root "$K/designs/$H" --ids-file "$WS/ids-to-scan.txt" --out "$WS/impact.tsv"
    ```
 
 7. Write `$K/designs/$H/audits/<date>-stories-drift.md` with `type: Audit`. Carry the counts and every story that

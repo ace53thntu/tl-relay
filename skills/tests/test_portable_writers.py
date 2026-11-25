@@ -56,6 +56,11 @@ class PortableWritersTest(unittest.TestCase):
             self.assertNotIn("a missing file or key means `_knowledge`", text, name)
             self.assertNotIn("<knowledge_dir>/designs/", text, name)
 
+    def test_ingest_impact_scans_the_set_dir(self):
+        text = self.body("ingest-sources")
+        self.assertIn('--root "$K/designs/$H"', text)
+        self.assertNotIn('--root "<design root>"', text)
+
     def test_hub_steps_need_knowledge_dir(self):
         lld = self.body("write-lld")
         hla = self.body("write-hla")
