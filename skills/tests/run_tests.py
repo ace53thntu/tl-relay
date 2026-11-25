@@ -106,7 +106,7 @@ def collect_units(tests_dir, skip) -> List[str]:
             if any(type(t).__name__ == "_FailedTest" for t in tests):
                 units.append(module)
                 continue
-            units.extend(sorted(t.id() for t in tests))
+            units.extend(sorted({"%s.%s.%s" % (module, type(t).__name__, t._testMethodName) for t in tests}))
     finally:
         sys.path.remove(str(tests_dir))
         for name in list(sys.modules):

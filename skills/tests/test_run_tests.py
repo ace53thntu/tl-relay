@@ -117,6 +117,22 @@ class RunTest(unittest.TestCase):
             self.assertEqual(sorted(units), ["test_ok.One.test_a", "test_ok.Three.test_a", "test_ok.Three.test_b",
                                              "test_ok.Two.test_a"])
 
+    def test_an_imported_testcase_is_named_by_the_importing_module(self):
+        with tempfile.TemporaryDirectory() as d:
+            write(d, "test_base.py", OK_SRC.format(name="Shared"))
+            write(d, "test_user.py", "from test_base import Shared\n")
+            units = run_tests.collect_units(pathlib.Path(d), {"test_base"})
+            self.assertEqual(units, ["test_user.Shared.test_a"])
+
+    def test_an_imported_testcase_runs_through_the_importing_module(self):
+        with tempfile.TemporaryDirectory() as d:
+            write(d, "test_base.py", OK_SRC.format(name="Shared"))
+            write(d, "test_user.py", "from test_base import Shared\n")
+            out = io.StringIO()
+            units = run_tests.suite_units(pathlib.Path(d), run_tests.Suite(".", "py", None), {"test_base"})
+            self.assertEqual(run_tests.run(units, 2, out), 0)
+            self.assertEqual(out.getvalue().strip().splitlines()[-1], "OK (1 units)")
+
     def test_import_errors(self):
         for name, body in (("test_broken", "raise RuntimeError('boom')\n"), ("test_imp", "import nosuchmod_xyz\n")):
             with tempfile.TemporaryDirectory() as d:
