@@ -69,21 +69,12 @@ class RepoSurfaceTest(unittest.TestCase):
                 self.assertNotIn(needle, text, "%s names %s" % (path, needle))
 
     def test_no_legacy_names_outside_the_allowlist(self):
-        old = re.compile(r"AI_SDLC_|ai-sdlc")
-        legacy = re.compile(r"AI_SDLC_HOME\b|AI_SDLC_REPO\b|AI_SDLC_(\$|(ROOT|USER_FRAGMENT|FRAGMENT|USER_SETTINGS|SETTINGS)\b)"
-                            r"|ai-sdlc\.yaml|ai-sdlc/v2|\.ai-sdlc|# ai-sdlc pre-push hook"
-                            r"|[\"']AI_SDLC_[\"']|assertNotIn\([\"']AI_SDLC_\w*[\"']|/old/ai-sdlc/|<git common dir>/ai-sdlc/")
+        old = re.compile(r"AI_SDLC_|ai-sdlc|ai_sdlc")
         guards = {"skills/tests/test_package.py", "skills/tests/test_portable_tl_design.py",
                   "skills/tests/test_portable_tl_implement.py", "skills/tests/test_repo_surface.py",
-                  "skills/tests/test_layout.py"}
-        fallbacks = {"maintainer/runtime/config.py", "maintainer/runtime/install.py", "maintainer/hooks/lib-guardrails.sh",
-                     "maintainer/skills/write-skill/gates.md", "maintainer/skills/write-skill/scripts/fr_lock.py",
-                     "maintainer/skills/retro/SKILL.md", "maintainer/README.md",
-                     "maintainer/runtime/tests/test_config.py", "maintainer/runtime/tests/test_neutral.py",
-                     "maintainer/runtime/tests/test_install.py", "maintainer/hooks/tests/run.sh",
-                     "maintainer/hooks/tests/test_require_guardrails.sh", "maintainer/hooks/tests/test_session_start_report.sh",
-                     "skills/tests/fr_fixture.py", "skills/tests/test_final_run.py",
-                     "skills/tests/test_final_fixes.py", "skills/tests/test_neutral_commands.py"}
+                  "skills/tests/test_layout.py", "maintainer/runtime/tests/test_config.py",
+                  "maintainer/runtime/tests/test_install.py", "skills/tests/test_final_run.py",
+                  "maintainer/hooks/tests/test_require_guardrails.sh", "skills/tests/test_portable_run_plan.py"}
         listed = subprocess.run(["git", "-C", str(ROOT), "ls-files", "-z"], capture_output=True, check=True).stdout
         bad = []
         for rel in listed.decode().split("\0"):
@@ -94,6 +85,6 @@ class RepoSurfaceTest(unittest.TestCase):
             except (UnicodeDecodeError, OSError):
                 continue
             for n, line in enumerate(text.splitlines(), 1):
-                if old.search(line) and not (rel in fallbacks and legacy.search(line)):
+                if old.search(line) and not re.search(r"assertNotIn\(", line):
                     bad.append("%s:%d: %s" % (rel, n, line.strip()[:100]))
         self.assertEqual(bad, [], "legacy names outside the allowlist:\n" + "\n".join(bad))

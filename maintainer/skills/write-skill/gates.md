@@ -2,10 +2,10 @@
 
 `final_run.py score` runs gate 2. The agent runs gates 1, 3 and 4 itself after the commit. Each path is absolute.
 
-The agent resolves `<home>` once per run and reuses the validated value. The candidate is `$TL_RELAY_HOME` when it is non-empty, else `$AI_SDLC_HOME`. When both are empty, the agent asks the operator for the path.
+The agent resolves `<home>` once per run and reuses the validated value. The candidate is `$TL_RELAY_HOME` when it is non-empty. When it is empty, the agent asks the operator for the path.
 The agent validates the candidate with this command. It puts the candidate inside the single quotes and writes each embedded `'` as `'\''`:
 
-`h='<candidate>'; case "$h" in "~/"*) h="$HOME/${h#\~/}";; esac; case "$h" in /*) { test -f "$h/tl-relay.yaml" || test -f "$h/ai-sdlc.yaml"; } && test ! -e "$h/sdlc.py" && test ! -L "$h/sdlc.py" && printf '%s\n' "$h";; *) false;; esac`
+`h='<candidate>'; case "$h" in "~/"*) h="$HOME/${h#\~/}";; esac; case "$h" in /*) test -f "$h/tl-relay.yaml" && test ! -e "$h/sdlc.py" && test ! -L "$h/sdlc.py" && printf '%s\n' "$h";; *) false;; esac`
 
 `<home>` is the printed value. Every later command single-quotes it the same way and does not need the ambient variable.
 On a nonzero exit with the ambient value, the agent asks the operator for the home.
@@ -66,6 +66,6 @@ After merge, the agent installs the pre-push hook for the main checkout. The age
 
 1. Reuse `<home>` if this run validated it. Otherwise, resolve it with the command at the top of this file.
 2. Run `TL_RELAY_HOME='<home>' TL_RELAY_REPO='<main>' /usr/bin/python3 '<main>/maintainer/sdlc.py' install --git-hook`.
-3. Run `hook="$(git -C '<main>' rev-parse --path-format=absolute --git-common-dir)/hooks/pre-push" && test -f "$hook" && test -x "$hook" && grep -qF -e '# tl-relay pre-push hook' -e '# ai-sdlc pre-push hook' "$hook" && /usr/bin/python3 -c 'import os,shlex,sys; m=[l for l in open(sys.argv[1]) if l.startswith("main=")]; sys.exit(not (m and os.path.samefile(shlex.split(m[0])[0][5:], sys.argv[2])))' "$hook" '<main>'`.
+3. Run `hook="$(git -C '<main>' rev-parse --path-format=absolute --git-common-dir)/hooks/pre-push" && test -f "$hook" && test -x "$hook" && grep -qF '# tl-relay pre-push hook' "$hook" && /usr/bin/python3 -c 'import os,shlex,sys; m=[l for l in open(sys.argv[1]) if l.startswith("main=")]; sys.exit(not (m and os.path.samefile(shlex.split(m[0])[0][5:], sys.argv[2])))' "$hook" '<main>'`.
 
 `install` can exit 0 after it skips the hook, so step 3 decides the result. On a nonzero exit from any step, the agent stops and reports.
