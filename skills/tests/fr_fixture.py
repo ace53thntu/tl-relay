@@ -66,6 +66,7 @@ class Sandbox:
                     and not k.startswith(("AI_SDLC_", "TL_RELAY_"))}
         self.env.update(
             HOME=str(self.home),
+            GIT_CONFIG_NOSYSTEM="1",
             TMPDIR=str(temp),
             PYTHONDONTWRITEBYTECODE="1",
             TL_RELAY_HOME=str(self.home / "tl-relay-home"),
