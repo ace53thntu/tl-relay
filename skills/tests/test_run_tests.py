@@ -320,6 +320,25 @@ class SuitesTest(unittest.TestCase):
     def test_the_npx_cache_warms_once_when_a_write_contract_unit_is_queued(self):
         self.assertEqual(self.warm_calls(self.WARM_SUITES), 1)
 
+    def test_a_stalled_npx_warm_up_prints_one_line_and_returns(self):
+        spec = run_tests.redocly_spec(pathlib.Path(run_tests.__file__).resolve().parents[2])
+
+        def stall(*args, **kwargs):
+            raise subprocess.TimeoutExpired(args[0], kwargs["timeout"])
+
+        real = run_tests.subprocess.run
+        run_tests.subprocess.run = stall
+        try:
+            out = io.StringIO()
+            run_tests.npx_warmup(pathlib.Path(run_tests.__file__).resolve().parents[2], out)
+        finally:
+            run_tests.subprocess.run = real
+        self.assertEqual(out.getvalue(), "warmup: npx --yes %s --version timed out after 120s\n" % spec)
+
+    def test_the_redocly_spec_is_read_from_the_real_contract_script(self):
+        repo = pathlib.Path(run_tests.__file__).resolve().parents[2]
+        self.assertTrue(run_tests.redocly_spec(repo).startswith("@redocly/cli@"))
+
     def test_the_npx_cache_stays_cold_without_a_write_contract_unit(self):
         self.assertEqual(self.warm_calls(self.WARM_SUITES[1:]), 0)
 

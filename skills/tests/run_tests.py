@@ -147,14 +147,24 @@ def order(units) -> List[Unit]:
     return sorted(units, key=lambda unit: not (unit.kind == "sh" or unit.argv[-1].startswith("test_final_run")))
 
 
-def npx_warmup(repo) -> None:
+def redocly_spec(repo) -> Optional[str]:
     try:
         text = (pathlib.Path(repo) / CONTRACT_SUITE / "contract.py").read_text()
-        match = re.search(r'^REDOCLY\s*=\s*"([^"]+)"', text, re.M)
-        if match is None:
-            return
-        subprocess.run(["npx", "--yes", match.group(1), "--version"], stdout=subprocess.DEVNULL,
-                       stderr=subprocess.DEVNULL, env=dict(os.environ, REDOCLY_TELEMETRY="off"))
+    except OSError:
+        return None
+    match = re.search(r'^REDOCLY\s*=\s*"([^"]+)"', text, re.M)
+    return match.group(1) if match else None
+
+
+def npx_warmup(repo, out) -> None:
+    spec = redocly_spec(repo)
+    if spec is None:
+        return
+    try:
+        subprocess.run(["npx", "--yes", spec, "--version"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                       env=dict(os.environ, REDOCLY_TELEMETRY="off"), timeout=120)
+    except subprocess.TimeoutExpired:
+        out.write("warmup: npx --yes %s --version timed out after 120s\n" % spec)
     except OSError:
         return
 
@@ -207,7 +217,7 @@ def main(argv, repo=None, suites=None, out=sys.stdout, warmup=None) -> int:
             continue
         units.extend(suite_units(repo, suite, heavy_skip if suite.path == HEAVY_SUITE else set()))
     if any(unit.suite == CONTRACT_SUITE for unit in units):
-        (warmup or (lambda: npx_warmup(repo)))()
+        (warmup or (lambda: npx_warmup(repo, out)))()
     return run(units, parsed.jobs, out)
 
 
