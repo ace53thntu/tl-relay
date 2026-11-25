@@ -152,7 +152,7 @@ vale:
 - A relative path resolves against the workspace root.
 - Commit `.tl-relay/config.yaml`. `run-plan` writes a `.gitignore` in each plan-runs dir. With a `state_dir` inside a git tree, `tl-design` and `tl-implement` ignore `designs/*/publish/` and `designs/*/runs/`.
 - A project `CLAUDE.md` or `AGENTS.md` outranks the skills. A model rule in it overrides `route-subagents`.
-- Upgrading from the old layout: move `<state_dir>/designs/<handle>/` to `<state_dir>/<workspace>/designs/<handle>/` before the next publish. Set `knowledge_dir` if the workspace has a hub.
+- Upgrading from the old layout: move design pages from `_knowledge/designs/<handle>/` and publish and run state from `.tl-relay/designs/<handle>/` into `<state_dir>/<workspace>/designs/<handle>/` before the next publish. Move `_knowledge/plans/specs/` and `_knowledge/plans/implementation/` to `<state_dir>/<workspace>/specs/` and `plans/`, or keep the old paths with a `CLAUDE.md` "Skill output targets" section. `.tl-relay/sdd/` holds only scratch from finished or abandoned runs, so delete it once no run is in progress. Set `knowledge_dir` if the workspace has a hub.
 - [`config.example.yaml`](config.example.yaml) documents every key.
 
 ## Lessons
