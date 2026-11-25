@@ -524,7 +524,7 @@ class Install(unittest.TestCase):
 
     def test_same_home_and_repo_exit_1(self):
         home = make(self.tmp.name)
-        env = {"AI_SDLC_HOME": str(home), "AI_SDLC_REPO": str(home)}
+        env = {"AI_SDLC_HOME": str(home), "TL_RELAY_REPO": str(home)}
         out, err = io.StringIO(), io.StringIO()
         with unittest.mock.patch.dict(os.environ, env), contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
             code = sdlc.main(["install"])
@@ -641,7 +641,7 @@ class Install(unittest.TestCase):
     def test_unresolvable_repo_env_exits_1(self):
         home = make(self.tmp.name)
         out, err = io.StringIO(), io.StringIO()
-        env = {"AI_SDLC_HOME": str(home), "AI_SDLC_REPO": "~nosuchuser/x"}
+        env = {"AI_SDLC_HOME": str(home), "TL_RELAY_REPO": "~nosuchuser/x"}
         with unittest.mock.patch.dict(os.environ, env), contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
             code = sdlc.main(["install"])
         self.assertEqual(code, 1)
@@ -1138,7 +1138,7 @@ def make_clone(tmp, name="clone", init=True):
     (clone / "maintainer" / "hooks").mkdir(parents=True)
     for template in ("settings-fragment.json", "user-fragment.json", "git-pre-push"):
         shutil.copy(REPO / "maintainer" / "hooks" / template, clone / "maintainer" / "hooks" / template)
-    shutil.copy(REPO / "maintainer" / "ai-sdlc.yaml", clone / "maintainer" / "ai-sdlc.yaml")
+    shutil.copy(REPO / "maintainer" / "tl-relay.yaml", clone / "maintainer" / "tl-relay.yaml")
     (clone / "maintainer" / "skills" / "write-skill" / "scripts").mkdir(parents=True)
     (clone / "maintainer" / "skills" / "write-skill" / "scripts" / "final_run.py").write_text("")
     (clone / "maintainer" / "sdlc.py").write_text("")
@@ -1149,7 +1149,7 @@ def make_clone(tmp, name="clone", init=True):
 
 def run_clone(clone, home, *argv):
     out, err = io.StringIO(), io.StringIO()
-    env = dict({"AI_SDLC_HOME": str(home), "AI_SDLC_REPO": str(clone)}, **ISOLATED_GIT)
+    env = dict({"AI_SDLC_HOME": str(home), "TL_RELAY_REPO": str(clone)}, **ISOLATED_GIT)
     with unittest.mock.patch.dict(os.environ, env), contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
         code = sdlc.main(["install", "--home", str(home)] + list(argv))
     return code, out.getvalue(), err.getvalue()

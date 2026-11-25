@@ -1,4 +1,4 @@
-apiVersion: ai-sdlc/v2
+apiVersion: tl-relay/v1
 kind: Config
 
 project:

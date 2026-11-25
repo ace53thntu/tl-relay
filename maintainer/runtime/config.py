@@ -11,12 +11,29 @@ class ConfigError(Exception):
     pass
 
 
+HOME_VARS = ("TL_RELAY_HOME", "AI_SDLC_HOME")
+HOME_FILES = ("tl-relay.yaml", "ai-sdlc.yaml")
+
+
 def default_home():
-    return pathlib.Path(os.environ.get("AI_SDLC_HOME") or pathlib.Path.home() / ".ai-sdlc")
+    for name in HOME_VARS:
+        if os.environ.get(name):
+            return pathlib.Path(os.environ[name])
+    home = pathlib.Path.home()
+    if not (home / ".tl-relay").exists() and (home / ".ai-sdlc").exists():
+        return home / ".ai-sdlc"
+    return home / ".tl-relay"
 
 
 def default_repo():
-    return pathlib.Path(os.environ.get("AI_SDLC_REPO") or pathlib.Path(__file__).resolve().parents[2])
+    return pathlib.Path(os.environ.get("TL_RELAY_REPO") or pathlib.Path(__file__).resolve().parents[2])
+
+
+def home_file(home):
+    for name in HOME_FILES:
+        if (pathlib.Path(home) / name).is_file():
+            return pathlib.Path(home) / name
+    return pathlib.Path(home) / HOME_FILES[0]
 
 
 def merge(repo_doc, home_doc):
@@ -51,4 +68,4 @@ def _read(path):
 
 
 def load(repo, home):
-    return merge(_read(pathlib.Path(repo) / "maintainer" / "ai-sdlc.yaml"), _read(pathlib.Path(home) / "ai-sdlc.yaml"))
+    return merge(_read(pathlib.Path(repo) / "maintainer" / "tl-relay.yaml"), _read(home_file(home)))

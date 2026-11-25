@@ -1,4 +1,4 @@
-"""Reads and writes the YAML subset the ai-sdlc config uses."""
+"""Reads and writes the YAML subset the tl-relay config uses."""
 import atexit
 import copy
 import json
