@@ -80,6 +80,8 @@ class RepoSurfaceTest(unittest.TestCase):
         for rel in listed.decode().split("\0"):
             if not rel or rel in guards:
                 continue
+            if old.search(rel):
+                bad.append("%s: path" % rel)
             try:
                 text = (ROOT / rel).read_bytes().decode("utf-8")
             except (UnicodeDecodeError, OSError):
