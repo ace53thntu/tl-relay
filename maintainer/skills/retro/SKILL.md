@@ -5,7 +5,7 @@ description: Use when the nightly 22:00 job fires, when the operator asks to loo
 
 # Retro
 
-`<home>` is `$TL_RELAY_HOME`, else `$AI_SDLC_HOME`, else `~/.tl-relay`, else `~/.ai-sdlc` only when `~/.tl-relay` does not exist. Pass it as an absolute path. Run scripts as `/usr/bin/python3 <this folder>/scripts/<script>.py … --home <home>`.
+`<home>` is `$TL_RELAY_HOME`, else `$AI_SDLC_HOME`, else `~/.ai-sdlc` when only `~/.ai-sdlc` exists, else `~/.tl-relay`. Pass it as an absolute path. Run scripts as `/usr/bin/python3 <this folder>/scripts/<script>.py … --home <home>`.
 
 ## Cycle
 
@@ -53,7 +53,7 @@ Write each memory by [memories.md](memories.md).
 
 ## Report
 
-Add to `<home>/retro/reports/YYYY-MM-DD.md`, never replace it, in `operator_language` from the home file (`<home>/tl-relay.yaml`, or `<home>/ai-sdlc.yaml` when it is the only one), else English. List each lesson and memory written, drop, skipped veto, open question and the counts.
+Add to `<home>/retro/reports/YYYY-MM-DD.md`, never replace it, in `operator_language`. Read it from the home file, which is `<home>/tl-relay.yaml`, or `<home>/ai-sdlc.yaml` when it is the only one. Default to English. List each lesson and memory written, drop, skipped veto, open question and the counts.
 
 ## Limits
 
