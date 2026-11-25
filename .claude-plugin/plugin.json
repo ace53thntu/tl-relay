@@ -1,6 +1,6 @@
 {
   "name": "tl-relay",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Skills, agents and two hooks that guide a tech lead from design inputs to pull requests, with a human at each gate.",
   "author": {"name": "Em Dinh"},
   "license": "MIT",
