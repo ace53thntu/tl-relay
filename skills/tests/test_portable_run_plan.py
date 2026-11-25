@@ -66,9 +66,16 @@ class PortableRunPlanTest(unittest.TestCase):
         self.assertIn("In this skill, `<workspace>` is the directory `sdd-workspace` prints, not the workspace name of config.md.",
                       (SKILLS / "run-plan/SKILL.md").read_text())
 
-    def test_output_paths_read_knowledge_dir(self):
-        for name in ("brainstorm", "write-plan"):
-            self.assertIn("knowledge_dir", (SKILLS / name / "SKILL.md").read_text(), name)
+    def test_output_paths_use_the_runtime(self):
+        for name, path in (("brainstorm", "<runtime>/specs/YYYY-MM-DD-<slug>.md"), ("write-plan", "<runtime>/plans/YYYY-MM-DD-<slug>.md")):
+            text = (SKILLS / name / "SKILL.md").read_text()
+            self.assertIn(path, text, name)
+            self.assertIn("../using-tl-relay/config.md", text, name)
+            self.assertIn("Skill output targets", text, name)
+            self.assertNotIn("default `_knowledge`", text, name)
+        text = (SKILLS / "technical-writing/SKILL.md").read_text()
+        self.assertIn("<runtime>/audits/", text)
+        self.assertIn("with `knowledge_dir` unset, skip the ADR and glossary writes and say so in one line", text)
 
 
 if __name__ == "__main__":

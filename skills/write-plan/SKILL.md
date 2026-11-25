@@ -220,10 +220,10 @@ Self-review catches both.
 
 ## Save and hand-off
 
-Save path, at the workspace root: `<knowledge_dir>/plans/implementation/YYYY-MM-DD-<slug>.md`, with `knowledge_dir` from `.tl-relay/config.yaml`, default `_knowledge`. The `CLAUDE.md` section "Skill output targets" overrides it. Where the user names another location, use theirs.
+Save path: `<runtime>/plans/YYYY-MM-DD-<slug>.md`, with `<runtime>` per [config.md](../using-tl-relay/config.md). The `CLAUDE.md` section "Skill output targets" overrides it. Where the user names another location, use theirs.
 
 When the invoking skill states that the caller gates the plan itself, skip the review message and the REQUIRED line below. Instead, return the saved plan path to the caller. The caller decides when `run-plan` starts. You save and self-review a plan the caller revises.
 
-Otherwise, hand off after saving and self-review: post the link to your human partner with this message: "Ready for your review: `<knowledge_dir>/plans/implementation/<filename>.md` at the workspace root. Does the plan capture what you want?" Implementation waits until they approve it.
+Otherwise, hand off after saving and self-review: post the link to your human partner with this message: "Ready for your review: `<saved path>`. Does the plan capture what you want?" Implementation waits until they approve it.
 
 Once the human approves: **REQUIRED SUB-SKILL:** `run-plan`.
