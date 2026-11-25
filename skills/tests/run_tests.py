@@ -1,6 +1,7 @@
 import argparse
 import os
 import pathlib
+import re
 import subprocess
 import sys
 import unittest
@@ -14,6 +15,7 @@ HEAVY_PREFIXES = ("maintainer/skills/write-skill/scripts/", "maintainer/runtime/
 GIT_ENV_DROP = ("GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE", "GIT_COMMON_DIR", "GIT_OBJECT_DIRECTORY")
 HEAVY_SUITE = "skills/tests"
 RUNNER = "skills/tests/run_tests.py"
+CONTRACT_SUITE = "skills/write-contract/scripts"
 
 Suite = namedtuple("Suite", "path kind skip_unless")
 Unit = namedtuple("Unit", "suite kind cwd argv")
@@ -142,7 +144,19 @@ def suite_units(repo, suite, skip) -> List[Unit]:
 
 
 def order(units) -> List[Unit]:
-    return sorted(units, key=lambda unit: not unit.argv[-1].startswith("test_final_run"))
+    return sorted(units, key=lambda unit: not (unit.kind == "sh" or unit.argv[-1].startswith("test_final_run")))
+
+
+def npx_warmup(repo) -> None:
+    try:
+        text = (pathlib.Path(repo) / CONTRACT_SUITE / "contract.py").read_text()
+        match = re.search(r'^REDOCLY\s*=\s*"([^"]+)"', text, re.M)
+        if match is None:
+            return
+        subprocess.run(["npx", "--yes", match.group(1), "--version"], stdout=subprocess.DEVNULL,
+                       stderr=subprocess.DEVNULL, env=dict(os.environ, REDOCLY_TELEMETRY="off"))
+    except OSError:
+        return
 
 
 def run(units, jobs, out) -> int:
@@ -162,10 +176,11 @@ def run(units, jobs, out) -> int:
         else:
             passed = proc.returncode == 0
             detail = proc.stdout + proc.stderr
-            name = unit.suite
+            name = None
         if not passed:
             failed += 1
-            out.write("FAIL %s %s\n%s\n" % (unit.suite, name, detail.decode(errors="replace")))
+            label = unit.suite if name is None else "%s %s" % (unit.suite, name)
+            out.write("FAIL %s\n%s\n" % (label, detail.decode(errors="replace")))
     if failed:
         out.write("FAILED (%d of %d units)\n" % (failed, len(units)))
         return 1
@@ -173,7 +188,7 @@ def run(units, jobs, out) -> int:
     return 0
 
 
-def main(argv, repo=None, suites=None, out=sys.stdout) -> int:
+def main(argv, repo=None, suites=None, out=sys.stdout, warmup=None) -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--all", action="store_true")
     parser.add_argument("--jobs", type=int, default=os.cpu_count() or 1)
@@ -191,6 +206,8 @@ def main(argv, repo=None, suites=None, out=sys.stdout) -> int:
             out.write("skipped: %s (diff touches nothing under %s)\n" % (suite.path, suite.skip_unless))
             continue
         units.extend(suite_units(repo, suite, heavy_skip if suite.path == HEAVY_SUITE else set()))
+    if any(unit.suite == CONTRACT_SUITE for unit in units):
+        (warmup or (lambda: npx_warmup(repo)))()
     return run(units, parsed.jobs, out)
 
 

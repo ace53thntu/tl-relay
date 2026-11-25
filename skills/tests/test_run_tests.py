@@ -285,7 +285,7 @@ class SuitesTest(unittest.TestCase):
             out = io.StringIO()
             code = run_tests.main(["--all"], repo=pathlib.Path(repo), suites=(run_tests.Suite("s.sh", "sh", None),), out=out)
             self.assertEqual(code, 1)
-            self.assertIn("FAIL s.sh", out.getvalue())
+            self.assertIn("\nFAIL s.sh\n", "\n" + out.getvalue())
             self.assertIn("planted-sh-cause", out.getvalue())
 
     def test_final_run_units_run_first(self):
@@ -294,6 +294,34 @@ class SuitesTest(unittest.TestCase):
             write(repo, "t/test_final_run.py", OK_SRC.format(name="F"))
             units = run_tests.order(run_tests.suite_units(pathlib.Path(repo), run_tests.Suite("t", "py", None), set()))
             self.assertIn("test_final_run", units[0].argv[-1])
+
+    def test_final_run_and_shell_units_run_before_other_units(self):
+        with tempfile.TemporaryDirectory() as repo:
+            write(repo, "t/test_aaa.py", OK_SRC.format(name="A"))
+            write(repo, "t/test_final_run.py", OK_SRC.format(name="F"))
+            write(repo, "s.sh", "exit 0\n")
+            units = run_tests.suite_units(pathlib.Path(repo), run_tests.Suite("t", "py", None), set())
+            units += run_tests.suite_units(pathlib.Path(repo), run_tests.Suite("s.sh", "sh", None), set())
+            first = {u.suite if u.kind == "sh" else u.argv[-1].split(".")[0] for u in run_tests.order(units)[:2]}
+            self.assertEqual(first, {"s.sh", "test_final_run"})
+
+    WARM_SUITES = (run_tests.Suite("skills/write-contract/scripts", "py", None), run_tests.Suite("t", "py", None))
+
+    def warm_calls(self, suites):
+        with tempfile.TemporaryDirectory() as repo:
+            write(repo, "skills/write-contract/scripts/test_a.py", OK_SRC.format(name="A"))
+            write(repo, "t/test_b.py", OK_SRC.format(name="B"))
+            calls = []
+            code = run_tests.main(["--all"], repo=pathlib.Path(repo), suites=suites, out=io.StringIO(),
+                                  warmup=lambda: calls.append(1))
+            self.assertEqual(code, 0)
+            return len(calls)
+
+    def test_the_npx_cache_warms_once_when_a_write_contract_unit_is_queued(self):
+        self.assertEqual(self.warm_calls(self.WARM_SUITES), 1)
+
+    def test_the_npx_cache_stays_cold_without_a_write_contract_unit(self):
+        self.assertEqual(self.warm_calls(self.WARM_SUITES[1:]), 0)
 
     def test_default_suites_exist_in_the_repo(self):
         repo = pathlib.Path(run_tests.__file__).resolve().parents[2]
