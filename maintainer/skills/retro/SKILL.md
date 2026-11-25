@@ -5,7 +5,7 @@ description: Use when the nightly 22:00 job fires, when the operator asks to loo
 
 # Retro
 
-`<home>` is `$AI_SDLC_HOME`, or `~/.ai-sdlc` when it is unset. Pass it as an absolute path. Run scripts as `/usr/bin/python3 <this folder>/scripts/<script>.py … --home <home>`.
+`<home>` is `$TL_RELAY_HOME`, else `$AI_SDLC_HOME`, else `~/.tl-relay`, else `~/.ai-sdlc`. Pass it as an absolute path. Run scripts as `/usr/bin/python3 <this folder>/scripts/<script>.py … --home <home>`.
 
 ## Cycle
 
@@ -39,7 +39,7 @@ Any other decision is **routine**, and **avoidable** when the operator picked th
 | `repeat` | A lesson for the skill it names, else a memory |
 | Text matching a `vetoed` line | Nothing |
 
-**Owner:** judge it from `skills` and the excerpt. The latest skill is only a candidate. No ai-sdlc owner means a memory, with `memory` as the `sight` key prefix.
+**Owner:** judge it from `skills` and the excerpt. The latest skill is only a candidate. No tl-relay owner means a memory, with `memory` as the `sight` key prefix.
 
 A `repeat` whose text the operator did not type, such as a harness notice, writes nothing. A finding that contradicts `CLAUDE.md` or an existing memory writes nothing and becomes an open question.
 
@@ -53,7 +53,7 @@ Write each memory by [memories.md](memories.md).
 
 ## Report
 
-Add to `<home>/retro/reports/YYYY-MM-DD.md`, never replace it, in `operator_language` from `<home>/ai-sdlc.yaml`, else English. List each lesson and memory written, drop, skipped veto, open question and the counts.
+Add to `<home>/retro/reports/YYYY-MM-DD.md`, never replace it, in `operator_language` from `<home>/tl-relay.yaml`, else `<home>/ai-sdlc.yaml`, else English. List each lesson and memory written, drop, skipped veto, open question and the counts.
 
 ## Limits
 

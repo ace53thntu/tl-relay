@@ -136,7 +136,7 @@ o=$(bare TL_RELAY_HOME="$TMP/mhome" TL_RELAY_SETTINGS="$TMP/empty.json")
 mkdir "$TMP/nohome"
 o=$(bare TL_RELAY_HOME="$TMP/nohome" AI_SDLC_ROOT="$ROOT" AI_SDLC_USER_FRAGMENT="$TMP/ufrag.json" AI_SDLC_FRAGMENT="$TMP/pfrag.json" \
   AI_SDLC_USER_SETTINGS="$TMP/usettings.json" AI_SDLC_SETTINGS="$TMP/psettings.json")
-[ "$(dec "$o")" != "deny" ] && ok "AI_SDLC_ names in the environment resolve when the home has no env.sh" || bad "env fallback denied: $(rsn "$o")"
+[ "$(dec "$o")" != "deny" ] && ok "legacy env names resolve when the home has no env.sh" || bad "env fallback denied: $(rsn "$o")"
 
 # A PATH holding everything the hook needs except jq. An empty PATH would also
 # remove cat, and the test would pass for the wrong reason.
