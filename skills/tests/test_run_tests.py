@@ -271,6 +271,85 @@ class SuitesTest(unittest.TestCase):
         for suite in run_tests.SUITES:
             self.assertTrue((repo / suite.path).exists(), suite.path)
 
+    SKIP_SUITES = (run_tests.Suite("t", "py", None), run_tests.Suite("c", "py", "c/"))
+    SKIP_FILES = {"README.md": "a\n", "c/old.txt": "x\n", "t/test_ok.py": OK_SRC.format(name="One"),
+                  "c/test_bad.py": BAD_SRC.replace("self.fail('nope')", "self.fail('planted-c-failure')")}
+
+    def run_main(self, repo, argv, suites=None):
+        out = io.StringIO()
+        code = run_tests.main(argv, repo=pathlib.Path(repo), suites=suites or self.SKIP_SUITES, out=out)
+        return code, out.getvalue()
+
+    def main_with_change(self, name, *argv):
+        with tempfile.TemporaryDirectory() as repo:
+            make_repo(repo, self.SKIP_FILES)
+            write(repo, name, "changed\n")
+            git(repo, "add", "-A")
+            git(repo, "commit", "-q", "-m", "change")
+            return self.run_main(repo, list(argv))
+
+    def main_with_rename(self, old, new):
+        with tempfile.TemporaryDirectory() as repo:
+            make_repo(repo, self.SKIP_FILES)
+            (pathlib.Path(repo) / new).parent.mkdir(parents=True, exist_ok=True)
+            git(repo, "mv", old, new)
+            git(repo, "commit", "-q", "-m", "rename")
+            return self.run_main(repo, [])
+
+    def main_without_base(self):
+        with tempfile.TemporaryDirectory() as repo:
+            for name, text in self.SKIP_FILES.items():
+                write(repo, name, text)
+            return self.run_main(repo, [])
+
+    def main_with_heavy_and_change(self, name):
+        files = dict(self.SKIP_FILES)
+        files["skills/tests/test_final_run.py"] = HEAVY_BAD_SRC
+        suites = (run_tests.Suite("skills/tests", "py", None), run_tests.Suite("c", "py", "c/"))
+        with tempfile.TemporaryDirectory() as repo:
+            make_repo(repo, files)
+            write(repo, name, "changed\n")
+            git(repo, "add", "-A")
+            git(repo, "commit", "-q", "-m", "change")
+            return self.run_main(repo, [], suites)
+
+    def test_a_suite_skips_when_the_diff_misses_its_prefix(self):
+        code, text = self.main_with_change("README.md")
+        self.assertEqual(code, 0)
+        self.assertIn("skipped: c (diff touches nothing under c/)\n", text)
+
+    def test_a_suite_runs_when_the_diff_touches_its_prefix(self):
+        code, text = self.main_with_change("c/x.txt")
+        self.assertEqual(code, 1)
+        self.assertIn("planted-c-failure", text)
+
+    def test_a_rename_out_of_the_prefix_still_runs_the_suite(self):
+        code, text = self.main_with_rename("c/old.txt", "lib/new.txt")
+        self.assertEqual(code, 1)
+
+    def test_all_runs_a_skippable_suite(self):
+        code, text = self.main_with_change("README.md", "--all")
+        self.assertEqual(code, 1)
+        self.assertNotIn("skipped: c", text)
+
+    def test_no_origin_main_skips_nothing(self):
+        code, text = self.main_without_base()
+        self.assertEqual(code, 1)
+        self.assertNotIn("skipped:", text)
+
+    def test_default_skip_prefixes(self):
+        rules = {s.path: s.skip_unless for s in run_tests.SUITES}
+        self.assertEqual(rules["skills/write-contract/scripts"], "skills/write-contract/")
+        self.assertEqual(rules["maintainer/runtime/tests"], "maintainer/")
+        self.assertEqual([p for p, r in rules.items() if r], ["maintainer/runtime/tests", "skills/write-contract/scripts"])
+
+    def test_the_heavy_line_prints_before_suite_skip_lines(self):
+        code, text = self.main_with_heavy_and_change("README.md")
+        self.assertEqual(code, 0)
+        lines = text.splitlines()
+        self.assertTrue(lines[0].startswith("skipped: test_final_run, test_triggers"))
+        self.assertEqual(lines[1], "skipped: c (diff touches nothing under c/)")
+
 
 if __name__ == "__main__":
     unittest.main()

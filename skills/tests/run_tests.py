@@ -19,10 +19,10 @@ Unit = namedtuple("Unit", "suite kind cwd argv")
 
 SUITES: Tuple[Suite, ...] = (
     Suite("skills/tests", "py", None),
-    Suite("maintainer/runtime/tests", "py", None),
+    Suite("maintainer/runtime/tests", "py", "maintainer/"),
     Suite("skills/ingest-sources/scripts", "py", None),
     Suite("skills/tl-design/scripts", "py", None),
-    Suite("skills/write-contract/scripts", "py", None),
+    Suite("skills/write-contract/scripts", "py", "skills/write-contract/"),
     Suite("skills/write-task-breakdown/scripts", "py", None),
     Suite("maintainer/skills/retro/scripts", "py", None),
     Suite("maintainer/hooks/tests/run.sh", "sh", None),
@@ -168,13 +168,15 @@ def main(argv, repo=None, suites=None, out=sys.stdout) -> int:
     suites = SUITES if suites is None else suites
     repo = pathlib.Path(repo) if repo else pathlib.Path(__file__).resolve().parents[2]
     heavy_skip = set()
-    if not parsed.all and any(suite.path == HEAVY_SUITE for suite in suites):
-        paths = changed_paths(repo)
-        if paths is not None and not needs_heavy(paths):
-            heavy_skip = set(HEAVY)
-            out.write("skipped: test_final_run, test_triggers (diff touches no write-skill scripts, skills/tests, runtime, hooks, sdlc.py or using-tl-relay)\n")
+    paths = None if parsed.all else changed_paths(repo)
+    if paths is not None and any(suite.path == HEAVY_SUITE for suite in suites) and not needs_heavy(paths):
+        heavy_skip = set(HEAVY)
+        out.write("skipped: test_final_run, test_triggers (diff touches no write-skill scripts, skills/tests, runtime, hooks, sdlc.py or using-tl-relay)\n")
     units = []
     for suite in suites:
+        if paths is not None and suite.skip_unless and not any(p.startswith(suite.skip_unless) for p in paths):
+            out.write("skipped: %s (diff touches nothing under %s)\n" % (suite.path, suite.skip_unless))
+            continue
         units.extend(suite_units(repo, suite, heavy_skip if suite.path == HEAVY_SUITE else set()))
     return run(units, parsed.jobs, out)
 
