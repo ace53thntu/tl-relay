@@ -116,27 +116,27 @@ def merge_settings(live, fragment):
     return merged
 
 
-def _block(cfg, name):
+def _block(cfg, name, home):
     value = cfg.get(name)
     if value is None:
         return {}
     if not isinstance(value, dict):
-        raise InstallError("%s must be a mapping in the home ai-sdlc.yaml" % name)
+        raise InstallError("%s must be a mapping in the home %s" % (name, config.home_file(home).name))
     return value
 
 
-def _root(cfg):
-    root = _block(cfg, "project").get("root")
+def _root(cfg, home):
+    root = _block(cfg, "project", home).get("root")
     if not root:
-        raise InstallError("set project.root in the home ai-sdlc.yaml")
+        raise InstallError("set project.root in the home %s" % config.home_file(home).name)
     path = _expand(root, "project.root")
     if re.search(r"[\r\n]", str(path)):
         raise InstallError("project.root: %s must not contain a newline" % json.dumps(str(path)))
     return path
 
 
-def _config_dirs(cfg):
-    dirs = _block(cfg, "install").get("claude_config_dirs")
+def _config_dirs(cfg, home):
+    dirs = _block(cfg, "install", home).get("claude_config_dirs")
     if dirs is None:
         dirs = []
     if not isinstance(dirs, list) or not all(isinstance(d, str) for d in dirs):
@@ -157,14 +157,14 @@ def _quote(value):
 
 
 def env_text(cfg, repo, home):
-    root = _root(cfg)
     home = pathlib.Path(home)
+    root = _root(cfg, home)
     values = (
-        ("AI_SDLC_ROOT", root),
-        ("AI_SDLC_USER_FRAGMENT", home / "hooks" / "user-fragment.json"),
-        ("AI_SDLC_FRAGMENT", home / "hooks" / "settings-fragment.json"),
-        ("AI_SDLC_USER_SETTINGS", ":".join(str(d / "settings.json") for d in _config_dirs(cfg))),
-        ("AI_SDLC_SETTINGS", root / ".claude" / "settings.json"),
+        ("TL_RELAY_ROOT", root),
+        ("TL_RELAY_USER_FRAGMENT", home / "hooks" / "user-fragment.json"),
+        ("TL_RELAY_FRAGMENT", home / "hooks" / "settings-fragment.json"),
+        ("TL_RELAY_USER_SETTINGS", ":".join(str(d / "settings.json") for d in _config_dirs(cfg, home))),
+        ("TL_RELAY_SETTINGS", root / ".claude" / "settings.json"),
     )
     return "".join("export %s=%s\n" % (name, _quote(value)) for name, value in values)
 
@@ -198,17 +198,21 @@ def with_home_env(live, path, home, home_given=False):
         env = {}
     if not isinstance(env, dict):
         raise InstallError("%s: expected an object under env" % path)
-    if "AI_SDLC_HOME" in env and not home_given:
-        value = env["AI_SDLC_HOME"]
-        if not isinstance(value, str) or not value:
-            raise InstallError("%s: env.AI_SDLC_HOME is %s; pass --home to replace it" % (path, json.dumps(value)))
-        try:
-            differs = pathlib.Path(value).expanduser().resolve() != home
-        except (RuntimeError, ValueError):
-            raise InstallError("%s: env.AI_SDLC_HOME is %s, not a usable path; pass --home to replace it" % (path, json.dumps(value)))
-        if differs:
-            raise InstallError("%s: env.AI_SDLC_HOME is %s; pass --home to replace it" % (path, value))
-    return dict(live, env=dict(env, AI_SDLC_HOME=str(home)))
+    if not home_given:
+        for key in config.HOME_VARS:
+            if key not in env:
+                continue
+            value = env[key]
+            if not isinstance(value, str) or not value:
+                raise InstallError("%s: env.%s is %s; pass --home to replace it" % (path, key, json.dumps(value)))
+            try:
+                differs = pathlib.Path(value).expanduser().resolve() != home
+            except (RuntimeError, ValueError):
+                raise InstallError("%s: env.%s is %s, not a usable path; pass --home to replace it" % (path, key, json.dumps(value)))
+            if differs:
+                raise InstallError("%s: env.%s is %s; pass --home to replace it" % (path, key, value))
+    kept = {k: v for k, v in env.items() if k not in config.HOME_VARS}
+    return dict(live, env=dict(kept, TL_RELAY_HOME=str(home)))
 
 
 def _names_other_home(value, home):
@@ -226,11 +230,12 @@ def without_stale_home(live, path, home, home_given):
         return live
     if not isinstance(env, dict):
         raise InstallError("%s: expected an object under env" % path)
-    if "AI_SDLC_HOME" not in env or not _names_other_home(env["AI_SDLC_HOME"], home):
+    named = [k for k in config.HOME_VARS if k in env and _names_other_home(env[k], home)]
+    if not named:
         return live
     if not home_given:
-        raise InstallError("%s: env.AI_SDLC_HOME is %s; pass --home to remove it" % (path, json.dumps(env["AI_SDLC_HOME"])))
-    kept = {k: v for k, v in env.items() if k != "AI_SDLC_HOME"}
+        raise InstallError("%s: env.%s is %s; pass --home to remove it" % (path, named[0], json.dumps(env[named[0]])))
+    kept = {k: v for k, v in env.items() if k not in named}
     out = {k: v for k, v in live.items() if k != "env"}
     if kept:
         out["env"] = kept
@@ -252,8 +257,9 @@ def check_local_home(path, home):
         return
     if not isinstance(env, dict):
         raise InstallError("%s: expected an object under env" % path)
-    if "AI_SDLC_HOME" in env and _names_other_home(env["AI_SDLC_HOME"], home):
-        raise InstallError("%s: env.AI_SDLC_HOME is %s; delete the key, install does not edit this file" % (path, json.dumps(env["AI_SDLC_HOME"])))
+    for key in config.HOME_VARS:
+        if key in env and _names_other_home(env[key], home):
+            raise InstallError("%s: env.%s is %s; delete the key, install does not edit this file" % (path, key, json.dumps(env[key])))
 
 
 def _merged(path, fragment, home=None, home_given=False, project=False):
@@ -314,12 +320,16 @@ def plan(repo, home, home_given=False):
             raise InstallError("%s: %s must not contain a newline" % (label, json.dumps(str(value))))
     if "'" in str(repo):
         raise InstallError("repo: %s contains a single quote; the guardrail check cannot read a hook path with one" % json.dumps(str(repo)))
-    if not _is_file(home / "ai-sdlc.yaml"):
-        raise InstallError("copy ai-sdlc.example.yaml to %s and set project.root" % (home / "ai-sdlc.yaml"))
+    try:
+        home_file = config.home_file(home)
+    except OSError as exc:
+        raise InstallError("%s: %s" % (home, exc))
+    if not _is_file(home_file):
+        raise InstallError("copy tl-relay.example.yaml to %s and set project.root" % (home / "tl-relay.yaml"))
     if repo == home:
         raise InstallError("the home and the repo are both %s; installing would overwrite the fragment templates" % home)
     cfg = config.load(repo, home)
-    root = _root(cfg)
+    root = _root(cfg, home)
     check_local_home(root / ".claude" / "settings.local.json", home)
     rendered = {name: render(_template(repo / "maintainer" / "hooks" / name), repo, home) for name in FRAGMENTS}
     out = [(home / "hooks" / name, _read(home / "hooks" / name), text) for name, text in rendered.items()]
@@ -333,7 +343,7 @@ def plan(repo, home, home_given=False):
     user = fragments["user-fragment.json"]
     project = root / ".claude" / "settings.json"
     shared = False
-    for d in _config_dirs(cfg):
+    for d in _config_dirs(cfg, home):
         fragment = user
         if _same_settings(d / "settings.json", project):
             fragment = merge_settings(user, fragments["settings-fragment.json"])
@@ -453,7 +463,11 @@ def _hook_value(text, key):
 
 
 def _hook_home(text):
-    return _hook_value(text, "AI_SDLC_HOME=")
+    for name in config.HOME_VARS:
+        value = _hook_value(text, name + "=")
+        if value is not None:
+            return value
+    return None
 
 
 def hook_notice(repo, home):
