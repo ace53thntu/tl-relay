@@ -70,9 +70,9 @@ class RepoSurfaceTest(unittest.TestCase):
 
     def test_no_legacy_names_outside_the_allowlist(self):
         old = re.compile(r"AI_SDLC_|ai-sdlc")
-        legacy = re.compile(r"AI_SDLC_HOME|AI_SDLC_REPO|AI_SDLC_(\$|ROOT|USER_FRAGMENT|FRAGMENT|USER_SETTINGS|SETTINGS)"
+        legacy = re.compile(r"AI_SDLC_HOME\b|AI_SDLC_REPO\b|AI_SDLC_(\$|(ROOT|USER_FRAGMENT|FRAGMENT|USER_SETTINGS|SETTINGS)\b)"
                             r"|ai-sdlc\.yaml|ai-sdlc/v2|\.ai-sdlc|# ai-sdlc pre-push hook"
-                            r"|[\"']AI_SDLC_[\"']|assertNotIn\(|/old/ai-sdlc/")
+                            r"|[\"']AI_SDLC_[\"']|assertNotIn\([\"']AI_SDLC_\w*[\"']|/old/ai-sdlc/|<git common dir>/ai-sdlc/")
         guards = {"skills/tests/test_package.py", "skills/tests/test_portable_tl_design.py",
                   "skills/tests/test_portable_tl_implement.py", "skills/tests/test_repo_surface.py",
                   "skills/tests/test_layout.py"}
