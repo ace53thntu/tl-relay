@@ -22,12 +22,12 @@ gate. The operator reads one document, the head, and approves or vetoes items.
 
 ## Configuration
 
-`.tl-relay/config.yaml` at the workspace root sets this skill's options. A missing file or key means the default.
+`.tl-relay/config.yaml` at the workspace root sets this skill's options. A missing file or key means the default. Paths follow [config.md](../using-tl-relay/config.md).
 
 | Key | Default | Use here |
 | --- | --- | --- |
-| `knowledge_dir` | `_knowledge` | The directory that holds `designs/<handle>/` and each repo's knowledge pages |
-| `state_dir` | `.tl-relay` | The root of the run dir |
+| `state_dir` | `~/.tl-relay` | The root of `<runtime>`, which holds the run dir and, by default, the design set |
+| `worktree_dir` | unset | The worktree root after `$WORKTREE_ROOT` |
 | `operator_language` | `en` | The language of every operator question |
 | `tracker.comment` | unset | The command step 9 runs to post the ticket comment, with `{target}` and `{body_file}` |
 | `tracker.confirm_flag` | unset | The flag that makes `tracker.comment` post |
@@ -39,7 +39,7 @@ this skill. A missing one stops the run. Name it and give `npx skills add ace53t
 
 ## Inputs of a run
 
-The skill reads, from `<knowledge_dir>/designs/<handle>/`:
+The skill reads, from `<design root>/designs/<handle>/`:
 
 - The row in `task-breakdown.md`: Task, Scope, Design link, Depends on, MD.
 - The ticket key from the `ticket` column of `task-breakdown.estimates.tsv`.
@@ -52,14 +52,13 @@ A rule is what `lens-qa-conformance` § Rules counts as a rule. Scenarios are te
 
 ## Run state
 
-Run state is runtime data. It lives under `state_dir`, outside the hub and the repo:
-`<state_dir>/designs/<handle>/runs/<row>/` (the run dir). It holds:
+Run state is runtime data. It lives under `<runtime>`, outside the repo:
+`<runtime>/designs/<handle>/runs/<row>/` (the run dir). It holds:
 
 - `run-state.md`, created from `templates/run-state.md`.
 - `plan-gate.md`, `fixes.md`, `head.md`, `conformance-r<n>.json`, `temporal-r<n>.json` and `retro.md`.
 
-When `state_dir` sits inside the workspace, the step that creates the run dir checks the workspace `.gitignore`. It adds the line
-`<state_dir>/designs/` if absent, written relative to the workspace root. A `state_dir` outside the workspace needs no line.
+When `<runtime>` sits inside the workspace, the step that creates the run dir checks the workspace `.gitignore`. It adds the line `<runtime>/designs/*/runs/` if absent, written relative to the workspace root. A `<runtime>` outside the workspace needs no line.
 
 `state_dir` is resolved against the workspace root to an absolute path, because subagents work inside the repo worktree.
 
@@ -83,7 +82,7 @@ Advance `step` only when the step's output exists and its human action is done.
 | 4 | Build | `run-plan`: Sonnet implementers, `test-first`, per-task and final `review-change` | Commits on the branch, ledger | — |
 | 5 | Conformance | `qa-conformance`, plus `temporal-code-reviewer` when it applies | Conformance table, Temporal findings | Answers a signed-page-is-wrong question; answers the Temporal review question once per run |
 | 6 | Fix loop | implementer fixes, step 5 reruns, at most 3 rounds per pass | Commits | Ask-rule questions only |
-| 7 | Knowledge refresh | tech-lead | Corrected repo `<knowledge_dir>` pages and `**Refresh**` log lines, on the same branch | — |
+| 7 | Knowledge refresh | tech-lead | Corrected pages in the repo's own `_knowledge/` bundle and `**Refresh**` log lines, on the same branch | — |
 | 8 | Gate | tech-lead renders the head | `head.md` | Approves, or vetoes items |
 | 9 | Publish | push, open PR, ticket comment | PR URL, comment id | Approves the comment output |
 | 10 | Retro | tech-lead | `retro.md`, proposed edits | Approves the edits |
@@ -101,7 +100,7 @@ The checks run in this order, each before any worktree, branch or run directory 
    The run state's `depends:` field records the PR. An unconfirmed PR refuses the run and names the unmerged row.
 
 Then the skill creates the run dir and the run state. It fetches `<remote>` first, then creates the worktree and a branch with `--no-track`
-from `<remote>/<default branch>`. The worktree sits under the workspace's worktree root, which is `$WORKTREE_ROOT`, else `$HOME/worktrees`, when the workspace `CLAUDE.md` names none, and the branch name follows the
+from `<remote>/<default branch>`. The worktree sits under the workspace's worktree root, which is the `CLAUDE.md` section "Worktree location", else `$WORKTREE_ROOT`, else `worktree_dir`, else `<state_dir>/worktrees`, and the branch name follows the
 workspace `CLAUDE.md` convention with the ticket key when present, else `<ticket>-<row slug>`. The run state records `base:`, the `<remote>/<default branch>` commit. `<remote>` is the push remote the workspace `CLAUDE.md` names. Without one, it is remote `origin`.
 
 ### Step 2, plan
@@ -175,8 +174,7 @@ on a fix-only range.
 
 ### Step 7, knowledge refresh
 
-Apply the workspace `CLAUDE.md` rule "Finishing a plan means refreshing the repos it touched" when present; without it, skip this step and note that in `run-state.md` field `skips:`. Correct the repo's
-`<knowledge_dir>` pages the change moved, append a `**Refresh**` line per page to its `log.md`, and run the hub lint on `<worktree>/<knowledge_dir>`. The
+Apply the workspace `CLAUDE.md` rule "Finishing a plan means refreshing the repos it touched" when present; without it, skip this step and note that in `run-state.md` field `skips:`. Correct the pages the change moved in the repo's own `_knowledge/` bundle inside the worktree, append a `**Refresh**` line per page to its `log.md`, and run the lint that rule names on that bundle. The
 edits go on the same branch, so the pull request carries them.
 
 ### Step 8, gate
