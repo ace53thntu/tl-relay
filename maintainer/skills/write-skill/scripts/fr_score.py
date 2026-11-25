@@ -128,7 +128,7 @@ def _check_hook_home(repo) -> None:
     if not install.is_own_hook(text):
         return
     named = install._hook_home(text)
-    home = os.environ["AI_SDLC_HOME"]
+    home = os.environ["TL_RELAY_HOME"]
     if install._differs(named, home):
         raise Refused("the pre-push hook %s names home %s, not %s" % (hook, named, home))
 

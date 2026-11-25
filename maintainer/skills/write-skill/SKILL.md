@@ -1,13 +1,13 @@
 ---
 name: write-skill
-description: Use when an agent receives skill-writing work for `ai-sdlc/skills`, whether authoring a fresh SKILL.md from a request that only describes its job or revising one that exists. Applies in place of brainstorm for this work. Also use when the result must clear the overlap test and the trigger suite.
+description: Use when an agent receives skill-writing work for `tl-relay/skills`, whether authoring a fresh SKILL.md from a request that only describes its job or revising one that exists. Applies in place of brainstorm for this work. Also use when the result must clear the overlap test and the trigger suite.
 ---
 
 # Write skill
 
 First message to the user: "write-skill: working on the <name> skill."
 
-This procedure covers `ai-sdlc/skills/` only. For a skill directory elsewhere, stop and tell the user.
+This procedure covers `tl-relay/skills/` only. For a skill directory elsewhere, stop and tell the user.
 
 Follow the wording of each step. Bending a step's wording breaks its intent too.
 

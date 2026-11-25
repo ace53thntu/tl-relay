@@ -1234,8 +1234,16 @@ class GitHook(unittest.TestCase):
             "rerun sdlc.py install --git-hook, or stop and ask the operator, who decides on --no-verify\" >&2\n"
             "  exit 1\n"
             "fi\n"
-            "AI_SDLC_HOME=%s AI_SDLC_REPO=\"$main\" exec /usr/bin/python3 \"$script\" check \"$@\"\n"
+            "TL_RELAY_HOME=%s TL_RELAY_REPO=\"$main\" exec /usr/bin/python3 \"$script\" check \"$@\"\n"
             % (install.HOOK_MARKER, main, shlex.quote(str(self.home)))))
+
+    def test_the_rendered_hook_uses_new_names(self):
+        code, _, err = run_clone(self.clone, self.home, "--git-hook")
+        self.assertEqual(code, 0, err)
+        text = self.hook.read_text()
+        self.assertIn("TL_RELAY_HOME=", text)
+        self.assertIn("TL_RELAY_REPO=", text)
+        self.assertNotIn("AI_SDLC_", text)
 
     def test_a_plain_install_writes_no_hook(self):
         code, _, err = run_clone(self.clone, self.home)

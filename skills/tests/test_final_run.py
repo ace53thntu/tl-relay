@@ -261,7 +261,7 @@ class Record(unittest.TestCase):
         self.sb._git("worktree", "add", "-q", "-b", "other", str(linked))
         self.assertEqual(fr_record.path(linked), fr_record.path(self.repo))
         self.assertEqual(fr_record.path(self.repo).name, "final-run.jsonl")
-        self.assertEqual(fr_record.path(self.repo).parent.name, "ai-sdlc")
+        self.assertEqual(fr_record.path(self.repo).parent.name, "tl-relay")
         fr_record.append_run(self.repo, "f", "c", "h", "p", "t", "PASS")
         self.assertEqual(len(fr_record.load(linked)), 1)
 
@@ -828,7 +828,7 @@ class ScoreBase(unittest.TestCase):
         return proc, call
 
     def recovery_file(self):
-        return pathlib.Path(self.sb.env["AI_SDLC_HOME"]) / "locks" / "final-run-links.json"
+        return pathlib.Path(self.sb.env["TL_RELAY_HOME"]) / "locks" / "final-run-links.json"
 
 
 class ScorePreconditions(ScoreBase):
@@ -1032,7 +1032,7 @@ class ScoreRuns(ScoreBase):
 
 class Links(ScoreBase):
     def test_a_second_concurrent_score_exits_four(self):
-        with mock.patch.dict(os.environ, {"AI_SDLC_HOME": self.sb.env["AI_SDLC_HOME"]}):
+        with mock.patch.dict(os.environ, {"TL_RELAY_HOME": self.sb.env["TL_RELAY_HOME"]}):
             with fr_lock.machine_lock():
                 done = self.score()
         self.assertEqual(done.returncode, 4, done.stderr)
@@ -1080,10 +1080,10 @@ class Links(ScoreBase):
         self.assertEqual(len(self.sb.agent_calls()), calls)
 
     def test_score_without_ai_sdlc_home_exits_two(self):
-        env = {k: v for k, v in self.sb.env.items() if k != "AI_SDLC_HOME"}
+        env = {k: v for k, v in self.sb.env.items() if k != "TL_RELAY_HOME"}
         done = self.sb.run("score", env=env)
         self.assertEqual(done.returncode, 2)
-        self.assertIn("AI_SDLC_HOME", done.stderr)
+        self.assertIn("TL_RELAY_HOME", done.stderr)
 
     def test_a_heldout_named_like_a_committed_prompt_keeps_its_own_counts(self):
         self.change_alpha()
@@ -1430,7 +1430,7 @@ class Tune(ScoreBase):
 
     def test_tune_runs_while_a_score_holds_the_lock(self):
         self.sb.agent_plan({ALPHA_PROMPT: "alpha"})
-        with mock.patch.dict(os.environ, {"AI_SDLC_HOME": self.sb.env["AI_SDLC_HOME"]}):
+        with mock.patch.dict(os.environ, {"TL_RELAY_HOME": self.sb.env["TL_RELAY_HOME"]}):
             with fr_lock.machine_lock():
                 done = self.tune("--runs", "1")
         self.assertEqual(done.returncode, 0, done.stderr)
@@ -1491,10 +1491,10 @@ class Tune(ScoreBase):
         self.assertEqual(self.sb.agent_calls(), [])
 
     def test_tune_without_ai_sdlc_home_exits_two(self):
-        env = {k: v for k, v in self.sb.env.items() if k != "AI_SDLC_HOME"}
+        env = {k: v for k, v in self.sb.env.items() if k != "TL_RELAY_HOME"}
         done = self.tune(env=env)
         self.assertEqual(done.returncode, 2)
-        self.assertIn("AI_SDLC_HOME", done.stderr)
+        self.assertIn("TL_RELAY_HOME", done.stderr)
 
     def test_tune_of_an_unknown_skill_or_one_without_prompts_exits_two(self):
         for name in ("missing", "beta"):
@@ -1552,10 +1552,10 @@ class Check(unittest.TestCase):
         self.patterns(["LEAK[W]ORD"])
 
     def patterns(self, names):
-        home = pathlib.Path(self.sb.env["AI_SDLC_HOME"])
+        home = pathlib.Path(self.sb.env["TL_RELAY_HOME"])
         home.mkdir(parents=True, exist_ok=True)
         body = "neutrality:\n  patterns:\n" + "".join("    - %s\n" % n for n in names)
-        (home / "ai-sdlc.yaml").write_text(body if names else "neutrality:\n  patterns: []\n")
+        (home / "tl-relay.yaml").write_text(body if names else "neutrality:\n  patterns: []\n")
 
     def head(self):
         return self.sb._git("rev-parse", "HEAD").stdout.strip()
@@ -1706,7 +1706,7 @@ class Check(unittest.TestCase):
     def test_a_leftover_recovery_file_does_not_block_a_push(self):
         self.change_alpha()
         self.record("PASS")
-        recovery = pathlib.Path(self.sb.env["AI_SDLC_HOME"]) / "locks" / "final-run-links.json"
+        recovery = pathlib.Path(self.sb.env["TL_RELAY_HOME"]) / "locks" / "final-run-links.json"
         recovery.parent.mkdir(parents=True, exist_ok=True)
         recovery.write_text("{}")
         self.allowed(self.check())
@@ -1769,33 +1769,33 @@ class Check(unittest.TestCase):
 
     def test_printed_commands_carry_the_home_and_quote_paths(self):
         spaced = self.sb.repo.parent / "ai sdlc home"
-        self.sb.env["AI_SDLC_HOME"] = str(spaced)
+        self.sb.env["TL_RELAY_HOME"] = str(spaced)
         self.patterns([])
         self.change_alpha()
         done = self.check()
-        self.assertIn("AI_SDLC_HOME='%s' " % spaced, done.stderr)
+        self.assertIn("TL_RELAY_HOME='%s' " % spaced, done.stderr)
         self.record("PASS")
         self.sb.commit("skills/alpha/leak.md", LEAK + "\n")
         self.patterns(["LEAK[W]ORD"])
         done = self.check()
-        self.assertIn("AI_SDLC_HOME='%s' " % spaced, done.stderr)
+        self.assertIn("TL_RELAY_HOME='%s' " % spaced, done.stderr)
 
     def test_a_custom_ref_is_gated(self):
         self.sb.commit("skills/alpha/note.md", LEAK + "\n")
         self.blocked(self.check(remote_ref="refs/wip/x"), 7)
 
     def test_an_unset_home_still_allows_a_deletion_and_a_docs_push(self):
-        del self.sb.env["AI_SDLC_HOME"]
+        del self.sb.env["TL_RELAY_HOME"]
         self.sb.commit("docs/plain.md", "plain\n")
         self.allowed(self.check())
         self.allowed(self.check(line="(delete) %s refs/heads/feature %s\n" % (ZERO, self.head())))
 
     def test_an_unset_home_blocks_a_gated_push_with_a_message(self):
-        del self.sb.env["AI_SDLC_HOME"]
+        del self.sb.env["TL_RELAY_HOME"]
         self.sb.commit("skills/alpha/note.md", "note\n")
         done = self.check()
         self.blocked(done, 5)
-        self.assertIn("AI_SDLC_HOME is not set", done.stderr)
+        self.assertIn("TL_RELAY_HOME is not set", done.stderr)
 
     def test_a_hook_change_on_one_ref_does_not_hide_a_leak_on_another(self):
         self.sb.commit("hooks/session-start-skills.sh", "#!/bin/sh\nexit 1\n")
@@ -1877,7 +1877,7 @@ class RealPush(unittest.TestCase):
     def test_a_push_without_ai_sdlc_home_uses_the_rendered_home(self):
         self.change_alpha()
         self.record("PASS")
-        env = {k: v for k, v in self.sb.env.items() if k != "AI_SDLC_HOME"}
+        env = {k: v for k, v in self.sb.env.items() if k != "TL_RELAY_HOME"}
         self.landed(self.push("origin", "feature", env=env))
 
     def test_no_verify_bypasses_the_hook(self):
@@ -1977,9 +1977,9 @@ class ScoreGuards(ScoreBase):
     def test_a_home_without_config_exits_two_and_creates_nothing(self):
         bare = self.sb.home / "bare-home"
         bare.mkdir()
-        env = dict(self.sb.env, AI_SDLC_HOME=str(bare))
+        env = dict(self.sb.env, TL_RELAY_HOME=str(bare))
         for argv in (("score",), ("tune", "alpha", "--runs", "1")):
-            self.refused(self.sb.run(*argv, env=env), "ai-sdlc.yaml")
+            self.refused(self.sb.run(*argv, env=env), "tl-relay.yaml")
         self.change_alpha()
         sha = self.sb._git("rev-parse", "HEAD").stdout.strip()
         done = subprocess.run(
@@ -1988,6 +1988,13 @@ class ScoreGuards(ScoreBase):
         )
         self.assertEqual(done.returncode, 2, done.stderr)
         self.assertEqual(list(bare.iterdir()), [])
+
+    def test_lock_accepts_a_legacy_home_file(self):
+        legacy = self.sb.home / "legacy-home"
+        legacy.mkdir()
+        (legacy / "ai-sdlc.yaml").write_text("neutrality:\n  patterns: []\n")
+        with mock.patch.dict(os.environ, {"TL_RELAY_HOME": str(legacy)}):
+            self.assertEqual(fr_lock._home(), legacy)
 
     def test_a_when_to_use_change_needs_a_heldout(self):
         text = "---\nname: alpha\ndescription: Use when alpha applies.\nwhen_to_use: later\n---\n\nBody of alpha.\n"
@@ -2031,14 +2038,14 @@ class ScoreGuards(ScoreBase):
     def test_score_refuses_a_hook_that_names_another_home(self):
         other = self.sb.home / "other-home"
         other.mkdir()
-        (other / "ai-sdlc.yaml").write_text("neutrality:\n  patterns: []\n")
+        (other / "tl-relay.yaml").write_text("neutrality:\n  patterns: []\n")
         self.sb.install_hook(home=other)
         self.refused(self.score(), "names home")
 
     def test_score_refuses_a_legacy_hook_that_names_another_home(self):
         other = self.sb.home / "other-home"
         other.mkdir()
-        (other / "ai-sdlc.yaml").write_text("neutrality:\n  patterns: []\n")
+        (other / "tl-relay.yaml").write_text("neutrality:\n  patterns: []\n")
         self.sb.install_hook(home=other)
         hook = self.sb.repo / ".git" / "hooks" / "pre-push"
         hook.write_text(hook.read_text().replace("# tl-relay pre-push hook", "# ai-sdlc pre-push hook"))
@@ -2116,7 +2123,7 @@ class UnmergedRefs(unittest.TestCase):
         self.allowed(self.check(line=self.tag_line(self.head())))
 
     def test_a_tag_on_main_needs_no_scan(self):
-        del self.sb.env["AI_SDLC_HOME"]
+        del self.sb.env["TL_RELAY_HOME"]
         main = self.sb._git("rev-parse", "refs/remotes/origin/main").stdout.strip()
         self.allowed(self.check(line=self.tag_line(main)))
 
@@ -2131,7 +2138,7 @@ class UnmergedRefs(unittest.TestCase):
 
     def test_a_tag_is_blocked_without_a_home(self):
         self.sb.commit("docs/plain.md", "plain\n")
-        del self.sb.env["AI_SDLC_HOME"]
+        del self.sb.env["TL_RELAY_HOME"]
         self.blocked(self.check(line=self.tag_line(self.head())), 7)
 
     def test_a_tag_is_blocked_without_origin_main(self):
@@ -2155,7 +2162,7 @@ class UnmergedRefs(unittest.TestCase):
     def bare_home(self):
         bare = self.sb.home / "bare-home"
         bare.mkdir()
-        self.sb.env["AI_SDLC_HOME"] = str(bare)
+        self.sb.env["TL_RELAY_HOME"] = str(bare)
         return bare
 
     def test_a_home_without_config_allows_a_branch_delete(self):
@@ -2174,7 +2181,7 @@ class UnmergedRefs(unittest.TestCase):
         self.sb.commit("skills/alpha/note.md", "note\n")
         done = self.check()
         self.assertEqual(done.returncode, 2, done.stderr)
-        self.assertIn("ai-sdlc.yaml", done.stderr)
+        self.assertIn("tl-relay.yaml", done.stderr)
         self.assertEqual(list(bare.iterdir()), [])
 
     def test_a_home_without_config_refuses_an_unmerged_tag(self):
@@ -2188,8 +2195,8 @@ class UnmergedRefs(unittest.TestCase):
         return self.sb._git("rev-parse", "refs/tags/" + name).stdout.strip()
 
     def allow(self, address):
-        home = pathlib.Path(self.sb.env["AI_SDLC_HOME"])
-        (home / "ai-sdlc.yaml").write_text(
+        home = pathlib.Path(self.sb.env["TL_RELAY_HOME"])
+        (home / "tl-relay.yaml").write_text(
             "neutrality:\n  patterns:\n    - LEAK[W]ORD\n  identity_allow:\n    - %s\n" % address)
 
     def test_a_tag_message_leak_on_a_merged_commit_is_blocked(self):
@@ -2213,7 +2220,7 @@ class UnmergedRefs(unittest.TestCase):
 
     def test_an_annotated_tag_is_blocked_without_a_home(self):
         tag = self.annotated()
-        del self.sb.env["AI_SDLC_HOME"]
+        del self.sb.env["TL_RELAY_HOME"]
         self.blocked(self.check(line=self.tag_line(tag)), 7)
 
     def test_an_allowed_tagger_email_passes(self):

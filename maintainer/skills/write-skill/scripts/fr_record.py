@@ -12,7 +12,7 @@ class RecordError(Exception):
 
 
 def path(repo) -> pathlib.Path:
-    return fr_git.common_dir(repo) / "ai-sdlc" / "final-run.jsonl"
+    return fr_git.common_dir(repo) / "tl-relay" / "final-run.jsonl"
 
 
 _FIELDS = {

@@ -65,20 +65,21 @@ class Sandbox:
         stub.chmod(0o755)
         temp = root / "tmp"
         temp.mkdir()
-        self.env = {k: v for k, v in os.environ.items() if k not in LOCAL_ENV and k != "CLAUDE_CONFIG_DIR"}
+        self.env = {k: v for k, v in os.environ.items() if k not in LOCAL_ENV and k != "CLAUDE_CONFIG_DIR"
+                    and not k.startswith(("AI_SDLC_", "TL_RELAY_"))}
         self.env.update(
             HOME=str(self.home),
             TMPDIR=str(temp),
             PYTHONDONTWRITEBYTECODE="1",
-            AI_SDLC_HOME=str(self.home / "ai-sdlc-home"),
+            TL_RELAY_HOME=str(self.home / "tl-relay-home"),
             TL_RELAY_TRIGGER_AGENT=str(stub),
-            AI_SDLC_REPO=str(REAL_REPO),
+            TL_RELAY_REPO=str(REAL_REPO),
             TL_RELAY_STUB_PLAN=str(self.plan_file),
             TL_RELAY_STUB_LOG=str(self.log_file),
         )
-        ai_home = pathlib.Path(self.env["AI_SDLC_HOME"])
+        ai_home = pathlib.Path(self.env["TL_RELAY_HOME"])
         ai_home.mkdir()
-        (ai_home / "ai-sdlc.yaml").write_text("neutrality:\n  patterns: []\n")
+        (ai_home / "tl-relay.yaml").write_text("neutrality:\n  patterns: []\n")
         self.agent_plan({})
         self._build()
 
@@ -127,7 +128,7 @@ class Sandbox:
             "install.apply([install.git_hook_change(sys.argv[1], sys.argv[2])])"
         )
         subprocess.run(
-            ["/usr/bin/python3", "-c", code, str(self.repo), str(home or self.env["AI_SDLC_HOME"])],
+            ["/usr/bin/python3", "-c", code, str(self.repo), str(home or self.env["TL_RELAY_HOME"])],
             cwd=str(self.repo), env=self.env, check=True, capture_output=True, text=True,
         )
 

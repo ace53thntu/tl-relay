@@ -36,7 +36,7 @@ def _home() -> pathlib.Path:
 
 
 def _command(*argv) -> str:
-    return "AI_SDLC_HOME=%s %s" % (shlex.quote(str(_home())), shlex.join([str(a) for a in argv]))
+    return "TL_RELAY_HOME=%s %s" % (shlex.quote(str(_home())), shlex.join([str(a) for a in argv]))
 
 
 def _final_run(repo, *args) -> str:
@@ -104,9 +104,9 @@ def _neutral(repo, base, sha) -> None:
 
 
 def _run_neutral(repo, scope) -> None:
-    root = os.environ.get("AI_SDLC_REPO")
+    root = os.environ.get("TL_RELAY_REPO")
     if not root:
-        raise Blocked(7, "AI_SDLC_REPO is not set", "export AI_SDLC_REPO=<ai-sdlc checkout>")
+        raise Blocked(7, "TL_RELAY_REPO is not set", "export TL_RELAY_REPO=<tl-relay checkout>")
     top = fr_git.toplevel(repo)
     argv = [sys.executable, str(pathlib.Path(root) / "maintainer" / "sdlc.py"), "check-neutral",
             "--repo", str(top), scope]
@@ -117,8 +117,8 @@ def _run_neutral(repo, scope) -> None:
 
 
 def _require_home(rule) -> None:
-    if not os.environ.get("AI_SDLC_HOME"):
-        raise Blocked(rule, "AI_SDLC_HOME is not set", "export AI_SDLC_HOME=<ai-sdlc home>")
+    if not os.environ.get("TL_RELAY_HOME"):
+        raise Blocked(rule, "TL_RELAY_HOME is not set", "export TL_RELAY_HOME=<tl-relay home>")
     fr_lock._home()
 
 
