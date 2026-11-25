@@ -463,7 +463,12 @@ class SuitesTest(unittest.TestCase):
         self.assertNotIn("RUN_TESTS_LEAK", recorded["env"])
         self.assertEqual(recorded["env"], expected)
 
-    def test_main_drops_git_location_vars_from_the_child_env(self):
+    def test_the_drop_list_matches_the_local_env_vars_git_reports(self):
+        done = subprocess.run(["git", "rev-parse", "--local-env-vars"], stdout=subprocess.PIPE,
+                              env=run_tests.without_git_vars(os.environ), check=True)
+        self.assertEqual(sorted(run_tests.GIT_ENV_DROP), sorted(done.stdout.decode().split()))
+
+    def test_main_drops_git_local_env_vars_from_the_child_env(self):
         recorded = {}
 
         def record_run(units, jobs, out, env=None):
@@ -474,16 +479,15 @@ class SuitesTest(unittest.TestCase):
             recorded["warmup"] = env
 
         dropped = list(run_tests.GIT_ENV_DROP) + ["GIT_CONFIG_KEY_0", "GIT_CONFIG_VALUE_0"]
-        planted = dict({name: "/run-tests-leak" for name in dropped}, RUN_TESTS_KEEP="1", GIT_CONFIG_GLOBAL="/keep")
-        with mock.patch.dict(os.environ, planted), tempfile.TemporaryDirectory() as repo, \
+        kept = {"RUN_TESTS_KEEP": "1", "GIT_CONFIG_GLOBAL": "/keep", "GIT_CONFIG_SYSTEM": "/keep", "GIT_CONFIG_NOSYSTEM": "1"}
+        planted = dict({name: "/run-tests-leak" for name in dropped}, **kept)
+        with mock.patch.dict(os.environ, planted, clear=True), tempfile.TemporaryDirectory() as repo, \
                 mock.patch.object(run_tests, "run", record_run), mock.patch.object(run_tests, "npx_warmup", record_warmup):
             write(repo, run_tests.CONTRACT_SUITE + "/test_ok.py", OK_SRC.format(name="One"))
             run_tests.main(["--all"], repo=pathlib.Path(repo), suites=(run_tests.Suite(run_tests.CONTRACT_SUITE, "py", None),),
                            out=io.StringIO())
         for name in ("run", "warmup"):
-            self.assertEqual([var for var in dropped if var in recorded[name]], [], name)
-            self.assertEqual(recorded[name].get("RUN_TESTS_KEEP"), "1", name)
-            self.assertEqual(recorded[name].get("GIT_CONFIG_GLOBAL"), "/keep", name)
+            self.assertEqual(recorded[name], kept, name)
 
     def test_the_redocly_spec_is_read_from_the_real_contract_script(self):
         repo = pathlib.Path(run_tests.__file__).resolve().parents[2]
