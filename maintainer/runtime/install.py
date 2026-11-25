@@ -493,6 +493,8 @@ def hook_notice(repo, home):
     named = _hook_home(text)
     if _differs(named, home):
         return "pre-push hook %s names home %s, not %s; run install --git-hook to update it" % (path, named, home)
+    if is_own_hook(text) and _hook_value(text, "TL_RELAY_HOME=") is None:
+        return "pre-push hook %s uses the old variable names; run install --git-hook to update it" % path
     return None
 
 

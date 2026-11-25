@@ -1385,6 +1385,18 @@ class GitHook(unittest.TestCase):
         self.hook.write_text("#!/bin/sh\necho mine\n")
         self.notice("not written by tl-relay")
 
+    def test_a_plain_install_notes_a_hook_rendered_from_the_old_template(self):
+        run_clone(self.clone, self.home, "--git-hook")
+        text = self.hook.read_text().replace("TL_RELAY_HOME=", "AI_SDLC_HOME=").replace("TL_RELAY_REPO=", "AI_SDLC_REPO=")
+        self.hook.write_text(text)
+        self.notice("install --git-hook")
+
+    def test_a_plain_install_draws_no_notice_for_a_current_hook(self):
+        run_clone(self.clone, self.home, "--git-hook")
+        code, out, err = run_clone(self.clone, self.home)
+        self.assertEqual(code, 0, err)
+        self.assertEqual([l for l in err.splitlines() if "pre-push" in l], [])
+
     def test_the_marker_names_tl_relay(self):
         self.assertEqual(install.HOOK_MARKER, "# tl-relay pre-push hook")
 

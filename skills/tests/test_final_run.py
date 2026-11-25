@@ -1079,7 +1079,7 @@ class Links(ScoreBase):
         self.assertEqual(self.score().returncode, 0)
         self.assertEqual(len(self.sb.agent_calls()), calls)
 
-    def test_score_without_ai_sdlc_home_exits_two(self):
+    def test_score_without_tl_relay_home_exits_two(self):
         env = {k: v for k, v in self.sb.env.items() if k != "TL_RELAY_HOME"}
         done = self.sb.run("score", env=env)
         self.assertEqual(done.returncode, 2)
@@ -1490,7 +1490,7 @@ class Tune(ScoreBase):
         self.assertIn("TL_RELAY_TRIGGER_PROMPTS", done.stderr)
         self.assertEqual(self.sb.agent_calls(), [])
 
-    def test_tune_without_ai_sdlc_home_exits_two(self):
+    def test_tune_without_tl_relay_home_exits_two(self):
         env = {k: v for k, v in self.sb.env.items() if k != "TL_RELAY_HOME"}
         done = self.tune(env=env)
         self.assertEqual(done.returncode, 2)
@@ -1768,7 +1768,7 @@ class Check(unittest.TestCase):
         self.assertNotIn("--no-verify", done.stderr)
 
     def test_printed_commands_carry_the_home_and_quote_paths(self):
-        spaced = self.sb.repo.parent / "ai sdlc home"
+        spaced = self.sb.repo.parent / "tl relay home"
         self.sb.env["TL_RELAY_HOME"] = str(spaced)
         self.patterns([])
         self.change_alpha()
@@ -1874,7 +1874,7 @@ class RealPush(unittest.TestCase):
         self.sb._git("worktree", "add", "-q", "-b", "other", str(linked), "feature")
         self.landed(self.push("origin", "other", cwd=linked), "refs/heads/other")
 
-    def test_a_push_without_ai_sdlc_home_uses_the_rendered_home(self):
+    def test_a_push_without_tl_relay_home_uses_the_rendered_home(self):
         self.change_alpha()
         self.record("PASS")
         env = {k: v for k, v in self.sb.env.items() if k != "TL_RELAY_HOME"}
