@@ -123,6 +123,33 @@ o=$(bare TL_RELAY_HOME="$TMP/ahome" TL_RELAY_USER_SETTINGS="$TMP/empty.json")
 o=$(bare TL_RELAY_HOME="$TMP/ahome" TL_RELAY_USER_SETTINGS=)
 { [ "$(dec "$o")" = "deny" ] && printf '%s' "$(rsn "$o")" | grep -qF "TL_RELAY_USER_SETTINGS is unset"; } && ok "a variable exported empty is not replaced from env.sh" || bad "empty variable was overridden by env.sh"
 
+mkdir "$TMP/badhome"
+printf 'TL_RELAY_ROOT=%s\nif then\n' "$ROOT" > "$TMP/badhome/env.sh"
+o=$(bare TL_RELAY_HOME="$TMP/badhome")
+{ [ "$(dec "$o")" = "deny" ] && printf '%s' "$(rsn "$o")" | grep -qF "$TMP/badhome/env.sh failed to load"; } && ok "names env.sh when it fails to load" || bad "env.sh failure not reported: $(rsn "$o")"
+printf '%s' "$(rsn "$o")" | grep -qF "is unset" && bad "a failed env.sh still lists unset variables: $(rsn "$o")" || ok "a failed env.sh is the only reason given"
+
+o=$(bare TL_RELAY_HOME="$TMP/badhome" TL_RELAY_ROOT="$ROOT" TL_RELAY_USER_FRAGMENT="$TMP/ufrag.json" TL_RELAY_FRAGMENT="$TMP/pfrag.json" \
+  TL_RELAY_USER_SETTINGS="$TMP/usettings.json" TL_RELAY_SETTINGS="$TMP/psettings.json")
+allows "$o" && ok "a failed env.sh does not matter when the environment sets all five" || bad "denied although the environment sets all five: $(rsn "$o")"
+
+NL="$TMP/nl
+dir"
+mkdir "$NL" "$TMP/nlhome"
+cp "$TMP/usettings.json" "$NL/usettings.json"
+printf "TL_RELAY_ROOT='%s'\nTL_RELAY_USER_FRAGMENT='%s'\nTL_RELAY_FRAGMENT='%s'\nTL_RELAY_USER_SETTINGS='%s'\nTL_RELAY_SETTINGS='%s'\n" \
+  "$ROOT" "$TMP/ufrag.json" "$TMP/pfrag.json" "$NL/usettings.json" "$TMP/psettings.json" > "$TMP/nlhome/env.sh"
+o=$(bare TL_RELAY_HOME="$TMP/nlhome")
+allows "$o" && ok "keeps an env.sh value that spans lines" || bad "multi-line env.sh value cut short: $(rsn "$o")"
+
+for extra in 'IFS=:' 'printf() { :; }'; do
+  rm -rf "$TMP/xhome"; mkdir "$TMP/xhome"
+  cp "$TMP/ahome/env.sh" "$TMP/xhome/env.sh"
+  printf '%s\n' "$extra" >> "$TMP/xhome/env.sh"
+  o=$(bare TL_RELAY_HOME="$TMP/xhome")
+  allows "$o" && ok "env.sh with $extra still passes its values back" || bad "env.sh with $extra lost its values: $(rsn "$o")"
+done
+
 mkdir "$TMP/lhome"
 printf 'AI_SDLC_ROOT=%s\nAI_SDLC_USER_FRAGMENT=%s\nAI_SDLC_FRAGMENT=%s\nAI_SDLC_USER_SETTINGS=%s\nAI_SDLC_SETTINGS=%s\n' \
   "$ROOT" "$TMP/ufrag.json" "$TMP/pfrag.json" "$TMP/usettings.json" "$TMP/psettings.json" > "$TMP/lhome/env.sh"
