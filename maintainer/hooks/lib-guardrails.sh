@@ -9,6 +9,8 @@ for _lg_v in $_lg_vars; do eval "_lg_n_$_lg_v="; done
 if [ -n "${TL_RELAY_HOME:-}" ] && [ -f "$TL_RELAY_HOME/env.sh" ]; then
   _lg_env=$(. "$TL_RELAY_HOME/env.sh" >/dev/null 2>&1 || exit 1
     trap - EXIT
+    unset IFS
+    unset -f printf
     _lg_vars="ROOT USER_FRAGMENT FRAGMENT USER_SETTINGS SETTINGS"
     _lg_quote() {
       _lq_s=$1 _lq_r=
