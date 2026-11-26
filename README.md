@@ -37,6 +37,10 @@ To update, run `claude plugin marketplace update tl-relay` and `claude plugin up
 
 Inside a project, `npx skills add` installs the skills into that project. Add `-g` to install them for your user account instead.
 
+Without `-a`, the command writes to every agent it detects, `.claude/skills/` included. If Claude Code already has the plugin, pass `-a` so Claude Code does not load each skill twice.
+
+`npx skills add` installs the skills from the `main` branch, which can hold changes that no release carries yet. To pin a release, add its tag: `npx skills add ace53thntu/tl-relay@v0.3.4`.
+
 ```sh
 npx skills add ace53thntu/tl-relay              # all skills, for the agents the CLI detects
 npx skills add ace53thntu/tl-relay -g           # all skills, for your user account
@@ -53,7 +57,7 @@ The design and build workflows each need a set of skills. Before it runs, each w
 
 | Bundle | Skills |
 |---|---|
-| Design | `using-tl-relay`, `tl-design`, `ingest-sources`, `write-design`, `write-hla`, `write-lld`, `write-contract`, `write-task-breakdown`, `technical-writing`, `lens-qa-conformance`, `lens-qa-engineer`, `lens-security-engineer`, `lens-shared`, `lens-software-engineer`, `lens-solution-architect` |
+| Design | `using-tl-relay`, `tl-design`, `ingest-sources`, `write-design`, `write-hla`, `write-lld`, `write-contract`, `write-task-breakdown`, `technical-writing`, `explore-codebase`, `lens-qa-conformance`, `lens-qa-engineer`, `lens-security-engineer`, `lens-shared`, `lens-software-engineer`, `lens-solution-architect` |
 | Build | `using-tl-relay`, `tl-implement`, `tl-design`, `write-plan`, `run-plan`, `route-subagents`, `review-change`, `verify-done`, `test-first`, `debug-issue`, `lens-qa-conformance`, `lens-shared` |
 
 The Build bundle carries `tl-design` for its Ask rule and its retro step. To run `tl-design` itself, install the Design bundle.
@@ -63,7 +67,7 @@ Design bundle:
 ```sh
 npx skills add ace53thntu/tl-relay --skill using-tl-relay --skill tl-design --skill ingest-sources --skill write-design \
   --skill write-hla --skill write-lld --skill write-contract --skill write-task-breakdown --skill technical-writing \
-  --skill lens-qa-conformance --skill lens-qa-engineer --skill lens-security-engineer --skill lens-shared \
+  --skill explore-codebase --skill lens-qa-conformance --skill lens-qa-engineer --skill lens-security-engineer --skill lens-shared \
   --skill lens-software-engineer --skill lens-solution-architect
 ```
 
