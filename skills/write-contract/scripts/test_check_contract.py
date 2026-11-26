@@ -6,6 +6,7 @@ import shutil
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
@@ -135,6 +136,15 @@ class RedoclyTest(unittest.TestCase):
         with contextlib.redirect_stdout(out):
             self.assertEqual(cc.main(args + ["--api", self.api, "--config", CONFIG]), 1)
         self.assertIn("check2: GET /things/{id} has no row in LLD section 4", out.getvalue())
+
+
+    def test_cli_reports_a_missing_npx_as_check1(self):
+        args = ["--contract", self.yaml, "--lld", self.lld, "--api", self.api, "--config", CONFIG]
+        out = io.StringIO()
+        with tempfile.TemporaryDirectory() as empty, mock.patch.dict(os.environ, {"PATH": empty}), \
+                contextlib.redirect_stdout(out), contextlib.redirect_stderr(io.StringIO()):
+            self.assertEqual(cc.main(args), 1)
+        self.assertIn("check1: npx not found", out.getvalue())
 
 
 class ModuleFlagTest(unittest.TestCase):

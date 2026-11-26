@@ -47,8 +47,11 @@ def parse_marker(line):
 
 
 def run_redocly(args):
-    return subprocess.run(["npx", "--yes", REDOCLY, *args], capture_output=True, text=True,
-                          env=dict(os.environ, REDOCLY_TELEMETRY="off"))
+    try:
+        return subprocess.run(["npx", "--yes", REDOCLY, *args], capture_output=True, text=True,
+                              env=dict(os.environ, REDOCLY_TELEMETRY="off"))
+    except FileNotFoundError:
+        raise ContractError(f"npx not found: install Node.js with npx to run {REDOCLY}") from None
 
 
 def bundle(yaml_path, dereferenced=True):
