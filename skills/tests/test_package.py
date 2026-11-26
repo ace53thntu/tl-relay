@@ -55,6 +55,10 @@ class PackageTest(unittest.TestCase):
     def test_readme_says_npx_without_agent_also_writes_claude_skills(self):
         self.assertIn("`.claude/skills/`", (ROOT / "README.md").read_text())
 
+    def test_readme_requirements_name_the_supported_systems(self):
+        section = (ROOT / "README.md").read_text().split("### Requirements", 1)[1].split("\n### ", 1)[0]
+        self.assertIn("- macOS or Linux.", section)
+
     def test_marketplace_points_at_the_root(self):
         m = json.loads((ROOT / ".claude-plugin/marketplace.json").read_text())
         self.assertEqual(m["name"], "tl-relay")
