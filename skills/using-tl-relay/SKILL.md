@@ -17,27 +17,29 @@ Talking yourself past the bar is the failure the red flags below describe.
 
 ## Skills
 
-- `brainstorm`: Creative work lies ahead: a feature, a component, a behavior change, anything new.
-- `write-plan`: No code exists yet, and a spec or approved requirements for a change with several steps are available. The plan may start by reading the code.
-- `run-plan`: A plan is ready and its independent tasks go to subagents.
-- `route-subagents`: A subagent is about to be dispatched, or its model or effort is asked.
-- `debug-issue`: No fix is proposed yet for a bug, failing test or unexpected behavior.
-- `explore-codebase`: Existing code must be found or read: callers, call paths, where a value is set, or a sweep of config files across repositories.
-- `test-first`: A feature or bugfix lacks its test; no implementation goes first.
-- `review-change`: A merge is next, or a task or major feature is complete.
-- `tl-design`: Starting, continuing, checking or signing a feature's design.
-- `tl-implement`: Building or resuming a signed design's breakdown row as a pull request.
-- `verify-done`: A claim of complete, fixed or passing lacks a fresh check you ran and read.
+| Skill | When |
+|-------|------|
+| `brainstorm` | Creative work lies ahead: a feature, a component, a behavior change, anything new. |
+| `write-plan` | No code exists yet, and a spec or approved requirements for a change with several steps are available. The plan may start by reading the code. |
+| `run-plan` | A plan is ready and its independent tasks go to subagents. |
+| `route-subagents` | A subagent is about to be dispatched or its model or effort chosen. |
+| `debug-issue` | No fix is proposed yet for a bug, failing test or unexpected behavior. |
+| `explore-codebase` | Existing code must be found or read: callers, call paths, where a value is set, config sweeps across repositories. |
+| `test-first` | A feature or bugfix lacks its test; no implementation goes first. |
+| `review-change` | A merge is next, or a task or major feature is complete. |
+| `tl-design` | Starting, continuing, checking or signing a feature's design. |
+| `tl-implement` | Building or resuming a signed design's breakdown row as a pull request. |
+| `verify-done` | A claim of complete, fixed or passing lacks a fresh check you ran and read. |
 
 ## Workflow
 
 1. Check the skills, then invoke each relevant one and any the user named.
-2. If `$TL_RELAY_LESSONS/<skill>.md` exists, read it. A lesson replaces a skill default; the operator's instruction in this session overrides a lesson.
+2. If `$TL_RELAY_LESSONS/<skill>.md` exists, read it: it replaces skill defaults, and the operator's word this session overrides it.
 3. Announce it ("Using [skill] to [purpose]"), then follow it exactly.
 
 A reply, a clarifying question, a code search, a file read: each is an action. Check the skills before every action, on every turn.
 
-- A skill's checklist becomes one todo per item. Drop a skill once it clearly does not fit.
+- One todo per checklist item; drop a skill that clearly does not fit.
 - Before plan mode, invoke `brainstorm` unless the work was brainstormed.
 
 When two or more skills apply or instructions conflict, read [reference.md](reference.md).
