@@ -81,7 +81,7 @@ def stamped(path, digest):
     try:
         with open(path, encoding="utf-8") as fh:
             return fh.readline().rstrip("\r\n") == STAMP.format(digest)
-    except OSError:
+    except (OSError, UnicodeDecodeError):
         return False
 
 
@@ -102,14 +102,18 @@ def main(argv=None):
     p.add_argument("--ids-out")
     p.add_argument("--pending", action="store_true")
     a = p.parse_args(argv)
+    if not a.pending and not (a.out and a.ids_out):
+        p.error("--out and --ids-out are required without --pending")
+    try:
+        digest, names = slices_digest(a.ws), slice_names(a.ws)
+    except (OSError, ValueError, KeyError, TypeError) as e:
+        print(f"assemble: cannot read {os.path.join(a.ws, 'slices.json')}: {e}", file=sys.stderr)
+        return 1
     if a.pending:
         print(json.dumps(pending(a.ws)))
         return 0
-    if not (a.out and a.ids_out):
-        p.error("--out and --ids-out are required without --pending")
     old = load_jsonl(os.path.join(a.ws, "old.jsonl"))
     new = load_jsonl(os.path.join(a.ws, "new.jsonl"))
-    digest, names = slices_digest(a.ws), slice_names(a.ws)
     stale = [f"{path}: no stamp for slices.json sha256 {digest[:12]}; rerun reader {name}"
              for name in names for path in stale_files(a.ws, digest, name)]
     if stale:

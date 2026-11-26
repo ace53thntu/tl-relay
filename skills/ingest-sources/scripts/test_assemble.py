@@ -120,6 +120,20 @@ class AssembleTest(unittest.TestCase):
             self.assertEqual(code, 0)
             self.assertEqual(json.loads(out), asm.pending(d))
 
+    def test_undecodable_reader_file_is_pending(self):
+        with tempfile.TemporaryDirectory() as d:
+            make_ws(d)
+            with open(os.path.join(d, "slice-B.md"), "wb") as fh:
+                fh.write(b"\xff\xfe")
+            self.assertEqual(asm.pending(d)["pending"], ["B"])
+
+    def test_missing_slices_json_fails_in_both_modes(self):
+        with tempfile.TemporaryDirectory() as d:
+            for argv in (["--ws", d, "--pending"], ["--ws", d, "--out", os.path.join(d, "o"), "--ids-out", os.path.join(d, "i")]):
+                code, _, err = run_main(argv)
+                self.assertEqual(code, 1)
+                self.assertTrue(err.startswith("assemble: cannot read"))
+
 
 if __name__ == "__main__":
     unittest.main()
