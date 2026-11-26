@@ -1,6 +1,6 @@
 ---
 name: write-design
-description: Use when writing or changing a page of a design set under `<knowledge_dir>/designs/<handle>/`, such as the Overview, a use case page, the Schema changes page, a module LLD or the Dependencies page. Also use to check where a design-set page sits, or which rule governs it.
+description: Use when writing or changing a page of a design set under `<runtime>/designs/<handle>/`, such as the Overview, a use case page, the Schema changes page, a module LLD or the Dependencies page. Also use to check where a design-set page sits, or which rule governs it.
 ---
 
 # Write a design set
