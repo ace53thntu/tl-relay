@@ -70,7 +70,7 @@ class PortableWritersTest(unittest.TestCase):
             text = self.body(name)
             self.assertIn("../using-tl-relay/config.md", text, name)
             self.assertNotIn("a missing file or key means `_knowledge`", text, name)
-            self.assertNotIn("<knowledge_dir>/designs/", text, name)
+            self.assertNotIn("<knowledge_dir>/designs/", (SKILLS / name / "SKILL.md").read_text(), name)
 
     def test_ingest_impact_scans_the_set_dir(self):
         text = self.body("ingest-sources")

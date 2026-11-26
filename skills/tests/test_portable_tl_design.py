@@ -111,5 +111,31 @@ class PortableTlDesignTest(unittest.TestCase):
             self.assertNotIn(needle, self.text)
 
 
+    def test_step_one_splits_ingest_between_writer_and_session(self):
+        row = next(l for l in self.text.splitlines() if l.startswith("| 1 | Ingest |"))
+        self.assertIn("For a `stories` revision: 1 to 4.3, then 4.6 and 4.7. The session runs 4.4 and 4.5", row)
+        self.assertNotIn("records no run id for step 1", self.text)
+        self.assertIn("at steps 1, 5, 8 and 9.", self.text)
+        block = self.text.split("A new revision of a `stories` source runs in four parts:", 1)[1].split("## Steps", 1)[0]
+        for needle in ("It stops once `$WS/slices.json` exists.", "If it returns without `slices.json`",
+                       "`$WS/drift-args.json`", "`$WS/writer.json`", "`<runtime>/designs/<handle>/runs/`", "Run `ingest-sources` step 4.4 in the session",
+                       "for `ingest-sources` steps 4.6 and 4.7 on the same `$WS`", "with the `--page` flags",
+                       "A resume at step 1 reads `ingest_ws`", "Reuse `ingest_ws` when it is set.",
+                       "every step 1 entry in `workflow_runs`", "With `G-ingest` signed, it finishes part 4.",
+                       "is not empty and `$WS/impact.tsv` is missing", "`ingest-<date>-<first 8 characters of ingest_sha256>`", "Write that line relative to the workspace root."):
+            self.assertIn(needle, block)
+        self.assertIn("Part 2 is done once `$WS/adjudication.json` exists.", block)
+        self.assertIn("A dispatch skips the snapshot when the revision in `ingest_sha256` is already recorded.", self.text)
+        self.assertNotIn("D/ingest/", self.text)
+        self.assertIn("On a fresh entry, remove `G-ingest` from `signed:`, and run `set-stage --stage ingest --status draft`.", self.text)
+        self.assertIn("rerun `set-stage --stage ingest --status signed-off` with the gate date", self.text)
+        self.assertNotIn("under `D/runs/`", self.text)
+        self.assertIn("Also clear `ingest_ws` and every step 1 entry in `workflow_runs`.", self.text)
+        self.assertIn("steps 1 to 3. The session then presents `G-ingest`.", self.text)
+        template = (SKILLS / "tl-design/templates/workflow-state.md").read_text()
+        self.assertIn("ingest_ws:", template)
+        self.assertIn("ingest_sha256:", template)
+
+
 if __name__ == "__main__":
     unittest.main()
