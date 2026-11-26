@@ -29,7 +29,7 @@ class PersonaTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             path = pathlib.Path(tmp) / "agent.md"
             path.write_text("---\nname: x\nskills: [a, b\n---\nbody\n", encoding="utf-8")
-            with self.assertRaisesRegex(yamlio.YamlError, "did not find expected ','"):
+            with self.assertRaisesRegex(yamlio.YamlError, r"did not find expected ',' or '\]'"):
                 frontmatter(path)
 
     def test_every_persona_has_frontmatter_name_description_model_skills(self):
