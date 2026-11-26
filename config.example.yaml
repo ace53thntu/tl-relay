@@ -18,6 +18,7 @@ operator_language: en
 # publish:
 #   command: "<command with {dir} {target}>"   # {dir} is the staged tree, {target} the target you name
 #   confirm_flag: "--yes"                      # added after the dry run you confirm
+#   keep: [page_ids]                           # frontmatter blocks the publish command writes back; a restage keeps them
 
 # tl-implement step 9. Unset: the ticket comment reports a skip.
 # tracker:

@@ -261,10 +261,10 @@ Before any sign-off, run these in order. Each script that runs must exit 0 befor
 Step 12 never pushes the set directory: its `index.md` holds the state block, and the local pages must stay unpublished.
 
 ```bash
-python3 <skill dir>/scripts/stage_publish.py "$D" <publish dir>
+python3 <skill dir>/scripts/stage_publish.py "$D" <publish dir> [--keep <key>]...
 ```
 
-- `<publish dir>` is `<runtime>/designs/<handle>/publish/`, with `state_dir` resolved against the workspace root to an absolute path, because subagents work inside the repo worktree. It sits outside the hub and stays between pushes. A restage keeps each page's `confluence:` block, so the next push updates the same pages.
+- `<publish dir>` is `<runtime>/designs/<handle>/publish/`, with `state_dir` resolved against the workspace root to an absolute path, because subagents work inside the repo worktree. It sits outside the hub and stays between pushes. Pass one `--keep <key>` for each entry in `publish.keep`. A restage keeps each page's frontmatter block under that key, such as the page id block a publish command writes back, so the next push updates the same pages. With `publish.keep` unset, a restage keeps no block.
 - The script copies every page except the set `index.md`, `Note`, `Notes` and `Audit` pages, and the `audits/`, `rounds/`, `sources/` and `specs/` directories.
 - The Overview becomes the root `index.md`. A module LLD `lld/<module>.md` becomes `lld/<module>/index.md`, and its API page `lld/<module>-api.md` becomes `lld/<module>/api/index.md`. Links follow the moved pages.
 - The staged tree sits at `<publish dir>/_knowledge`, because some publish tools resolve links within the nearest knowledge directory.

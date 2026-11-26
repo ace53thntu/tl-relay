@@ -12,6 +12,11 @@ class PortableTlDesignTest(unittest.TestCase):
                        "publish.command", "publish.confirm_flag", "{dir}", "{target}"):
             self.assertIn(needle, self.text)
 
+    def test_restage_keeps_only_the_blocks_publish_keep_names(self):
+        self.assertIn("publish.keep", self.text)
+        self.assertIn("--keep", self.text)
+        self.assertNotIn("`confluence:` block", self.text)
+
     def test_publish_dir_sits_in_state_dir(self):
         self.assertIn("<runtime>/designs/<handle>/publish/", self.text)
 
