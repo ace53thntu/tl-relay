@@ -27,9 +27,10 @@ decisions. The operator signs every gate.
 
 ## Sibling skills
 
-Before step 1, check that each of `ingest-sources`, `write-design`, `write-hla`, `write-lld`, `write-contract`,
-`write-task-breakdown`, `technical-writing` and every `lens-*` skill sits beside this skill. A missing one stops the run.
-Name it and give `npx skills add ace53thntu/tl-relay --skill <name>`.
+Before step 1, look up each of `ingest-sources`, `write-design`, `write-hla`, `write-lld`, `write-contract`,
+`write-task-breakdown`, `technical-writing` and every `lens-*` skill in the session's skill list. A name counts with or
+without the `tl-relay:` prefix. The list is the whole check: run no command and read no file for it. A name absent from
+the list stops the run. Name it and give `npx skills add ace53thntu/tl-relay --skill <name>`.
 
 ## Readers and boundary
 

@@ -100,7 +100,11 @@ class PortableTlDesignTest(unittest.TestCase):
             self.assertIn(needle, self.text)
 
     def test_sibling_check(self):
-        self.assertIn("npx skills add", self.text)
+        section = " ".join(self.text.split("## Sibling skills")[1].split("\n## ")[0].split())
+        self.assertIn("in the session's skill list", section)
+        self.assertIn("The list is the whole check: run no command and read no file for it.", section)
+        self.assertNotIn("sits beside", section)
+        self.assertIn("npx skills add", section)
 
     def test_lens_shared_installs_as_a_skill(self):
         text = (SKILLS / "lens-shared/SKILL.md").read_text()

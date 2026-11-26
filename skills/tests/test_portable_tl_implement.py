@@ -71,7 +71,11 @@ class PortableTlImplementTest(unittest.TestCase):
                 self.assertIn(" ".join(para.split()), " ".join(section.split()))
 
     def test_sibling_list_has_tl_design(self):
-        self.assertIn("`tl-design`", self.text.split("## Sibling skills")[1].split("##")[0])
+        section = " ".join(self.text.split("## Sibling skills")[1].split("\n## ")[0].split())
+        self.assertIn("`tl-design`", section)
+        self.assertIn("in the session's skill list", section)
+        self.assertIn("The list is the whole check: run no command and read no file for it.", section)
+        self.assertNotIn("sits beside", section)
 
     def test_temporal_skip_asks_operator(self):
         for needle in ("asks the operator before the gate whether to proceed without the Temporal review or stop",):
