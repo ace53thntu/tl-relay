@@ -164,7 +164,7 @@ class KillPaths(unittest.TestCase):
         self.assertEqual(out.splitlines(), ["PASS only", "1/1"])
         self.assert_clean()
 
-    # bash 3.2 also prints a racy "child setpgid" line the runner does not suppress, so only job notices are checked.
+    # bash also prints a racy "child setpgid" line the runner does not suppress, so only job notices are checked.
     def test_killing_an_agent_that_ignores_term_prints_no_job_notice(self):
         proc = self.start("ignore-term", stderr=subprocess.PIPE, bash="/bin/bash")
         out, err = proc.communicate(timeout=30)
