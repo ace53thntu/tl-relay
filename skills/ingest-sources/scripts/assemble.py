@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Merge reader slice tables and prove every criterion was ruled on exactly once."""
 import argparse
+import csv
 import hashlib
 import json
 import os
@@ -82,6 +83,15 @@ def slice_names(ws):
         return [s["name"] for s in json.load(fh)]
 
 
+def register_errors(ws, want_new, want_old, new_ids, old_ids):
+    errors = []
+    for name, want, have in (("new.jsonl", want_new, new_ids), ("old.jsonl", want_old, old_ids)):
+        path = os.path.join(ws, name)
+        errors += [f"{path}: id {i} missing" for i in sorted(want - set(have))]
+        errors += [f"{path}: unexpected id {i}" for i in sorted(set(have) - want)]
+    return errors
+
+
 def stamped(path, digest):
     try:
         with open(path, encoding="utf-8") as fh:
@@ -112,17 +122,32 @@ def main(argv=None):
     if not a.pending and not (a.out and a.ids_out):
         p.error("--out and --ids-out are required without --pending")
     failed = "slices.json"
+    errors = []
     try:
         digest = inputs_digest(a.ws)
         names = slice_names(a.ws)
-        if not a.pending:
-            failed = "old.jsonl"
-            old = load_jsonl(os.path.join(a.ws, failed))
-            failed = "new.jsonl"
-            new = load_jsonl(os.path.join(a.ws, failed))
+        failed = "old.jsonl"
+        old = load_jsonl(os.path.join(a.ws, failed))
+        old_ids = [o["id"] for o in old]
+        failed = "new.jsonl"
+        new = load_jsonl(os.path.join(a.ws, failed))
+        new_ids = [n["id"] for n in new]
+        if a.pending:
+            failed = "slices.json"
+            with open(os.path.join(a.ws, failed), encoding="utf-8") as fh:
+                slicing = json.load(fh)
+            want_new = {i for s in slicing for i in s["new_ids"]}
+            want_old = {i for s in slicing for i in s["rule_on"]}
+            failed = "pairs.tsv"
+            with open(os.path.join(a.ws, failed), encoding="utf-8", newline="") as fh:
+                want_old |= {r["old_id"] for r in csv.DictReader(fh, delimiter="\t") if r.get("old_id")}
+            errors = register_errors(a.ws, want_new, want_old, new_ids, old_ids)
     except (OSError, ValueError, KeyError, TypeError) as e:
         path = e.filename if isinstance(e, OSError) and e.filename else os.path.join(a.ws, failed)
         print(f"assemble: cannot read {path}: {e}", file=sys.stderr)
+        return 1
+    if errors:
+        print("\n".join(errors), file=sys.stderr)
         return 1
     if a.pending:
         print(json.dumps(pending(a.ws)))
@@ -133,7 +158,7 @@ def main(argv=None):
         print("\n".join(stale), file=sys.stderr)
         return 1
     rows = read_slices([os.path.join(a.ws, f"slice-{n}.md") for n in names])
-    counts, errors = check(rows, [n["id"] for n in new], [o["id"] for o in old])
+    counts, errors = check(rows, new_ids, old_ids)
     if errors:
         print("\n".join(errors), file=sys.stderr)
         return 1
