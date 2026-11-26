@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # PreToolUse/Bash: boc lenh de shell luon thoat 0 va in "[exit code N]" khi lenh loi.
-# Lenh loi di qua PostToolUseFailure, su kien do khong thay duoc output, nen
-# redact-secrets-output.py chi che duoc output cua lenh thoat 0.
+# Lenh loi di qua PostToolUseFailure: su kien do thay output o truong `error` nhung
+# khong sua duoc, nen redact-secrets-output.py chi che duoc output cua lenh thoat 0.
 # `exit N` ben trong lenh do trap EXIT bat; lenh tu dat trap EXIT rieng thi van lot.
 # Chi boc o bypass mode: lenh da boc khong qua duoc kiem tra permission o cac mode khac.
 import json
