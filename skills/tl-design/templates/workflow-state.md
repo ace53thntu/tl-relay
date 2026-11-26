@@ -15,6 +15,7 @@ signed: []
 open_decisions: []
 workflow_runs: []
 ingest_ws:
+ingest_sha256:
 
 ## Revise log
 
