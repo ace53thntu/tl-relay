@@ -1,3 +1,7 @@
+import contextlib
+import hashlib
+import io
+import json
 import os
 import sys
 import tempfile
@@ -12,6 +16,34 @@ SLICE_B = HEADER + "| `S-02-AC1` | — | new |\n| — | `US-16-AC1a` | withdrawn
 OLD = ["US-01-AC1a", "US-01-AC2a", "US-16-AC1a", "US-16-AC1b"]
 NEW = ["S-01-AC1", "S-01-AC2", "S-02-AC1"]
 OLD_STORY = {"US-01-AC1a": "US-01", "US-01-AC2a": "US-01", "US-16-AC1a": "US-16", "US-16-AC1b": "US-16"}
+
+
+def make_ws(d, stamps=("good", "good"), slice_g=False):
+    with open(os.path.join(d, "slices.json"), "w", encoding="utf-8") as fh:
+        json.dump([{"name": "A", "new_ids": NEW[:2], "rule_on": OLD[:2]},
+                   {"name": "B", "new_ids": NEW[2:], "rule_on": OLD[2:]}], fh)
+    for name, ids, story in (("old", OLD, OLD_STORY), ("new", NEW, {})):
+        with open(os.path.join(d, name + ".jsonl"), "w", encoding="utf-8") as fh:
+            fh.write("".join(json.dumps({"id": i, "story": story.get(i, "S")}) + "\n" for i in ids))
+    digest = asm.slices_digest(d)
+    for name, body, stamp in (("A", SLICE_A, stamps[0]), ("B", SLICE_B, stamps[1])):
+        head = "" if stamp is None else asm.STAMP.format(digest if stamp == "good" else stamp) + "\n"
+        for kind, text in (("slice", body), ("findings", "findings\n")):
+            with open(os.path.join(d, f"{kind}-{name}.md"), "w", encoding="utf-8") as fh:
+                fh.write(head + text)
+    if slice_g:
+        with open(os.path.join(d, "slice-G.md"), "w", encoding="utf-8") as fh:
+            fh.write(asm.STAMP.format("f" * 64) + "\n" + HEADER + "| `S-01-AC1` | `US-01-AC1a` | identical |\n")
+        with open(os.path.join(d, "findings-G.md"), "w", encoding="utf-8") as fh:
+            fh.write("findings\n")
+    return digest
+
+
+def run_main(argv):
+    out, err = io.StringIO(), io.StringIO()
+    with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+        code = asm.main(argv)
+    return code, out.getvalue(), err.getvalue()
 
 
 class AssembleTest(unittest.TestCase):
@@ -45,6 +77,77 @@ class AssembleTest(unittest.TestCase):
         bad = SLICE_B.replace("| `S-02-AC1` | — | new |", "| `S-02-AC1` | `US-16-AC1a` | new |")
         _, errors = asm.check(self.rows(b=bad), NEW, OLD)
         self.assertTrue(any("new verdict must name only a new criterion" in e for e in errors))
+
+    def test_pending_lists_unstamped_and_missing_slices(self):
+        with tempfile.TemporaryDirectory() as d:
+            digest = make_ws(d, stamps=("good", None))
+            with open(os.path.join(d, "slices.json"), "rb") as fh:
+                expected = hashlib.sha256(fh.read()).hexdigest()
+            self.assertEqual(asm.pending(d), {"slices_sha256": expected, "pending": ["B"]})
+            make_ws(d)
+            self.assertEqual(asm.pending(d)["pending"], [])
+            os.remove(os.path.join(d, "findings-A.md"))
+            self.assertEqual(asm.pending(d), {"slices_sha256": digest, "pending": ["A"]})
+
+    def test_pending_rejects_a_stamp_from_another_slicing(self):
+        with tempfile.TemporaryDirectory() as d:
+            make_ws(d, stamps=("0" * 64, "0" * 64))
+            self.assertEqual(asm.pending(d)["pending"], ["A", "B"])
+
+    def test_main_ignores_files_outside_slices_json(self):
+        with tempfile.TemporaryDirectory() as d:
+            digest = make_ws(d, slice_g=True)
+            code, _, _ = run_main(["--ws", d, "--out", os.path.join(d, "adjudication.json"), "--ids-out", os.path.join(d, "ids.txt")])
+            self.assertEqual(code, 0)
+            with open(os.path.join(d, "adjudication.json"), encoding="utf-8") as fh:
+                adj = json.load(fh)
+            self.assertEqual(adj["slices_sha256"], digest)
+            self.assertEqual(adj["findings"], [os.path.join(d, "findings-A.md"), os.path.join(d, "findings-B.md")])
+
+    def test_main_fails_on_a_stale_stamp(self):
+        with tempfile.TemporaryDirectory() as d:
+            make_ws(d, stamps=("good", "0" * 64))
+            code, _, err = run_main(["--ws", d, "--out", os.path.join(d, "adjudication.json"), "--ids-out", os.path.join(d, "ids.txt")])
+            self.assertEqual(code, 1)
+            self.assertIn("slice-B.md", err)
+            self.assertIn("rerun reader B", err)
+            self.assertFalse(os.path.exists(os.path.join(d, "adjudication.json")))
+
+    def test_pending_cli_prints_json(self):
+        with tempfile.TemporaryDirectory() as d:
+            make_ws(d, stamps=("good", None))
+            code, out, _ = run_main(["--ws", d, "--pending"])
+            self.assertEqual(code, 0)
+            self.assertEqual(json.loads(out), asm.pending(d))
+
+    def test_undecodable_reader_file_is_pending(self):
+        with tempfile.TemporaryDirectory() as d:
+            make_ws(d)
+            with open(os.path.join(d, "slice-B.md"), "wb") as fh:
+                fh.write(b"\xff\xfe")
+            self.assertEqual(asm.pending(d)["pending"], ["B"])
+
+    def test_a_bom_and_padding_on_the_stamp_line_still_count_as_stamped(self):
+        with tempfile.TemporaryDirectory() as d:
+            digest = make_ws(d)
+            with open(os.path.join(d, "slice-A.md"), "w", encoding="utf-8") as fh:
+                fh.write("\ufeff  " + asm.STAMP.format(digest) + "  \n" + SLICE_A)
+            self.assertEqual(asm.pending(d)["pending"], [])
+
+    def test_pending_with_an_output_flag_is_a_usage_error(self):
+        with tempfile.TemporaryDirectory() as d:
+            make_ws(d)
+            for flag in ("--out", "--ids-out"):
+                with self.assertRaises(SystemExit) as cm:
+                    run_main(["--ws", d, "--pending", flag, os.path.join(d, "x")])
+                self.assertEqual(cm.exception.code, 2)
+
+    def test_missing_slices_json_fails_in_both_modes(self):
+        with tempfile.TemporaryDirectory() as d:
+            for argv in (["--ws", d, "--pending"], ["--ws", d, "--out", os.path.join(d, "o"), "--ids-out", os.path.join(d, "i")]):
+                code, _, err = run_main(argv)
+                self.assertEqual(code, 1)
+                self.assertTrue(err.startswith("assemble: cannot read"))
 
 
 if __name__ == "__main__":
