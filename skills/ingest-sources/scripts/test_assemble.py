@@ -127,6 +127,21 @@ class AssembleTest(unittest.TestCase):
                 fh.write(b"\xff\xfe")
             self.assertEqual(asm.pending(d)["pending"], ["B"])
 
+    def test_a_bom_and_padding_on_the_stamp_line_still_count_as_stamped(self):
+        with tempfile.TemporaryDirectory() as d:
+            digest = make_ws(d)
+            with open(os.path.join(d, "slice-A.md"), "w", encoding="utf-8") as fh:
+                fh.write("\ufeff  " + asm.STAMP.format(digest) + "  \n" + SLICE_A)
+            self.assertEqual(asm.pending(d)["pending"], [])
+
+    def test_pending_with_an_output_flag_is_a_usage_error(self):
+        with tempfile.TemporaryDirectory() as d:
+            make_ws(d)
+            for flag in ("--out", "--ids-out"):
+                with self.assertRaises(SystemExit) as cm:
+                    run_main(["--ws", d, "--pending", flag, os.path.join(d, "x")])
+                self.assertEqual(cm.exception.code, 2)
+
     def test_missing_slices_json_fails_in_both_modes(self):
         with tempfile.TemporaryDirectory() as d:
             for argv in (["--ws", d, "--pending"], ["--ws", d, "--out", os.path.join(d, "o"), "--ids-out", os.path.join(d, "i")]):

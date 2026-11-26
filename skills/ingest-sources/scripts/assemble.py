@@ -80,7 +80,7 @@ def slice_names(ws):
 def stamped(path, digest):
     try:
         with open(path, encoding="utf-8") as fh:
-            return fh.readline().rstrip("\r\n") == STAMP.format(digest)
+            return fh.readline().lstrip("\ufeff").strip() == STAMP.format(digest)
     except (OSError, UnicodeDecodeError):
         return False
 
@@ -102,6 +102,8 @@ def main(argv=None):
     p.add_argument("--ids-out")
     p.add_argument("--pending", action="store_true")
     a = p.parse_args(argv)
+    if a.pending and (a.out or a.ids_out):
+        p.error("--pending cannot be combined with --out or --ids-out")
     if not a.pending and not (a.out and a.ids_out):
         p.error("--out and --ids-out are required without --pending")
     try:

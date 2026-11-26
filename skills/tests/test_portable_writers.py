@@ -57,6 +57,7 @@ class PortableWritersTest(unittest.TestCase):
                          "args: {kind, ws, oldSource, newSource, slices, digest}",
                          "Step 5 starts only after `--pending` lists no slice.",
                          "A stamp error goes back to step 4 for the slice it names, never to the operator.",
+                         "Keep line 1 of both files unchanged when you write the ruling.",
                          "Read the findings only from the files that `$WS/adjudication.json` lists under `findings`."):
             self.assertIn(sentence, text)
         self.assertNotIn("check that `$WS/slice-<name>.md` and `$WS/findings-<name>.md` exist", text)

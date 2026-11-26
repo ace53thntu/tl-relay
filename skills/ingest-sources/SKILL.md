@@ -115,7 +115,7 @@ For a revision, the caller writes the page after G-ingest, as step 4.8 says.
 
 5. Assemble. A stamp error goes back to step 4 for the slice it names, never to the operator. Put every other
    error to the operator as a question. Write the ruling into the named slice file and note it in
-   that slice's findings. Rerun until the exit code is 0.
+   that slice's findings. Keep line 1 of both files unchanged when you write the ruling. Rerun until the exit code is 0.
 
    ```bash
    python3 "$SK/assemble.py" --ws "$WS" --out "$WS/adjudication.json" --ids-out "$WS/ids-to-scan.txt"
