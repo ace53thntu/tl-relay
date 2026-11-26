@@ -25,7 +25,7 @@ def make_ws(d, stamps=("good", "good"), slice_g=False):
     for name, ids, story in (("old", OLD, OLD_STORY), ("new", NEW, {})):
         with open(os.path.join(d, name + ".jsonl"), "w", encoding="utf-8") as fh:
             fh.write("".join(json.dumps({"id": i, "story": story.get(i, "S")}) + "\n" for i in ids))
-    digest = asm.slices_digest(d)
+    digest = asm.inputs_digest(d)
     for name, body, stamp in (("A", SLICE_A, stamps[0]), ("B", SLICE_B, stamps[1])):
         head = "" if stamp is None else asm.STAMP.format(digest if stamp == "good" else stamp) + "\n"
         for kind, text in (("slice", body), ("findings", "findings\n")):
@@ -81,13 +81,17 @@ class AssembleTest(unittest.TestCase):
     def test_pending_lists_unstamped_and_missing_slices(self):
         with tempfile.TemporaryDirectory() as d:
             digest = make_ws(d, stamps=("good", None))
-            with open(os.path.join(d, "slices.json"), "rb") as fh:
-                expected = hashlib.sha256(fh.read()).hexdigest()
-            self.assertEqual(asm.pending(d), {"slices_sha256": expected, "pending": ["B"]})
+            h = hashlib.sha256()
+            for name in ("slices.json", "new.jsonl", "old.jsonl"):
+                with open(os.path.join(d, name), "rb") as fh:
+                    data = fh.read()
+                h.update(name.encode() + b"\n" + str(len(data)).encode() + b"\n" + data)
+            expected = h.hexdigest()
+            self.assertEqual(asm.pending(d), {"inputs_sha256": expected, "pending": ["B"]})
             make_ws(d)
             self.assertEqual(asm.pending(d)["pending"], [])
             os.remove(os.path.join(d, "findings-A.md"))
-            self.assertEqual(asm.pending(d), {"slices_sha256": digest, "pending": ["A"]})
+            self.assertEqual(asm.pending(d), {"inputs_sha256": digest, "pending": ["A"]})
 
     def test_pending_rejects_a_stamp_from_another_slicing(self):
         with tempfile.TemporaryDirectory() as d:
@@ -101,7 +105,7 @@ class AssembleTest(unittest.TestCase):
             self.assertEqual(code, 0)
             with open(os.path.join(d, "adjudication.json"), encoding="utf-8") as fh:
                 adj = json.load(fh)
-            self.assertEqual(adj["slices_sha256"], digest)
+            self.assertEqual(adj["inputs_sha256"], digest)
             self.assertEqual(adj["findings"], [os.path.join(d, "findings-A.md"), os.path.join(d, "findings-B.md")])
 
     def test_main_fails_on_a_stale_stamp(self):
@@ -148,6 +152,32 @@ class AssembleTest(unittest.TestCase):
                 code, _, err = run_main(argv)
                 self.assertEqual(code, 1)
                 self.assertTrue(err.startswith("assemble: cannot read"))
+
+
+    def test_a_text_change_in_new_jsonl_makes_every_slice_pending(self):
+        with tempfile.TemporaryDirectory() as d:
+            make_ws(d)
+            with open(os.path.join(d, "new.jsonl"), "w", encoding="utf-8") as fh:
+                fh.write("".join(json.dumps({"id": i, "story": "S", "text": "reworded"}) + "\n" for i in NEW))
+            self.assertEqual(asm.pending(d)["pending"], ["A", "B"])
+
+    def test_old_jsonl_change_changes_the_digest(self):
+        with tempfile.TemporaryDirectory() as d:
+            before = make_ws(d)
+            with open(os.path.join(d, "old.jsonl"), "ab") as fh:
+                fh.write(b" ")
+            self.assertNotEqual(asm.inputs_digest(d), before)
+
+    def test_missing_jsonl_fails_in_both_modes(self):
+        for name in ("new.jsonl", "old.jsonl"):
+            with tempfile.TemporaryDirectory() as d:
+                make_ws(d)
+                os.remove(os.path.join(d, name))
+                for argv in (["--ws", d, "--pending"], ["--ws", d, "--out", os.path.join(d, "o"), "--ids-out", os.path.join(d, "i")]):
+                    code, _, err = run_main(argv)
+                    self.assertEqual(code, 1)
+                    self.assertEqual(len(err.splitlines()), 1)
+                    self.assertTrue(err.startswith(f"assemble: cannot read {os.path.join(d, name)}: "))
 
 
 if __name__ == "__main__":
