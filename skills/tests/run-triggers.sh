@@ -89,12 +89,12 @@ for file in "$prompts"/*.txt; do
       --setting-sources project --model opus
   ) >"$tmp/stream" 2>>"$tmp/err" &
   agent_pid=$!
-  [ -z "${TL_RELAY_TRIGGER_PGID_FILE:-}" ] || printf '%s\n' "$agent_pid" >"$TL_RELAY_TRIGGER_PGID_FILE"
   (sleep "$limit"; touch "$tmp/timeout"; kill -TERM -- "-$agent_pid" 2>/dev/null; sleep 5; kill -KILL -- "-$agent_pid" 2>/dev/null) &
   dog_pid=$!
 
   TL_RELAY_TRIGGER_SEEN="$tmp/seen.jsonl" python3 "$here/triggers.py" watch "$expect" "$tmp/timeout" <"$tmp/stream" >"$tmp/verdict" 2>>"$tmp/err" &
   watch_pid=$!
+  [ -z "${TL_RELAY_TRIGGER_PGID_FILE:-}" ] || printf '%s\n' "$agent_pid" >"$TL_RELAY_TRIGGER_PGID_FILE"
   wait "$watch_pid"
   status=$?
   watch_pid=
