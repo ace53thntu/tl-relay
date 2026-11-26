@@ -12,7 +12,7 @@ ROOT = Path(__file__).resolve().parents[2]
 class PackageTest(unittest.TestCase):
     def test_plugin_manifest(self):
         m = json.loads((ROOT / ".claude-plugin/plugin.json").read_text())
-        self.assertEqual((m["name"], m["version"], m["license"]), ("tl-relay", "0.3.5", "MIT"))
+        self.assertEqual((m["name"], m["version"], m["license"]), ("tl-relay", "0.3.6", "MIT"))
 
     def test_marketplace_version_matches_the_plugin(self):
         plugin = json.loads((ROOT / ".claude-plugin/plugin.json").read_text())
