@@ -73,7 +73,7 @@ python3 "$SK/gen_register.py" "$K/<path>" --sheet "<sheet>" --id-col Criterion -
 
 For a first snapshot, also pass `--page "$K/designs/$H/specs/user-stories.md"` with `--page-title`,
 `--page-description`, `--source-rel` and `--generated-at`. Then add the index entry with the same description.
-For a revision, write the page only after G-ingest.
+For a revision, the caller writes the page after G-ingest, as step 4.8 says.
 
 ## 4. Drift record for a revision
 
@@ -128,8 +128,9 @@ For a revision, write the page only after G-ingest.
    stale references and the readers' open questions. Each item names the file to change and who decides. The workspace may be gone
    after this run, so the record must hold everything the readers found. Copy `$WS/adjudication.json` to
    `$K/designs/$H/audits/<date>-stories-adjudication.json`, which keeps the old-to-new mapping. Add the index entry.
-8. Stop at G-ingest. After the operator accepts, `tl-design` runs `set-baseline` and `add-impact` with `$WS/impact.tsv`, and
-   the caller regenerates `$K/designs/$H/specs/user-stories.md` from the revision. Run alone, this skill does.
+8. Stop at G-ingest. After the operator accepts, the caller runs `set-baseline` and `add-impact` with `$WS/impact.tsv`,
+   then regenerates `$K/designs/$H/specs/user-stories.md` from the revision. Run alone, this skill presents G-ingest and
+   then stops: it moves no baseline and leaves the register as it is.
 
 ## Rules
 
