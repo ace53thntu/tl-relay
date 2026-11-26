@@ -93,6 +93,8 @@ For a revision, the caller writes the page after G-ingest, as step 4.8 says.
      --unclaimed "$WS/unclaimed.txt" --count <n> --out "$WS/slices.json"
    ```
 
+   A nonzero exit from `pair.py` or `slices.py` goes to the operator as a question.
+
 4. Run the readers. First run `python3 "<skill dir>/scripts/assemble.py" --ws "$WS" --pending`. It prints `inputs_sha256`, the digest of
    `slices.json`, `new.jsonl` and `old.jsonl`, and `pending`, the slices that lack a slice file or a findings file stamped
    with that digest. It first checks that `new.jsonl` and `old.jsonl` parse and hold the ids that `slices.json` and

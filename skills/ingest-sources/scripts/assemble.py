@@ -9,7 +9,7 @@ import re
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from registerio import load_jsonl  # noqa: E402
+from registerio import load_jsonl, register_field  # noqa: E402
 
 VERDICTS = ("changed", "identical", "new", "reworded", "withdrawn")
 ROW = re.compile(r"^\|\s*`?([^|`]*?)`?\s*\|\s*`?([^|`]*?)`?\s*\|\s*(\w+)\s*\|")
@@ -81,13 +81,6 @@ def inputs_digest(ws):
 def slice_names(ws):
     with open(os.path.join(ws, "slices.json"), encoding="utf-8") as fh:
         return [s["name"] for s in json.load(fh)]
-
-
-def register_field(row, n, key):
-    value = row.get(key) if isinstance(row, dict) else None
-    if not isinstance(value, str) or value == "":
-        raise ValueError(f"row {n}: '{key}' must be a non-empty string")
-    return value
 
 
 def register_errors(ws, want_new, want_old, new_ids, old_ids):

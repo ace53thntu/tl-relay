@@ -8,7 +8,7 @@ import re
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from registerio import load_jsonl  # noqa: E402
+from registerio import load_jsonl, register_field, register_text  # noqa: E402
 
 LINK = re.compile(r"\[([^\]]*)\]\([^)]*\)")
 
@@ -63,7 +63,20 @@ def main(argv=None):
     p.add_argument("--out", required=True)
     p.add_argument("--unclaimed", required=True)
     a = p.parse_args(argv)
-    rows, unclaimed = pair(load_jsonl(a.old), load_jsonl(a.new))
+    path = a.old
+    try:
+        registers = []
+        for path in (a.old, a.new):
+            rows = load_jsonl(path)
+            for n, row in enumerate(rows, 1):
+                register_field(row, n, "id")
+                register_text(row, n, "scenario")
+                register_text(row, n, "rule")
+            registers.append(rows)
+    except (OSError, ValueError) as e:
+        print(f"pair: cannot read {path}: {e}", file=sys.stderr)
+        return 1
+    rows, unclaimed = pair(*registers)
     with open(a.out, "w", encoding="utf-8") as fh:
         fh.write("new_id\told_id\tkind\trule_changed\tratio\n")
         for r in rows:

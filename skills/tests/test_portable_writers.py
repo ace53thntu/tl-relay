@@ -80,6 +80,12 @@ class PortableWritersTest(unittest.TestCase):
         self.assertIn("It first checks that `new.jsonl` and `old.jsonl` parse and hold the ids that `slices.json` and `pairs.tsv` name.", text)
         self.assertIn("A nonzero exit from `--pending` goes to the operator as a question, and no reader runs.", text)
 
+    def test_pair_and_slices_failures_go_to_the_operator(self):
+        text = " ".join((SKILLS / "ingest-sources/SKILL.md").read_text().split())
+        self.assertIn("A nonzero exit from `pair.py` or `slices.py` goes to the operator as a question.", text)
+        self.assertLess(text.index("3. Slice."), text.index("A nonzero exit from `pair.py`"))
+        self.assertLess(text.index("A nonzero exit from `pair.py`"), text.index("4. Run the readers."))
+
     def test_write_design_sibling_stop_precedes_writing(self):
         text = (SKILLS / "write-design/SKILL.md").read_text()
         stop = text.index("--skill tl-design")

@@ -1,5 +1,9 @@
+import contextlib
+import io
+import json
 import os
 import sys
+import tempfile
 import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -37,6 +41,54 @@ class PairTest(unittest.TestCase):
     def test_below_the_threshold_stays_unpaired(self):
         rows, unclaimed = pr.pair(OLD[2:], NEW[2:])
         self.assertEqual((rows[0]["old_id"], unclaimed), ("", ["US-16-AC1a"]))
+
+
+def run_main(old_rows, new_rows, raw_new=None, drop_old=False):
+    with tempfile.TemporaryDirectory() as d:
+        old, new = os.path.join(d, "old.jsonl"), os.path.join(d, "new.jsonl")
+        out, unc = os.path.join(d, "pairs.tsv"), os.path.join(d, "unclaimed.txt")
+        if not drop_old:
+            with open(old, "w", encoding="utf-8") as fh:
+                fh.write("".join(json.dumps(r) + "\n" for r in old_rows))
+        with open(new, "w", encoding="utf-8") as fh:
+            fh.write(raw_new if raw_new is not None else "".join(json.dumps(r) + "\n" for r in new_rows))
+        so, se = io.StringIO(), io.StringIO()
+        with contextlib.redirect_stdout(so), contextlib.redirect_stderr(se):
+            code = pr.main(["--old", old, "--new", new, "--out", out, "--unclaimed", unc])
+        tsv = open(out, encoding="utf-8").read() if os.path.exists(out) else ""
+        return code, se.getvalue(), old, new, tsv
+
+
+class MainReadErrorTest(unittest.TestCase):
+    def test_main_rejects_a_missing_register(self):
+        code, err, old, _, _ = run_main(OLD, NEW, drop_old=True)
+        self.assertEqual(code, 1)
+        self.assertEqual(len(err.splitlines()), 1)
+        self.assertTrue(err.startswith(f"pair: cannot read {old}: "))
+
+    def test_main_rejects_a_line_that_is_not_json(self):
+        code, err, _, new, _ = run_main(OLD, NEW, raw_new='{"id": "S-01-AC1"')
+        self.assertEqual(code, 1)
+        self.assertEqual(len(err.splitlines()), 1)
+        self.assertTrue(err.startswith(f"pair: cannot read {new}: "))
+
+    def test_main_rejects_a_bad_id(self):
+        new_rows = [NEW[0], dict(NEW[1], id=["S-02-AC1"]), NEW[2]]
+        code, err, _, new, _ = run_main(OLD, new_rows)
+        self.assertEqual(code, 1)
+        self.assertEqual(err, f"pair: cannot read {new}: row 2: 'id' must be a non-empty string\n")
+
+    def test_main_rejects_a_null_scenario(self):
+        old_rows = OLD[:2] + [dict(OLD[2], scenario=None)]
+        code, err, old, _, _ = run_main(old_rows, NEW)
+        self.assertEqual(code, 1)
+        self.assertEqual(err, f"pair: cannot read {old}: row 3: 'scenario' must be a string\n")
+
+    def test_main_accepts_an_empty_rule(self):
+        new_rows = NEW[:2] + [dict(NEW[2], rule="")]
+        code, _, _, _, tsv = run_main(OLD, new_rows)
+        self.assertEqual(code, 0)
+        self.assertEqual(len(tsv.splitlines()), 4)
 
 
 if __name__ == "__main__":
