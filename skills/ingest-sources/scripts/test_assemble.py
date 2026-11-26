@@ -20,11 +20,14 @@ OLD_STORY = {"US-01-AC1a": "US-01", "US-01-AC2a": "US-01", "US-16-AC1a": "US-16"
 
 def make_ws(d, stamps=("good", "good"), slice_g=False):
     with open(os.path.join(d, "slices.json"), "w", encoding="utf-8") as fh:
-        json.dump([{"name": "A", "new_ids": NEW[:2], "rule_on": OLD[:2]},
+        json.dump([{"name": "A", "new_ids": NEW[:2], "rule_on": []},
                    {"name": "B", "new_ids": NEW[2:], "rule_on": OLD[2:]}], fh)
     for name, ids, story in (("old", OLD, OLD_STORY), ("new", NEW, {})):
         with open(os.path.join(d, name + ".jsonl"), "w", encoding="utf-8") as fh:
             fh.write("".join(json.dumps({"id": i, "story": story.get(i, "S")}) + "\n" for i in ids))
+    with open(os.path.join(d, "pairs.tsv"), "w", encoding="utf-8") as fh:
+        fh.write("new_id\told_id\tkind\trule_changed\tratio\n")
+        fh.write("S-01-AC1\tUS-01-AC1a\t\t\t\nS-01-AC2\tUS-01-AC2a\t\t\t\nS-02-AC1\t\t\t\t\n")
     digest = asm.inputs_digest(d)
     for name, body, stamp in (("A", SLICE_A, stamps[0]), ("B", SLICE_B, stamps[1])):
         head = "" if stamp is None else asm.STAMP.format(digest if stamp == "good" else stamp) + "\n"
@@ -187,6 +190,91 @@ class AssembleTest(unittest.TestCase):
             make_ws(d)
             with open(os.path.join(d, "new.jsonl"), "w", encoding="utf-8") as fh:
                 fh.write("{not json\n")
+            code, _, err = run_main(["--ws", d, "--out", os.path.join(d, "o"), "--ids-out", os.path.join(d, "i")])
+            self.assertEqual(code, 1)
+            self.assertEqual(len(err.splitlines()), 1)
+            self.assertTrue(err.startswith(f"assemble: cannot read {os.path.join(d, 'new.jsonl')}: "))
+
+    def append(self, d, name, text):
+        with open(os.path.join(d, name), "a", encoding="utf-8") as fh:
+            fh.write(text)
+
+    def drop(self, d, name, rid):
+        path = os.path.join(d, name)
+        with open(path, encoding="utf-8") as fh:
+            rows = [r for r in (json.loads(line) for line in fh) if r["id"] != rid]
+        with open(path, "w", encoding="utf-8") as fh:
+            fh.write("".join(json.dumps(r) + "\n" for r in rows))
+
+    def pending_err(self, d):
+        code, _, err = run_main(["--ws", d, "--pending"])
+        self.assertEqual(code, 1)
+        return err
+
+    def test_pending_rejects_a_truncated_register_line(self):
+        with tempfile.TemporaryDirectory() as d:
+            make_ws(d)
+            with open(os.path.join(d, "old.jsonl"), "w", encoding="utf-8") as fh:
+                fh.write("".join(json.dumps({"id": i, "story": "S"}) + "\n" for i in OLD[:3]) + '{"id": "US-16-AC1b"')
+            err = self.pending_err(d)
+            self.assertEqual(len(err.splitlines()), 1)
+            self.assertTrue(err.startswith(f"assemble: cannot read {os.path.join(d, 'old.jsonl')}: "))
+
+    def test_pending_rejects_a_row_without_id(self):
+        with tempfile.TemporaryDirectory() as d:
+            make_ws(d)
+            self.append(d, "new.jsonl", '{"story": "S"}\n')
+            err = self.pending_err(d)
+            self.assertEqual(len(err.splitlines()), 1)
+            self.assertTrue(err.startswith(f"assemble: cannot read {os.path.join(d, 'new.jsonl')}: "))
+
+    def test_pending_names_a_lost_new_row(self):
+        with tempfile.TemporaryDirectory() as d:
+            make_ws(d)
+            self.drop(d, "new.jsonl", "S-02-AC1")
+            self.assertEqual(self.pending_err(d), f"{os.path.join(d, 'new.jsonl')}: id S-02-AC1 missing\n")
+
+    def test_pending_names_a_lost_paired_old_row(self):
+        with tempfile.TemporaryDirectory() as d:
+            make_ws(d)
+            self.drop(d, "old.jsonl", "US-01-AC1a")
+            self.assertEqual(self.pending_err(d), f"{os.path.join(d, 'old.jsonl')}: id US-01-AC1a missing\n")
+
+    def test_pending_names_a_lost_unclaimed_old_row(self):
+        with tempfile.TemporaryDirectory() as d:
+            make_ws(d)
+            self.drop(d, "old.jsonl", "US-16-AC1b")
+            self.assertEqual(self.pending_err(d), f"{os.path.join(d, 'old.jsonl')}: id US-16-AC1b missing\n")
+
+    def test_pending_names_an_extra_row_after_the_missing_ones(self):
+        with tempfile.TemporaryDirectory() as d:
+            make_ws(d)
+            self.drop(d, "new.jsonl", "S-02-AC1")
+            self.append(d, "new.jsonl", json.dumps({"id": "S-09-AC1", "story": "S"}) + "\n")
+            self.append(d, "old.jsonl", json.dumps({"id": "US-99-AC1", "story": "S"}) + "\n")
+            n, o = os.path.join(d, "new.jsonl"), os.path.join(d, "old.jsonl")
+            self.assertEqual(self.pending_err(d).splitlines(),
+                             [f"{n}: id S-02-AC1 missing", f"{n}: unexpected id S-09-AC1", f"{o}: unexpected id US-99-AC1"])
+
+    def test_pending_without_pairs_tsv_fails_with_its_path(self):
+        for damage in ("remove", "garbage", "oversized"):
+            with tempfile.TemporaryDirectory() as d:
+                make_ws(d)
+                path = os.path.join(d, "pairs.tsv")
+                if damage == "remove":
+                    os.remove(path)
+                else:
+                    payload = b"\xff\xfe" if damage == "garbage" else b"new_id\told_id\n" + b"x" * 200000 + b"\n"
+                    with open(path, "wb") as fh:
+                        fh.write(payload)
+                err = self.pending_err(d)
+                self.assertEqual(len(err.splitlines()), 1)
+                self.assertTrue(err.startswith(f"assemble: cannot read {path}: "))
+
+    def test_main_rejects_a_row_without_id(self):
+        with tempfile.TemporaryDirectory() as d:
+            make_ws(d)
+            self.append(d, "new.jsonl", '{"story": "S"}\n')
             code, _, err = run_main(["--ws", d, "--out", os.path.join(d, "o"), "--ids-out", os.path.join(d, "i")])
             self.assertEqual(code, 1)
             self.assertEqual(len(err.splitlines()), 1)

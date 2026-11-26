@@ -93,8 +93,9 @@ For a revision, the caller writes the page after G-ingest, as step 4.8 says.
 
 4. Run the readers. First run `python3 "$SK/assemble.py" --ws "$WS" --pending`. It prints `inputs_sha256`, the digest of
    `slices.json`, `new.jsonl` and `old.jsonl`, and `pending`, the slices that lack a slice file or a findings file stamped
-   with that digest. Call the workflow below, where `slices` holds the pending entries of `slices.json` and `digest` is
-   `inputs_sha256`.
+   with that digest. It first checks that `new.jsonl` and `old.jsonl` parse and hold the ids that `slices.json` and
+   `pairs.tsv` name. A nonzero exit from `--pending` goes to the operator as a question, and no reader runs. Call the
+   workflow below, where `slices` holds the pending entries of `slices.json` and `digest` is `inputs_sha256`.
 
    ```js
    Workflow({scriptPath: "<skill dir>/workflows/drift-adjudicate.js", args: {kind, ws, oldSource, newSource, slices, digest}})
