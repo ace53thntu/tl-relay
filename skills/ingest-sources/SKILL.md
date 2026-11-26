@@ -103,7 +103,7 @@ For a revision, write the page only after G-ingest.
    Each subagent's prompt is the text that `prompt(a, s)` builds in `<skill dir>/workflows/drift-adjudicate.js`, copied verbatim.
    Fill `a` from the args above and `s` from that slice in `slices.json`.
    Dispatch on `opus` where the tool takes a model, else on the tool's default.
-   Then check that `$WS/slice-<name>.md` and `$WS/findings-<name>.md` exist for every slice, and redispatch only the slices that lack one.
+   After every subagent returns, check that `$WS/slice-<name>.md` and `$WS/findings-<name>.md` exist for every slice, and redispatch only the slices that lack one.
    Step 5 starts only after both files exist for every slice.
 
    With no subagent tool, the session adjudicates the slices one at a time, following the same reader instructions.
