@@ -164,17 +164,18 @@ class KillPaths(unittest.TestCase):
         self.assertEqual(out.splitlines(), ["PASS only", "1/1"])
         self.assert_clean()
 
+    # macOS bash 3.2 also prints a racy "child setpgid" line; only job notices are ours.
     def test_killing_an_agent_that_ignores_term_prints_no_job_notice(self):
         proc = self.start("ignore-term", stderr=subprocess.PIPE, bash="/bin/bash")
         out, err = proc.communicate(timeout=30)
         self.assertEqual(out.splitlines(), ["PASS only", "1/1"])
-        self.assertEqual(err, "")
+        self.assertNotRegex(err, "Terminated|Killed")
 
     def test_a_timed_out_agent_prints_no_job_notice(self):
         proc = self.start("silent", timeout=2, stderr=subprocess.PIPE, bash="/bin/bash")
         out, err = proc.communicate(timeout=30)
         self.assertEqual(out.splitlines()[-1], "0/1")
-        self.assertEqual(err, "")
+        self.assertNotRegex(err, "Terminated|Killed")
 
     def assert_times_out(self, mode):
         started = time.time()
