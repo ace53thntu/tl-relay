@@ -4,7 +4,7 @@ DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 INI="$DIR/.vale.ini"
 fail=0
 
-command -v vale >/dev/null || { echo "FAIL vale is not on PATH. Install it with: brew install vale"; exit 1; }
+command -v vale >/dev/null || { echo "FAIL vale is not on PATH. See https://docs.vale.sh/topics/installation"; exit 1; }
 
 out=$(vale --no-exit --output=JSON --config "$INI" "$DIR/fixtures/dirty.md") || { echo "FAIL vale could not run on dirty.md"; exit 1; }
 while IFS= read -r rule; do
