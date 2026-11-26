@@ -28,8 +28,8 @@ class PersonaTests(unittest.TestCase):
     def test_invalid_yaml_in_an_agent_file_raises(self):
         with tempfile.TemporaryDirectory() as tmp:
             path = pathlib.Path(tmp) / "agent.md"
-            path.write_text("---\nname: x\nskills: [a:b]\n---\nbody\n", encoding="utf-8")
-            with self.assertRaisesRegex(yamlio.YamlError, "found unexpected ':'"):
+            path.write_text("---\nname: x\nskills: [a, b\n---\nbody\n", encoding="utf-8")
+            with self.assertRaisesRegex(yamlio.YamlError, "did not find expected ','"):
                 frontmatter(path)
 
     def test_every_persona_has_frontmatter_name_description_model_skills(self):
