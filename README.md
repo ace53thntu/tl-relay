@@ -90,7 +90,7 @@ npx skills add ace53thntu/tl-relay --skill using-tl-relay --skill tl-implement -
 python3 -m venv <skill dir>/.venv && <skill dir>/.venv/bin/python -m pip install -r <skill dir>/requirements.txt
 ```
 
-Without the package, `ingest-sources` stops and prints this command with the real `<skill dir>`. A plugin update installs a new version folder, so run the command again after each update.
+Without the package, `ingest-sources` stops and prints this command with the real `<skill dir>`. After `claude plugin update`, or an `npx skills update` that changes the skill, the new copy of the skill has no `.venv`, so run the command again.
 
 ### First session
 
