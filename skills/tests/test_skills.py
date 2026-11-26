@@ -78,11 +78,12 @@ def read(path):
 
 def frontmatter(path):
     lines = read(path).splitlines()
-    if not lines or lines[0] != "---":
+    markers = [line.rstrip() == "---" for line in lines]
+    if not markers or not markers[0]:
         raise ValueError("no frontmatter in %s" % path)
-    if "---" not in lines[1:]:
+    if True not in markers[1:]:
         raise ValueError("no closing --- in %s" % path)
-    end = lines[1:].index("---") + 1
+    end = markers.index(True, 1)
     with tempfile.TemporaryDirectory() as tmp:
         block = pathlib.Path(tmp) / "frontmatter.yaml"
         block.write_text("\n".join([""] + lines[1:end]) + "\n", encoding="utf-8")
@@ -175,6 +176,10 @@ class Frontmatter(unittest.TestCase):
         with self.assertRaisesRegex(yamlio.YamlError, "at line 3 "):
             self.parse("---\nname: x\ndescription: Use when: a thing\n---\nbody\n")
 
+    def test_an_empty_file_has_no_frontmatter(self):
+        with self.assertRaisesRegex(ValueError, "no frontmatter"):
+            self.parse("")
+
     def test_a_file_without_an_opening_marker_raises(self):
         with self.assertRaisesRegex(ValueError, "no frontmatter"):
             self.parse("name: x\n---\nbody\n")
@@ -189,6 +194,9 @@ class Frontmatter(unittest.TestCase):
 
     def test_empty_frontmatter_has_no_fields(self):
         self.assertEqual(self.parse("---\n---\nbody\n"), {})
+
+    def test_markers_with_trailing_spaces_are_read(self):
+        self.assertEqual(self.parse("--- \nname: x\n---\t\nbody\n"), {"name": "x"})
 
 
 if __name__ == "__main__":

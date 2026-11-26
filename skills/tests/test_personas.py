@@ -1,6 +1,8 @@
 import pathlib
-import re
+import tempfile
 import unittest
+
+from test_skills import frontmatter, yamlio
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 AGENTS = ["design-writer", "solution-architect", "software-engineer",
@@ -22,28 +24,14 @@ NON_REVIEWER_LENSES = {"lens-qa-conformance"}
 EXTERNAL_SKILLS = {"temporal-workflow-design-critic", "temporal:temporal-developer"}
 
 
-def frontmatter(path):
-    lines = path.read_text().split("\n")
-    end = lines.index("---", 1)
-    fields = {}
-    key = None
-    for line in lines[1:end]:
-        block = re.match(r"\s+-\s+(.+)", line)
-        if block and key:
-            fields.setdefault(key, []).append(block.group(1).strip())
-            continue
-        pair = re.match(r"([\w-]+):\s*(.*)", line)
-        if not pair:
-            continue
-        key, value = pair.group(1), pair.group(2).strip()
-        if value.startswith("["):
-            fields[key] = [v.strip() for v in value.strip("[]").split(",") if v.strip()]
-        elif value:
-            fields[key] = value
-    return fields
-
-
 class PersonaTests(unittest.TestCase):
+    def test_invalid_yaml_in_an_agent_file_raises(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = pathlib.Path(tmp) / "agent.md"
+            path.write_text("---\nname: x\nskills: [a, b\n---\nbody\n", encoding="utf-8")
+            with self.assertRaisesRegex(yamlio.YamlError, r"did not find expected ',' or '\]'"):
+                frontmatter(path)
+
     def test_every_persona_has_frontmatter_name_description_model_skills(self):
         for stem in AGENTS:
             path = ROOT / "agents" / ("%s.md" % stem)
