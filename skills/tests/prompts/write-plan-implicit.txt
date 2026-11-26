@@ -1,2 +1,2 @@
 expect: write-plan
-I have the approved requirements for the retailer CSV export, a multi-step change. Write the implementation plan before anyone touches code.
+Product signed off on the retailer CSV export last week. It touches the exporter, the scheduler and the admin screen. Before anybody starts coding, break the work into ordered steps and name the files each step changes.
