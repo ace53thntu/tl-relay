@@ -127,6 +127,11 @@ mkdir "$TMP/badhome"
 printf 'TL_RELAY_ROOT=%s\nif then\n' "$ROOT" > "$TMP/badhome/env.sh"
 o=$(bare TL_RELAY_HOME="$TMP/badhome")
 { [ "$(dec "$o")" = "deny" ] && printf '%s' "$(rsn "$o")" | grep -qF "$TMP/badhome/env.sh failed to load"; } && ok "names env.sh when it fails to load" || bad "env.sh failure not reported: $(rsn "$o")"
+printf '%s' "$(rsn "$o")" | grep -qF "is unset" && bad "a failed env.sh still lists unset variables: $(rsn "$o")" || ok "a failed env.sh is the only reason given"
+
+o=$(bare TL_RELAY_HOME="$TMP/badhome" TL_RELAY_ROOT="$ROOT" TL_RELAY_USER_FRAGMENT="$TMP/ufrag.json" TL_RELAY_FRAGMENT="$TMP/pfrag.json" \
+  TL_RELAY_USER_SETTINGS="$TMP/usettings.json" TL_RELAY_SETTINGS="$TMP/psettings.json")
+allows "$o" && ok "a failed env.sh does not matter when the environment sets all five" || bad "denied although the environment sets all five: $(rsn "$o")"
 
 NL="$TMP/nl
 dir"

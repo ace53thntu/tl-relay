@@ -5,18 +5,21 @@
 _lg_vars="ROOT USER_FRAGMENT FRAGMENT USER_SETTINGS SETTINGS"
 _lg_env=
 _lg_env_failed=
-_lg_quote() {
-  _lq_s=$1 _lq_r=
-  while :; do
-    case $_lq_s in
-      (*\'*) _lq_r="$_lq_r${_lq_s%%\'*}'\\''"; _lq_s=${_lq_s#*\'} ;;
-      (*) break ;;
-    esac
-  done
-  printf "'%s%s'" "$_lq_r" "$_lq_s"
-}
+for _lg_v in $_lg_vars; do eval "_lg_n_$_lg_v="; done
 if [ -n "${TL_RELAY_HOME:-}" ] && [ -f "$TL_RELAY_HOME/env.sh" ]; then
   _lg_env=$(. "$TL_RELAY_HOME/env.sh" >/dev/null 2>&1 || exit 1
+    trap - EXIT
+    _lg_vars="ROOT USER_FRAGMENT FRAGMENT USER_SETTINGS SETTINGS"
+    _lg_quote() {
+      _lq_s=$1 _lq_r=
+      while :; do
+        case $_lq_s in
+          (*\'*) _lq_r="$_lq_r${_lq_s%%\'*}'\\''"; _lq_s=${_lq_s#*\'} ;;
+          (*) break ;;
+        esac
+      done
+      printf "'%s%s'" "$_lq_r" "$_lq_s"
+    }
     for _lg_v in $_lg_vars; do
       eval "printf '_lg_n_%s=%s\\n' \$_lg_v \"\$(_lg_quote \"\${TL_RELAY_$_lg_v:-}\")\""
     done) || { _lg_env= _lg_env_failed=$TL_RELAY_HOME/env.sh; }
@@ -24,7 +27,7 @@ if [ -n "${TL_RELAY_HOME:-}" ] && [ -f "$TL_RELAY_HOME/env.sh" ]; then
 fi
 for _lg_v in $_lg_vars; do
   eval "[ \"\${TL_RELAY_$_lg_v+x}\" = x ]" && continue
-  eval "TL_RELAY_$_lg_v=\${_lg_n_$_lg_v-}"
+  eval "TL_RELAY_$_lg_v=\$_lg_n_$_lg_v"
 done
 : "${TL_RELAY_COMPARE:=$(dirname "$0")/compare.jq}"
 
@@ -55,14 +58,18 @@ guardrail_problems() {
   _gp_rc=0
   _gp_n=0
 
-  [ -z "$_lg_env_failed" ] || { printf '%s failed to load; fix it or run sdlc.py install\n' "$_lg_env_failed"; _gp_rc=1; }
+  _gp_unset=
   for _gp_v in $_lg_vars; do
-    if eval "[ -z \"\${TL_RELAY_$_gp_v:-}\" ]"; then
-      printf 'TL_RELAY_%s is unset; run sdlc.py install\n' "$_gp_v"
-      _gp_rc=1
-    fi
+    eval "[ -z \"\${TL_RELAY_$_gp_v:-}\" ]" && _gp_unset="$_gp_unset $_gp_v"
   done
-  [ "$_gp_rc" -eq 0 ] || return 1
+  if [ -n "$_gp_unset" ]; then
+    if [ -n "$_lg_env_failed" ]; then
+      printf '%s failed to load; fix it or run sdlc.py install\n' "$_lg_env_failed"
+    else
+      for _gp_v in $_gp_unset; do printf 'TL_RELAY_%s is unset; run sdlc.py install\n' "$_gp_v"; done
+    fi
+    return 1
+  fi
 
   # The hook cannot tell which config directory its session loaded, so every
   # listed user settings file must carry the whole user fragment.
