@@ -93,9 +93,11 @@ class PortableWritersTest(unittest.TestCase):
                          "The workspace may be gone after this run, so the record must hold everything the readers found.",
                          "the caller runs `set-baseline` and `add-impact` with `$WS/impact.tsv`, then regenerates `$K/designs/$H/specs/user-stories.md` from the revision.",
                          "Run alone, this skill presents G-ingest and then stops: it moves no baseline and leaves the register as it is.",
-                         "For a revision, the caller writes the page after G-ingest, as step 8 says."):
+                         "For a revision, the caller writes the page after G-ingest, as step 4.8 says."):
             self.assertIn(sentence, text)
             self.assertNotIn("tl-design", sentence)
+        step8 = text[text.index("8. Stop at G-ingest."):text.index("## Rules")]
+        self.assertNotIn("tl-design", step8)
         self.assertNotIn("Run alone, this skill does.", text)
         self.assertNotIn("For a revision, write the page only after G-ingest.", text)
         self.assertNotIn("does not survive", text)

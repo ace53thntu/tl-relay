@@ -73,7 +73,7 @@ python3 "$SK/gen_register.py" "$K/<path>" --sheet "<sheet>" --id-col Criterion -
 
 For a first snapshot, also pass `--page "$K/designs/$H/specs/user-stories.md"` with `--page-title`,
 `--page-description`, `--source-rel` and `--generated-at`. Then add the index entry with the same description.
-For a revision, the caller writes the page after G-ingest, as step 8 says.
+For a revision, the caller writes the page after G-ingest, as step 4.8 says.
 
 ## 4. Drift record for a revision
 
