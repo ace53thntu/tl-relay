@@ -52,10 +52,10 @@ class PortableWritersTest(unittest.TestCase):
         self.assertLess(alone, text.index("5. Assemble."))
 
     def test_script_commands_set_no_shell_variable(self):
-        for name in ("ingest-sources", "write-contract"):
+        for name in ("ingest-sources", "write-contract", "write-task-breakdown"):
             text = (SKILLS / name / "SKILL.md").read_text()
-            self.assertNotIn("$SK", text, name)
-            self.assertNotIn("SK=", text, name)
+            for var in ("$SK", "SK=", "$CK", "CK="):
+                self.assertNotIn(var, text, name)
             self.assertIn("Set no shell variable in a command, because Claude Code asks before every command that sets one.",
                           " ".join(text.split()), name)
 

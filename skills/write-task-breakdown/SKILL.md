@@ -49,20 +49,17 @@ The table columns are `ID | Task | Scope | Ticket | Design | Depends on | MD`. `
 
 ## Commands
 
-Run these from the set directory `<design root>/designs/<handle>`. Set `SK` and `CK` first.
+Run these from the set directory `<design root>/designs/<handle>`. Write `<skill dir>` in place in each command. Set no
+shell variable in a command, because Claude Code asks before every command that sets one.
 
-```bash
-SK=<skill dir>/scripts
-CK=<skill dir>/../write-contract/scripts
-```
-
-Step 1 needs the sibling skill `write-contract`. If `$CK/render_lld.py` is missing, stop and name `write-contract` with
+Step 1 needs the sibling skill `write-contract`. If `<skill dir>/../write-contract/scripts/render_lld.py` is missing, stop
+and name `write-contract` with
 `npx skills add ace53thntu/tl-relay --skill write-contract`.
 
 1. Retitle the route pages for each module with routes, so each H1 equals the OpenAPI `summary`:
 
    ```bash
-   python3 "$CK/render_lld.py" --contract contracts/<module>.openapi.yaml --lld lld/<module>-api.md --module <module> --common lld/<module>-api.md --retitle
+   python3 "<skill dir>/../write-contract/scripts/render_lld.py" --contract contracts/<module>.openapi.yaml --lld lld/<module>-api.md --module <module> --common lld/<module>-api.md --retitle
    ```
 
    Skip a module with no routes.
@@ -70,7 +67,7 @@ Step 1 needs the sibling skill `write-contract`. If `$CK/render_lld.py` is missi
 2. Generate the tables:
 
    ```bash
-   python3 "$SK/generate_breakdown.py" --set .
+   python3 "<skill dir>/scripts/generate_breakdown.py" --set .
    ```
 
    It creates `task-breakdown.md` when none exists. It stops with an error when an existing `task-breakdown.md` has no markers.
@@ -78,7 +75,7 @@ Step 1 needs the sibling skill `write-contract`. If `$CK/render_lld.py` is missi
 3. Check:
 
    ```bash
-   python3 "$SK/check_breakdown.py" --set .
+   python3 "<skill dir>/scripts/check_breakdown.py" --set .
    ```
 
    It prints one problem per line, each starting with a task id, a page path or `set`. Exit 0 means no problem, 1 means at least one, and 2 means `--set` is not a directory.
