@@ -39,6 +39,22 @@ class PackageTest(unittest.TestCase):
         self.assertTrue(required)
         self.assertLessEqual(set(required), rows["Build"])
 
+    def test_each_bundle_carries_the_skills_its_members_read_code_through(self):
+        rows, _ = self.bundles()
+        for name, skills in rows.items():
+            for member in skills:
+                text = (ROOT / "skills" / member / "SKILL.md").read_text()
+                needed = set(re.findall(r"[Rr]ead the code through `([a-z-]+)`", text))
+                self.assertLessEqual(needed, skills, "%s bundle, %s" % (name, member))
+
+    def test_readme_says_npx_installs_the_main_branch_and_how_to_pin(self):
+        text = (ROOT / "README.md").read_text()
+        self.assertIn("installs the skills from the `main` branch", text)
+        self.assertIn("npx skills add ace53thntu/tl-relay@v", text)
+
+    def test_readme_says_npx_without_agent_also_writes_claude_skills(self):
+        self.assertIn("`.claude/skills/`", (ROOT / "README.md").read_text())
+
     def test_marketplace_points_at_the_root(self):
         m = json.loads((ROOT / ".claude-plugin/marketplace.json").read_text())
         self.assertEqual(m["name"], "tl-relay")
