@@ -1344,6 +1344,16 @@ class GitHook(unittest.TestCase):
         self.hook.chmod(0o644)
         self.notice("not executable")
 
+    def test_a_plain_install_notes_a_hook_that_names_no_home(self):
+        run_clone(self.clone, self.home, "--git-hook")
+        self.hook.write_text(re.sub(r"TL_RELAY_HOME=\S+ ", "", self.hook.read_text()))
+        self.notice("names no home")
+
+    def test_a_plain_install_notes_a_hook_that_names_no_checkout(self):
+        run_clone(self.clone, self.home, "--git-hook")
+        self.hook.write_text(re.sub(r"(?m)^main=.*\n", "", self.hook.read_text()))
+        self.notice("names no checkout")
+
     def test_a_plain_install_notes_a_foreign_hook(self):
         self.hook.write_text("#!/bin/sh\necho mine\n")
         self.notice("not written by tl-relay")

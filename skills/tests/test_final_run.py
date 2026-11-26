@@ -2030,6 +2030,12 @@ class ScoreGuards(ScoreBase):
         self.sb.install_hook(home=other)
         self.refused(self.score(), "names home")
 
+    def test_score_refuses_a_hook_that_names_no_home(self):
+        self.sb.install_hook()
+        hook = self.sb.repo / ".git" / "hooks" / "pre-push"
+        hook.write_text(re.sub(r"TL_RELAY_HOME=\S+ ", "", hook.read_text()))
+        self.refused(self.score(), "names no home")
+
     def test_score_ignores_a_hook_with_only_the_old_marker(self):
         other = self.sb.home / "other-home"
         other.mkdir()

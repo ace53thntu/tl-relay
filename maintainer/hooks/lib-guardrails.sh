@@ -7,11 +7,11 @@ _lg_env=
 _lg_env_failed=
 for _lg_v in $_lg_vars; do eval "_lg_n_$_lg_v="; done
 if [ -n "${TL_RELAY_HOME:-}" ] && [ -f "$TL_RELAY_HOME/env.sh" ]; then
-  _lg_env=$(. "$TL_RELAY_HOME/env.sh" >/dev/null 2>&1 || exit 1
+  _lg_env=$(set -- $_lg_vars
+    . "$TL_RELAY_HOME/env.sh" >/dev/null 2>&1 || exit 1
     trap - EXIT
     unset IFS
     unset -f printf
-    _lg_vars="ROOT USER_FRAGMENT FRAGMENT USER_SETTINGS SETTINGS"
     _lg_quote() {
       _lq_s=$1 _lq_r=
       while :; do
@@ -22,7 +22,7 @@ if [ -n "${TL_RELAY_HOME:-}" ] && [ -f "$TL_RELAY_HOME/env.sh" ]; then
       done
       printf "'%s%s'" "$_lq_r" "$_lq_s"
     }
-    for _lg_v in $_lg_vars; do
+    for _lg_v do
       eval "printf '_lg_n_%s=%s\\n' \$_lg_v \"\$(_lg_quote \"\${TL_RELAY_$_lg_v:-}\")\""
     done) || { _lg_env= _lg_env_failed=$TL_RELAY_HOME/env.sh; }
   eval "$_lg_env"
