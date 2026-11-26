@@ -50,5 +50,10 @@ while IFS= read -r rule; do
 done < "$DIR/fixtures/expected-rules.txt"
 TL_RELAY_VALE_VOCAB="$HOMETMP/vocab.txt" sh "$DIR/run.sh" "$DIR/fixtures/dirty.md" >/dev/null 2>&1 && { echo "FAIL run.sh exited 0 on dirty.md with an extra vocabulary"; fail=1; }
 
+if ! PATH=/usr/bin:/bin command -v vale >/dev/null; then
+  novale=$(PATH=/usr/bin:/bin sh "$DIR/run.sh" "$DIR/fixtures/clean.md" 2>&1 >/dev/null) && { echo "FAIL run.sh exited 0 without vale on PATH"; fail=1; }
+  printf '%s' "$novale" | grep -qF 'https://docs.vale.sh/topics/installation' || { echo "FAIL run.sh did not print the Vale install guide without vale on PATH"; fail=1; }
+fi
+
 [ "$fail" -eq 0 ] && echo "PASS"
 exit "$fail"

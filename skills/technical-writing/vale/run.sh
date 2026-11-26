@@ -2,6 +2,8 @@
 DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 HOME_VOCAB="${TL_RELAY_VALE_VOCAB:-}"
 
+command -v vale >/dev/null || { echo "vale is not on PATH. See https://docs.vale.sh/topics/installation" >&2; exit 127; }
+
 if [ -z "$HOME_VOCAB" ] || [ ! -f "$HOME_VOCAB" ]; then
   exec vale --config "$DIR/.vale.ini" "$@"
 fi
