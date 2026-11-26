@@ -242,11 +242,11 @@ The section budgets can add past 4,000. The page cap wins: merge deep dives that
 
 ## Rules that apply to every section
 
-- **REQUIRED SUB-SKILL:** `technical-writing` for prose and its House rules, then `unslop`, then the Vale gate in `technical-writing`. Zero errors.
+- **REQUIRED SUB-SKILL:** `technical-writing` for prose and its House rules, then `unslop` when the session lists it (see `technical-writing`), then the Vale gate in `technical-writing`. Zero errors.
 - **Technical wording, not narrative.** Headings are technical labels (`API changes`, not `Routes this
   design adds`). Body text uses technical terms, not colloquial phrases. Names use the operation and the code's own terms. See `technical-writing`, House rules.
 - **State it, or state that it is absent.** Write what the code has. Where it has none, write "none" and whether this document adds it. Never fill a slot with a placeholder value the design did not decide.
-- **Every claim about behaviour cites a file, a commit, or a ticket.** Read code through codegraph before writing, not from memory.
+- **Every claim about behaviour cites a file, a commit, or a ticket.** Read the code through `explore-codebase` before writing, not from memory.
 - **Write "not measured" for a number you cannot source**, never an estimate dressed as a measurement.
 - **A link replaces a fact only when the target page states that fact.** Before cutting a fact down to a link, open the target and find the fact there. When it is not there, keep the fact, or move it to the target first.
 - **No table inside a list item**, on any page: Confluence renders it as legacy content with a scroll bar. A short list of names goes inline in one sentence.
