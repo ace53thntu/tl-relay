@@ -84,13 +84,13 @@ npx skills add ace53thntu/tl-relay --skill using-tl-relay --skill tl-implement -
 - `vale` for the writing gate in `technical-writing` and `tl-design`.
 - Node.js with `npx` for `write-contract`. It runs `@redocly/cli` and downloads it on first use.
 
-`ingest-sources` needs one Python package for PDF conversion. Install it once, where `<skill dir>` is the folder of the installed `ingest-sources` skill:
+`ingest-sources` needs one Python package for PDF conversion. Install it, where `<skill dir>` is the folder of the installed `ingest-sources` skill:
 
 ```sh
 python3 -m venv <skill dir>/.venv && <skill dir>/.venv/bin/python -m pip install -r <skill dir>/requirements.txt
 ```
 
-Without the package, `ingest-sources` stops and names it.
+Without the package, `ingest-sources` stops and prints this command with the real `<skill dir>`. A plugin update installs a new version folder, so run the command again after each update.
 
 ## Skills
 
