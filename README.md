@@ -68,6 +68,7 @@ npx skills add ace53thntu/tl-relay --skill using-tl-relay --skill tl-implement -
 - `python3` 3.9 or later for the skill scripts.
 - `jq` for the plugin hooks. Without `jq` the hooks print nothing.
 - `vale` for the writing gate in `technical-writing` and `tl-design`.
+- Node.js with `npx` for `write-contract`. It runs `@redocly/cli` and downloads it on first use.
 
 `ingest-sources` needs one Python package for PDF conversion. Install it once, where `<skill dir>` is the folder of the installed `ingest-sources` skill:
 

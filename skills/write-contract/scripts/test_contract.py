@@ -1,6 +1,7 @@
 import copy
 import os
 import sys
+import tempfile
 import unittest
 from unittest import mock
 
@@ -38,6 +39,11 @@ class ContractTest(unittest.TestCase):
         self.assertEqual(env["REDOCLY_TELEMETRY"], "off")
         self.assertEqual(env["KEEP_ME"], "1")
         self.assertEqual(run.call_args.args[0], ["npx", "--yes", c.REDOCLY, "lint", "x.yaml"])
+
+    def test_run_redocly_names_npx_when_it_is_missing(self):
+        with tempfile.TemporaryDirectory() as empty, mock.patch.dict(os.environ, {"PATH": empty}):
+            with self.assertRaisesRegex(c.ContractError, "npx not found"):
+                c.run_redocly(["lint", "x.yaml"])
 
     def test_example_error_code_reads_a_nested_body_code(self):
         self.assertEqual(c.example_error_code({"status": "FAILED", "body": {"message": "token expired", "code": 401}}), "401")

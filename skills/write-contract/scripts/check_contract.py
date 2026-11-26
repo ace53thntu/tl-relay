@@ -127,11 +127,11 @@ def main(argv=None):
     p.add_argument("--config", default=DEFAULT_CONFIG)
     args = p.parse_args(argv)
     problems = []
-    code, output = lint(args.contract, args.config)
-    if code != 0:
-        print(output[-3000:], file=sys.stderr)
-        problems.append(("check1", f"redocly lint exited {code}"))
     try:
+        code, output = lint(args.contract, args.config)
+        if code != 0:
+            print(output[-3000:], file=sys.stderr)
+            problems.append(("check1", f"redocly lint exited {code}"))
         doc, raw = bundle(args.contract), bundle(args.contract, dereferenced=False)
         with open(args.lld, encoding="utf-8") as fh:
             lld = fh.read()
