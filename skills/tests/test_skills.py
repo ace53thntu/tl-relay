@@ -78,16 +78,23 @@ def read(path):
 
 def frontmatter(path):
     lines = read(path).splitlines()
-    if not lines or lines[0] != "---" or "---" not in lines[1:]:
+    if not lines or lines[0] != "---":
         raise ValueError("no frontmatter in %s" % path)
+    if "---" not in lines[1:]:
+        raise ValueError("no closing --- in %s" % path)
     end = lines[1:].index("---") + 1
     with tempfile.TemporaryDirectory() as tmp:
         block = pathlib.Path(tmp) / "frontmatter.yaml"
-        block.write_text("\n".join(lines[1:end]) + "\n", encoding="utf-8")
+        block.write_text("\n".join([""] + lines[1:end]) + "\n", encoding="utf-8")
         try:
-            return yamlio.load(block) or {}
+            fields = yamlio.load(block)
         except yamlio.YamlError as exc:
             raise yamlio.YamlError(str(exc).replace(str(block), str(path))) from None
+    if fields is None:
+        return {}
+    if not isinstance(fields, dict):
+        raise ValueError("frontmatter is not a mapping in %s" % path)
+    return fields
 
 
 class ForkedSkills(unittest.TestCase):
@@ -164,9 +171,21 @@ class Frontmatter(unittest.TestCase):
         with self.assertRaisesRegex(yamlio.YamlError, re.escape(str(self.path))):
             self.parse("---\nname: x\ndescription: Use when: a thing\n---\nbody\n")
 
+    def test_a_parse_error_gives_the_skill_file_line(self):
+        with self.assertRaisesRegex(yamlio.YamlError, "at line 3 "):
+            self.parse("---\nname: x\ndescription: Use when: a thing\n---\nbody\n")
+
     def test_a_file_without_an_opening_marker_raises(self):
         with self.assertRaisesRegex(ValueError, "no frontmatter"):
             self.parse("name: x\n---\nbody\n")
+
+    def test_a_file_without_a_closing_marker_raises(self):
+        with self.assertRaisesRegex(ValueError, "no closing --- in"):
+            self.parse("---\nname: x\nbody\n")
+
+    def test_frontmatter_that_is_not_a_mapping_raises(self):
+        with self.assertRaisesRegex(ValueError, "not a mapping"):
+            self.parse("---\njust text\n---\nbody\n")
 
     def test_empty_frontmatter_has_no_fields(self):
         self.assertEqual(self.parse("---\n---\nbody\n"), {})
