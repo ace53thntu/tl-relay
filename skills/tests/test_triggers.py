@@ -122,7 +122,7 @@ class KillPaths(unittest.TestCase):
         self.tmpdir = pathlib.Path(self.root.name) / "tmp"
         self.tmpdir.mkdir()
 
-    def start(self, mode, timeout=None, pgid_file=None):
+    def start(self, mode, timeout=None, pgid_file=None, script=None):
         extra = {"TL_RELAY_TRIGGER_TIMEOUT": str(timeout)} if timeout else {}
         if pgid_file:
             extra["TL_RELAY_TRIGGER_PGID_FILE"] = str(pgid_file)
@@ -136,7 +136,7 @@ class KillPaths(unittest.TestCase):
             **extra,
         )
         return subprocess.Popen(
-            ["bash", str(HERE / "run-triggers.sh")],
+            ["bash", str(script or HERE / "run-triggers.sh")],
             env=env,
             stdout=subprocess.PIPE,
             text=True,
@@ -286,6 +286,34 @@ class KillPaths(unittest.TestCase):
         self.assertEqual(proc.returncode, 130)
         self.assertEqual(path.read_text(), "")
         self.assert_clean()
+
+    def patched_runner(self, name, after):
+        root = pathlib.Path(self.root.name) / name
+        tests = root / "skills" / "tests"
+        tests.mkdir(parents=True)
+        (tests / "triggers.py").symlink_to(HERE / "triggers.py")
+        (tests / "fixtures").symlink_to(FIXTURES)
+        (root / "skills" / "alpha").mkdir()
+        (root / "skills" / "alpha" / "SKILL.md").write_text("---\nname: alpha\n---\n")
+        (root / "hooks").mkdir()
+        (root / "hooks" / "session-start-skills.sh").write_text("exit 0\n")
+        text = (HERE / "run-triggers.sh").read_text()
+        self.assertEqual(text.count(after), 1)
+        script = tests / "run-triggers.sh"
+        script.write_text(text.replace(after, after + "  kill -INT $$\n"))
+        return script
+
+    def test_an_interrupt_before_a_pid_is_recorded_stops_every_job(self):
+        forks = {"agent": ') >"$tmp/stream" 2>>"$tmp/err" &\n', "watchdog": '2>/dev/null) &\n'}
+        for name, after in forks.items():
+            with self.subTest(fork=name):
+                script = self.patched_runner(name, after)
+                proc = self.start("silent", timeout=40, script=script)
+                self.addCleanup(self.interrupt, proc)
+                proc.communicate(timeout=30)
+                self.assertEqual(proc.returncode, 130)
+                self.assertEqual(subprocess.run(["pgrep", "-f", str(script)]).returncode, 1)
+                self.assert_clean()
 
     def test_a_closed_pipe_leaves_no_temp_dir(self):
         (self.prompts / "two.txt").write_text("expect: debug-issue\nwhy does this fail\n")

@@ -11,24 +11,23 @@ limit=${TL_RELAY_TRIGGER_TIMEOUT:-120}
 
 tmp=
 agent_pid=
-dog_pid=
 watch_pid=
 
 stop_agent() {
-  [ -n "$dog_pid" ] && kill -TERM -- "-$dog_pid" 2>/dev/null
-  [ -n "$watch_pid" ] && kill -TERM "$watch_pid" 2>/dev/null
-  [ -n "$agent_pid" ] || return 0
-  kill -TERM -- "-$agent_pid" 2>/dev/null
-  local i
+  local groups group alive i
+  groups=$(jobs -p)
+  [ -n "$groups" ] || return 0
+  for group in $groups; do kill -TERM -- "-$group" 2>/dev/null; done
   for i in $(seq 50); do
-    kill -0 -- "-$agent_pid" 2>/dev/null || break
+    alive=
+    for group in $groups; do kill -0 -- "-$group" 2>/dev/null && alive=1; done
+    [ -n "$alive" ] || break
     sleep 0.1 & wait "$!"
   done
-  kill -KILL -- "-$agent_pid" 2>/dev/null
+  for group in $groups; do kill -KILL -- "-$group" 2>/dev/null; done
   wait 2>/dev/null
   [ -z "${TL_RELAY_TRIGGER_PGID_FILE:-}" ] || : >"$TL_RELAY_TRIGGER_PGID_FILE"
   agent_pid=
-  dog_pid=
   watch_pid=
 }
 
@@ -90,7 +89,6 @@ for file in "$prompts"/*.txt; do
   ) >"$tmp/stream" 2>>"$tmp/err" &
   agent_pid=$!
   (sleep "$limit"; touch "$tmp/timeout"; kill -TERM -- "-$agent_pid" 2>/dev/null; sleep 5; kill -KILL -- "-$agent_pid" 2>/dev/null) &
-  dog_pid=$!
 
   TL_RELAY_TRIGGER_SEEN="$tmp/seen.jsonl" python3 "$here/triggers.py" watch "$expect" "$tmp/timeout" <"$tmp/stream" >"$tmp/verdict" 2>>"$tmp/err" &
   watch_pid=$!
