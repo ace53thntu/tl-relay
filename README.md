@@ -92,6 +92,14 @@ python3 -m venv <skill dir>/.venv && <skill dir>/.venv/bin/python -m pip install
 
 Without the package, `ingest-sources` stops and prints this command with the real `<skill dir>`. A plugin update installs a new version folder, so run the command again after each update.
 
+### First session
+
+Start a new session after you install. With the plugin, the SessionStart hook loads `using-tl-relay` as the session starts.
+
+To check the install, give the agent any task. Before it edits code, it calls a skill such as `tl-relay:brainstorm` or `tl-relay:test-first`, and it usually announces the pick: "Using <skill> to <purpose>".
+
+With `npx skills`, no hook loads `using-tl-relay`. The skill runs only when the model picks it from its description. In a test, Sonnet picked it. Haiku skipped it in 1 run without a `CLAUDE.md` line and in 3 of 3 runs with a line that names it. In Claude Code, install the plugin instead.
+
 ## Skills
 
 | Group | Skill | Use |
