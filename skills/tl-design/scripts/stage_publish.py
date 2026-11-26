@@ -1,22 +1,20 @@
-"""Stage the published pages of a design set as a `conf push` page tree.
+"""Stage the published pages of a design set as a page tree.
 
-Usage: stage_publish.py <set dir> <publish dir>
+Usage: stage_publish.py <set dir> <publish dir> [--keep <key>]...
 
-Writes the tree under <publish dir>/_knowledge, because `conf push` keeps links
-inside the nearest `_knowledge` ancestor. A restage keeps each page's
-`confluence:` block, so the next push updates the same pages.
+Writes the tree under <publish dir>/_knowledge. A restage keeps each frontmatter
+block named by --keep, so the next push updates the same pages.
 """
+import argparse
 import os
 import posixpath
 import re
-import sys
 
 LOCAL_TYPES = {"Note", "Notes", "Audit"}
 LOCAL_DIRS = {"audits", "rounds", "sources", "specs", "_archived", "_diagrams"}
 ROOT_LOCAL_DIRS = {"publish", "runs"}
 LINK = re.compile(r"(\]\()([^)#\s]+\.md)(#[^)\s]*)?(\))")
 TYPE = re.compile(r"^type:\s*(.+?)\s*$", re.M)
-CONFLUENCE = re.compile(r"^confluence:\n(?:[ \t]+.*\n)+", re.M)
 
 
 def _read(path):
@@ -65,15 +63,18 @@ def _relink(text, rel, where):
     return LINK.sub(fix, text)
 
 
-def _keep_confluence(text, old):
-    kept = CONFLUENCE.search(old)
-    if not kept or CONFLUENCE.search(text):
-        return text
-    return re.sub(r"^---\n(.*?)\n---\n", lambda m: "---\n%s\n%s---\n" % (m.group(1), kept.group(0)),
-                  text, count=1, flags=re.S)
+def _keep_blocks(text, old, keep):
+    for key in keep:
+        block = re.compile(r"^%s:\n(?:[ \t]+.*\n)+" % re.escape(key), re.M)
+        kept = block.search(old)
+        if not kept or block.search(text):
+            continue
+        text = re.sub(r"^---\n(.*?)\n---\n", lambda m: "---\n%s\n%s---\n" % (m.group(1), kept.group(0)),
+                      text, count=1, flags=re.S)
+    return text
 
 
-def stage(set_dir, publish_dir):
+def stage(set_dir, publish_dir, keep=()):
     where = placement(set_dir, published(set_dir))
     root = os.path.join(publish_dir, "_knowledge")
     for rel, dest in where.items():
@@ -81,13 +82,16 @@ def stage(set_dir, publish_dir):
         out = os.path.join(root, dest)
         os.makedirs(os.path.dirname(out), exist_ok=True)
         if os.path.exists(out):
-            text = _keep_confluence(text, _read(out))
+            text = _keep_blocks(text, _read(out), keep)
         with open(out, "w", encoding="utf-8") as f:
             f.write(text)
     return root
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 3:
-        sys.exit(__doc__)
-    print(stage(sys.argv[1], sys.argv[2]))
+    parser = argparse.ArgumentParser(usage=__doc__)
+    parser.add_argument("set_dir")
+    parser.add_argument("publish_dir")
+    parser.add_argument("--keep", action="append", default=[])
+    args = parser.parse_args()
+    print(stage(args.set_dir, args.publish_dir, args.keep))

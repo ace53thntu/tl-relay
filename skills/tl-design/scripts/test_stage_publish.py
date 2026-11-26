@@ -1,5 +1,7 @@
 import os
 import shutil
+import subprocess
+import sys
 import tempfile
 import unittest
 
@@ -89,16 +91,33 @@ class StagePublishTest(unittest.TestCase):
         self.assertIn("(index.md)", self.read("lld/bk/execution-logic.md"))
         self.assertIn("(index.md)", self.read("lld/bk/api/4-1-post-bookings.md"))
 
-    def test_a_restage_keeps_the_confluence_block_of_a_pushed_page(self):
-        sp.stage(self.set, self.out)
+    def push(self, block):
         path = os.path.join(self.out, "_knowledge", "index.md")
         with open(path, encoding="utf-8") as f:
             text = f.read()
         with open(path, "w", encoding="utf-8") as f:
-            f.write(text.replace("---\n\n", "confluence:\n  page_id: 42\n  version: 3\n---\n\n", 1))
-        sp.stage(self.set, self.out)
-        self.assertIn("confluence:\n  page_id: 42\n  version: 3\n", self.read("index.md"))
+            f.write(text.replace("---\n\n", block + "---\n\n", 1))
 
+    def test_a_restage_keeps_a_block_named_in_keep(self):
+        sp.stage(self.set, self.out, ["wiki"])
+        self.push("wiki:\n  page_id: 42\n  version: 3\n")
+        sp.stage(self.set, self.out, ["wiki"])
+        self.assertIn("wiki:\n  page_id: 42\n  version: 3\n", self.read("index.md"))
+
+    def test_a_restage_drops_a_block_not_named_in_keep(self):
+        sp.stage(self.set, self.out)
+        self.push("confluence:\n  page_id: 42\n")
+        sp.stage(self.set, self.out)
+        self.assertNotIn("confluence:", self.read("index.md"))
+
+    def test_the_command_line_passes_each_keep_flag(self):
+        script = os.path.join(os.path.dirname(os.path.abspath(__file__)), "stage_publish.py")
+        run = [sys.executable, script, self.set, self.out, "--keep", "wiki", "--keep", "docs"]
+        subprocess.run(run, check=True, stdout=subprocess.DEVNULL)
+        self.push("wiki:\n  page_id: 42\ndocs:\n  id: 7\n")
+        subprocess.run(run, check=True, stdout=subprocess.DEVNULL)
+        self.assertIn("wiki:\n  page_id: 42\n", self.read("index.md"))
+        self.assertIn("docs:\n  id: 7\n", self.read("index.md"))
 
 if __name__ == "__main__":
     unittest.main()

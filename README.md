@@ -179,6 +179,7 @@ vale:
 | `operator_language` | `en` | Language of the questions the workflows ask you | `tl-design`, `tl-implement` |
 | `publish.command` | unset: the publish step reports a skip | Publishes the staged design pages. `{dir}` is the staged tree and `{target}` is the target you name | `tl-design` |
 | `publish.confirm_flag` | unset | The flag the skill adds once you approve the dry run | `tl-design` |
+| `publish.keep` | unset: a restage keeps no block | Frontmatter blocks that the publish command writes back, such as page ids. A restage keeps them | `tl-design` |
 | `tracker.comment` | unset: the ticket comment reports a skip | Posts the ticket comment. `{target}` is the ticket key and `{body_file}` is the comment file | `tl-implement` |
 | `tracker.confirm_flag` | unset | The flag the skill adds once you approve the dry run | `tl-implement` |
 | `vale.vocab` | unset: Vale uses the shipped vocabulary | Extra accepted words, one per line | `technical-writing` |
