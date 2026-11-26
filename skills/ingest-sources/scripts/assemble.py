@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Merge reader slice tables and prove every criterion was ruled on exactly once."""
 import argparse
-import glob
+import hashlib
 import json
 import os
 import re
@@ -13,6 +13,7 @@ from registerio import load_jsonl  # noqa: E402
 VERDICTS = ("changed", "identical", "new", "reworded", "withdrawn")
 ROW = re.compile(r"^\|\s*`?([^|`]*?)`?\s*\|\s*`?([^|`]*?)`?\s*\|\s*(\w+)\s*\|")
 EMPTY = {"", "—", "-"}
+STAMP = "<!-- slices.json sha256 {} -->"
 
 
 def read_slices(paths):
@@ -66,22 +67,63 @@ def ids_to_scan(rows, old_story):
     return sorted(ids)
 
 
+def slices_digest(ws):
+    with open(os.path.join(ws, "slices.json"), "rb") as fh:
+        return hashlib.sha256(fh.read()).hexdigest()
+
+
+def slice_names(ws):
+    with open(os.path.join(ws, "slices.json"), encoding="utf-8") as fh:
+        return [s["name"] for s in json.load(fh)]
+
+
+def stamped(path, digest):
+    try:
+        with open(path, encoding="utf-8") as fh:
+            return fh.readline().rstrip("\r\n") == STAMP.format(digest)
+    except OSError:
+        return False
+
+
+def stale_files(ws, digest, name):
+    paths = [os.path.join(ws, f"{kind}-{name}.md") for kind in ("slice", "findings")]
+    return [p for p in paths if not stamped(p, digest)]
+
+
+def pending(ws):
+    digest = slices_digest(ws)
+    return {"slices_sha256": digest, "pending": [n for n in slice_names(ws) if stale_files(ws, digest, n)]}
+
+
 def main(argv=None):
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--ws", required=True)
-    p.add_argument("--out", required=True)
-    p.add_argument("--ids-out", required=True)
+    p.add_argument("--out")
+    p.add_argument("--ids-out")
+    p.add_argument("--pending", action="store_true")
     a = p.parse_args(argv)
+    if a.pending:
+        print(json.dumps(pending(a.ws)))
+        return 0
+    if not (a.out and a.ids_out):
+        p.error("--out and --ids-out are required without --pending")
     old = load_jsonl(os.path.join(a.ws, "old.jsonl"))
     new = load_jsonl(os.path.join(a.ws, "new.jsonl"))
-    rows = read_slices(glob.glob(os.path.join(a.ws, "slice-*.md")))
+    digest, names = slices_digest(a.ws), slice_names(a.ws)
+    stale = [f"{path}: no stamp for slices.json sha256 {digest[:12]}; rerun reader {name}"
+             for name in names for path in stale_files(a.ws, digest, name)]
+    if stale:
+        print("\n".join(stale), file=sys.stderr)
+        return 1
+    rows = read_slices([os.path.join(a.ws, f"slice-{n}.md") for n in names])
     counts, errors = check(rows, [n["id"] for n in new], [o["id"] for o in old])
     if errors:
         print("\n".join(errors), file=sys.stderr)
         return 1
     ids = ids_to_scan(rows, {o["id"]: o["story"] for o in old})
     with open(a.out, "w", encoding="utf-8") as fh:
-        json.dump({"counts": counts, "old": len(old), "new": len(new), "rows": rows}, fh, indent=2, ensure_ascii=False)
+        json.dump({"slices_sha256": digest, "counts": counts, "old": len(old), "new": len(new), "rows": rows,
+                   "findings": [os.path.join(a.ws, f"findings-{n}.md") for n in names]}, fh, indent=2, ensure_ascii=False)
     with open(a.ids_out, "w", encoding="utf-8") as fh:
         fh.write("".join(i + "\n" for i in ids))
     print(json.dumps({"counts": counts, "old": len(old), "new": len(new), "ids_to_scan": len(ids)}))
