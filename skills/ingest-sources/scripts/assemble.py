@@ -83,6 +83,13 @@ def slice_names(ws):
         return [s["name"] for s in json.load(fh)]
 
 
+def register_field(row, n, key):
+    value = row.get(key) if isinstance(row, dict) else None
+    if not isinstance(value, str) or value == "":
+        raise ValueError(f"row {n}: '{key}' must be a non-empty string")
+    return value
+
+
 def register_errors(ws, want_new, want_old, new_ids, old_ids):
     errors = []
     for name, want, have in (("new.jsonl", want_new, new_ids), ("old.jsonl", want_old, old_ids)):
@@ -128,11 +135,11 @@ def main(argv=None):
         names = slice_names(a.ws)
         failed = "old.jsonl"
         old = load_jsonl(os.path.join(a.ws, failed))
-        old_ids = [o["id"] for o in old]
-        old_story = {o["id"]: o["story"] for o in old}
+        old_ids = [register_field(o, n, "id") for n, o in enumerate(old, 1)]
+        old_story = {register_field(o, n, "id"): register_field(o, n, "story") for n, o in enumerate(old, 1)}
         failed = "new.jsonl"
         new = load_jsonl(os.path.join(a.ws, failed))
-        new_ids = [n["id"] for n in new]
+        new_ids = [register_field(r, n, "id") for n, r in enumerate(new, 1)]
         if a.pending:
             failed = "slices.json"
             with open(os.path.join(a.ws, failed), encoding="utf-8") as fh:

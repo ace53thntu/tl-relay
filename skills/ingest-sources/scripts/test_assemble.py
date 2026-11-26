@@ -238,6 +238,74 @@ class AssembleTest(unittest.TestCase):
                 with open(os.path.join(d, name), "w", encoding="utf-8") as fh:
                     fh.write("\n".join(lines))
 
+    DELETE = object()
+
+    def rewrite_field(self, d, register, row_id, key, value):
+        path = os.path.join(d, register)
+        with open(path, encoding="utf-8") as fh:
+            rows = [json.loads(line) for line in fh]
+        for i, r in enumerate(rows):
+            if r["id"] == row_id:
+                if value is self.DELETE:
+                    del r[key]
+                elif key is None:
+                    rows[i] = value
+                else:
+                    r[key] = value
+        with open(path, "w", encoding="utf-8") as fh:
+            fh.write("".join(json.dumps(r) + "\n" for r in rows))
+        stamp = asm.STAMP.format(asm.inputs_digest(d))
+        for name in os.listdir(d):
+            if name.startswith(("slice-", "findings-")) and name.endswith(".md"):
+                with open(os.path.join(d, name), encoding="utf-8") as fh:
+                    lines = fh.read().split("\n")
+                lines[0] = stamp
+                with open(os.path.join(d, name), "w", encoding="utf-8") as fh:
+                    fh.write("\n".join(lines))
+
+    def assert_field_error(self, register, row_id, key, value, field, row, both):
+        with tempfile.TemporaryDirectory() as d:
+            make_ws(d)
+            self.rewrite_field(d, register, row_id, key if key else field, value)
+            want = f"assemble: cannot read {os.path.join(d, register)}: row {row}: '{field}' must be a non-empty string\n"
+            argvs = [["--ws", d, "--pending"]]
+            if both:
+                argvs.append(["--ws", d, "--out", os.path.join(d, "o"), "--ids-out", os.path.join(d, "i")])
+            for argv in argvs:
+                with self.subTest(argv=argv):
+                    code, _, err = run_main(argv)
+                    self.assertEqual(code, 1)
+                    self.assertEqual(err, want)
+
+    def test_null_old_story_is_a_read_error(self):
+        self.assert_field_error("old.jsonl", "US-16-AC1b", None, None, "story", 4, True)
+
+    def test_list_old_story_is_a_read_error(self):
+        self.assert_field_error("old.jsonl", "US-16-AC1b", None, ["US-16"], "story", 4, True)
+
+    def test_empty_old_story_is_a_read_error(self):
+        self.assert_field_error("old.jsonl", "US-01-AC1a", None, "", "story", 1, False)
+
+    def test_list_new_id_names_new_jsonl(self):
+        self.assert_field_error("new.jsonl", "S-02-AC1", "id", ["S-02-AC1"], "id", 3, False)
+
+    def test_null_old_id_is_a_read_error(self):
+        self.assert_field_error("old.jsonl", "US-01-AC2a", "id", None, "id", 2, False)
+
+    def test_missing_old_story_names_the_row(self):
+        self.assert_field_error("old.jsonl", "US-16-AC1b", "story", self.DELETE, "story", 4, True)
+
+    def test_missing_new_id_names_the_row(self):
+        self.assert_field_error("new.jsonl", "S-02-AC1", "id", self.DELETE, "id", 3, True)
+
+    def test_non_object_row_is_a_read_error(self):
+        with tempfile.TemporaryDirectory() as d:
+            make_ws(d)
+            self.rewrite_field(d, "new.jsonl", "S-02-AC1", None, ["x"])
+            code, _, err = run_main(["--ws", d, "--pending"])
+            self.assertEqual(code, 1)
+            self.assertEqual(err, f"assemble: cannot read {os.path.join(d, 'new.jsonl')}: row 3: 'id' must be a non-empty string\n")
+
     def test_pending_rejects_an_old_row_without_story(self):
         with tempfile.TemporaryDirectory() as d:
             make_ws(d)
