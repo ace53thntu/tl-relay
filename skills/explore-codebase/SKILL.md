@@ -1,6 +1,6 @@
 ---
 name: explore-codebase
-description: Use before you open, search or read existing code for any reason, a short factual question included, such as answering how the current system behaves, following a request across modules, finding where a setting comes from and what reads it, or listing each caller or import of a symbol. Also use for sweeps of Helm charts, CI files, env templates or lockfiles across repositories, and whenever grep looks quicker or a missing code index tempts you to build one.
+description: Use before you open, search or read existing code for any reason, even a short factual question. That covers system behaviour, request flow, a setting's source and readers, and each caller or import of a symbol. Also use for sweeps of Helm charts, CI files, env templates or lockfiles across repositories. Use it whenever grep looks quicker or a missing code index tempts you to build one. To plan an approved change, invoke write-plan first, then this skill for the reads.
 ---
 
 # Explore a codebase

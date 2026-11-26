@@ -29,20 +29,23 @@ The plugin installs the following:
 - a SessionStart hook that loads `using-tl-relay`
 - a lesson hook
 
-To update, run `/plugin marketplace update tl-relay`, then restart Claude Code.
+To update, run `claude plugin marketplace update tl-relay` and `claude plugin update tl-relay@tl-relay`, then restart Claude Code.
 
 ### `npx skills add`
 
 `npx skills` installs the skills for Claude Code, Cursor, Codex and the other agents that the [skills command-line tool](https://github.com/vercel-labs/skills) supports. It does not install agents or hooks.
 
+Inside a project, `npx skills add` installs the skills into that project. Add `-g` to install them for your user account instead.
+
 ```sh
 npx skills add ace53thntu/tl-relay              # all skills, for the agents the CLI detects
+npx skills add ace53thntu/tl-relay -g           # all skills, for your user account
 npx skills add ace53thntu/tl-relay -a cursor    # Cursor only
 npx skills add ace53thntu/tl-relay -a codex     # Codex only
 npx skills add ace53thntu/tl-relay --list       # list the skills without installing
 ```
 
-To install one skill, add `--skill <name>` and add `--skill using-tl-relay`. The skills read their path rules from `using-tl-relay`. That suits the skills that stand alone: `brainstorm`, `debug-issue`, `test-first`, `verify-done`, `review-change`, `technical-writing`, `explore-codebase` and `write-plan`. A few of them hand off to the next skill in a chain, so install the chain together: `brainstorm`, `write-plan` and `run-plan`, or `debug-issue`, `test-first` and `verify-done`.
+To install one skill, add `--skill <name>` and add `--skill using-tl-relay`. The skills read their path rules from `using-tl-relay`. That suits the skills that stand alone: `brainstorm`, `debug-issue`, `test-first`, `verify-done`, `review-change`, `technical-writing`, `explore-codebase` and `write-plan`. A few of them hand off to the next skill in a chain, so install the chain together: `brainstorm`, `write-plan`, `run-plan`, `route-subagents` and `review-change`, or `debug-issue`, `test-first` and `verify-done`.
 
 ### Bundles
 
@@ -51,13 +54,24 @@ The design and build workflows each need a set of skills. Before it runs, each w
 | Bundle | Skills |
 |---|---|
 | Design | `using-tl-relay`, `tl-design`, `ingest-sources`, `write-design`, `write-hla`, `write-lld`, `write-contract`, `write-task-breakdown`, `technical-writing`, `lens-qa-conformance`, `lens-qa-engineer`, `lens-security-engineer`, `lens-shared`, `lens-software-engineer`, `lens-solution-architect` |
-| Build | `using-tl-relay`, `tl-implement`, `tl-design`, `write-plan`, `run-plan`, `review-change`, `verify-done`, `test-first`, `debug-issue`, `lens-qa-conformance`, `lens-shared` |
+| Build | `using-tl-relay`, `tl-implement`, `tl-design`, `write-plan`, `run-plan`, `route-subagents`, `review-change`, `verify-done`, `test-first`, `debug-issue`, `lens-qa-conformance`, `lens-shared` |
 
 The Build bundle carries `tl-design` for its Ask rule and its retro step. To run `tl-design` itself, install the Design bundle.
 
+Design bundle:
+
+```sh
+npx skills add ace53thntu/tl-relay --skill using-tl-relay --skill tl-design --skill ingest-sources --skill write-design \
+  --skill write-hla --skill write-lld --skill write-contract --skill write-task-breakdown --skill technical-writing \
+  --skill lens-qa-conformance --skill lens-qa-engineer --skill lens-security-engineer --skill lens-shared \
+  --skill lens-software-engineer --skill lens-solution-architect
+```
+
+Build bundle:
+
 ```sh
 npx skills add ace53thntu/tl-relay --skill using-tl-relay --skill tl-implement --skill tl-design --skill write-plan --skill run-plan \
-  --skill review-change --skill verify-done --skill test-first --skill debug-issue \
+  --skill route-subagents --skill review-change --skill verify-done --skill test-first --skill debug-issue \
   --skill lens-qa-conformance --skill lens-shared
 ```
 
@@ -70,13 +84,21 @@ npx skills add ace53thntu/tl-relay --skill using-tl-relay --skill tl-implement -
 - `vale` for the writing gate in `technical-writing` and `tl-design`.
 - Node.js with `npx` for `write-contract`. It runs `@redocly/cli` and downloads it on first use.
 
-`ingest-sources` needs one Python package for PDF conversion. Install it once, where `<skill dir>` is the folder of the installed `ingest-sources` skill:
+`ingest-sources` needs one Python package for PDF conversion. Install it, where `<skill dir>` is the folder of the installed `ingest-sources` skill:
 
 ```sh
 python3 -m venv <skill dir>/.venv && <skill dir>/.venv/bin/python -m pip install -r <skill dir>/requirements.txt
 ```
 
-Without the package, `ingest-sources` stops and names it.
+Without the package, `ingest-sources` stops and prints this command with the real `<skill dir>`. A plugin update installs a new version folder, so run the command again after each update.
+
+### First session
+
+Start a new session after you install. With the plugin, the SessionStart hook loads `using-tl-relay` as the session starts.
+
+To check the install, give the agent any task. Before it edits code, it calls a skill such as `tl-relay:brainstorm` or `tl-relay:test-first`, and it usually announces the pick: "Using <skill> to <purpose>".
+
+With `npx skills`, no hook loads `using-tl-relay`. The skill runs only when the model picks it from its description. In a test, Sonnet picked it. Haiku skipped it in 1 run without a `CLAUDE.md` line and in 3 of 3 runs with a line that names it. In Claude Code, install the plugin instead.
 
 ## Skills
 
@@ -124,7 +146,7 @@ Without the package, `ingest-sources` stops and names it.
 
 ## Configuration
 
-Every skill runs with no config. The lookup and the paths follow [`skills/using-tl-relay/config.md`](skills/using-tl-relay/config.md). To override a default, add `.tl-relay/config.yaml` at the workspace root:
+Every skill runs with no config. The lookup and the paths follow [`skills/using-tl-relay/config.md`](skills/using-tl-relay/config.md). To override a default, add `.tl-relay/config.yaml` at the workspace root, or `~/.tl-relay/config.yaml` for every workspace. The workspace file wins key by key:
 
 ```yaml
 state_dir: ~/work/tl-relay-state
@@ -154,23 +176,16 @@ vale:
 - A relative path resolves against the workspace root.
 - Commit `.tl-relay/config.yaml`. `run-plan` writes a `.gitignore` in each plan-runs dir. With a `state_dir` inside a git tree, `tl-design` and `tl-implement` ignore `designs/*/publish/` and `designs/*/runs/`.
 - A project `CLAUDE.md` or `AGENTS.md` outranks the skills. A model rule in it overrides `route-subagents`.
-- Upgrading from the old layout:
-  - Move design pages from `_knowledge/designs/<handle>/` into `<state_dir>/<workspace>/designs/<handle>/` before the next publish.
-  - Move publish and run state from `.tl-relay/designs/<handle>/` into the same directory.
-  - Move the contents of each old folder below, subfolders included, into `<state_dir>/<workspace>/`:
-    - `_knowledge/plans/specs/` to `specs/`
-    - `_knowledge/plans/implementation/` to `plans/`
-    - `_knowledge/plans/lld/` to `plans/lld/`
-    - `_knowledge/plans/audits/` to `audits/`
-    - `_knowledge/hlds/` to `hlds/`
-    - A `CLAUDE.md` "Skill output targets" section keeps these old paths instead.
-  - Delete `.tl-relay/sdd/` at each repo and worktree root once no run is in progress. `run-plan` cannot resume those runs.
-  - Set `knowledge_dir` if the workspace has a hub.
 - [`config.example.yaml`](config.example.yaml) documents every key.
 
 ## Lessons
 
-Set `TL_RELAY_LESSONS` to the absolute path of a folder of `<skill>.md` files. When a skill loads, the plugin's lesson hook injects the matching file. A lesson replaces a default of that skill.
+Set `TL_RELAY_LESSONS` to the absolute path of a folder of `<skill>.md` files. Name each file after the skill, without the `tl-relay:` prefix. A lesson replaces a default of that skill.
+
+In Claude Code, set the variable in the `env` block of `settings.json`. Otherwise, export it in the shell that starts the agent.
+
+- With the plugin, the lesson hook injects the matching file when a skill loads.
+- With `npx skills`, a step in `using-tl-relay` reads `$TL_RELAY_LESSONS/<skill>.md` before the skill runs.
 
 ## Licence
 

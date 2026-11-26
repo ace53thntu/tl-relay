@@ -93,6 +93,20 @@ Config has two layers.
 
 The public skills read `.tl-relay/config.yaml` in the workspace, never the local config. The publish command and the ticket comment template live there. The local config keeps only what the maintainer tooling reads. `maintainer/tl-relay.example.yaml` shows the template.
 
+## Upgrading from the old layout
+
+- Move design pages from `_knowledge/designs/<handle>/` into `<state_dir>/<workspace>/designs/<handle>/` before the next publish.
+- Move publish and run state from `.tl-relay/designs/<handle>/` into the same directory.
+- Move the contents of each old folder below, subfolders included, into `<state_dir>/<workspace>/`:
+  - `_knowledge/plans/specs/` to `specs/`
+  - `_knowledge/plans/implementation/` to `plans/`
+  - `_knowledge/plans/lld/` to `plans/lld/`
+  - `_knowledge/plans/audits/` to `audits/`
+  - `_knowledge/hlds/` to `hlds/`
+  - A `CLAUDE.md` "Skill output targets" section keeps these old paths instead.
+- Delete `.tl-relay/sdd/` at each repo and worktree root once no run is in progress. `run-plan` cannot resume those runs.
+- Set `knowledge_dir` if the workspace has a hub.
+
 ## Commands
 
 Run each command as `/usr/bin/python3 maintainer/sdlc.py <command>`. `maintainer/sdlc.py <command> --help` lists the arguments.
