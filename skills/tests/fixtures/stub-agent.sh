@@ -31,7 +31,7 @@ case "${TL_RELAY_STUB_MODE:-}" in
     exit
     ;;
   leave-child)
-    bash -c '(exec -a "$0" sleep 300) >/dev/null &' "$marker"
+    bash -c '(: >"$1"; exec -a "$0" sleep 300) >/dev/null &' "$marker" "${TL_RELAY_STUB_READY:-/dev/null}"
     cat "$here/read-then-skill.jsonl"
     exit 0
     ;;

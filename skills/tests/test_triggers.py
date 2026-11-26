@@ -318,11 +318,14 @@ class KillPaths(unittest.TestCase):
                 self.assert_clean()
 
     def test_a_child_left_by_an_exited_agent_is_killed(self):
-        proc = self.start("leave-child")
+        ready = pathlib.Path(self.root.name) / "child.ready"
+        with mock.patch.dict(os.environ, {"TL_RELAY_STUB_READY": str(ready)}):
+            proc = self.start("leave-child")
         self.addCleanup(self.interrupt, proc)
         out, _ = proc.communicate(timeout=30)
         self.assertEqual(out.splitlines(), ["PASS only", "1/1"])
         self.assertEqual(proc.returncode, 0)
+        self.assertTrue(ready.exists())
         self.assert_clean()
 
     def test_a_closed_pipe_leaves_no_temp_dir(self):
