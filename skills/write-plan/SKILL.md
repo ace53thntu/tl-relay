@@ -1,6 +1,6 @@
 ---
 name: write-plan
-description: Use when approved requirements describe a multi-step change and the implementation plan must exist before anyone touches code. Also use when drafting the plan means reading the existing code first
+description: Use when approved requirements describe a multi-step change and the implementation plan must exist before anyone touches code. Also use when the plan for an agreed change starts with reading the existing code
 ---
 
 # Write Plan

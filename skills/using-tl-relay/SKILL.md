@@ -20,7 +20,7 @@ Talking yourself past the bar is the failure the red flags below describe.
 | Skill | Reach for it when |
 |-------|-------------------|
 | `brainstorm` | Creative work lies ahead: a feature, a component, a behavior change, anything new. |
-| `write-plan` | No code exists yet, and a spec or approved requirements for a change with several steps are available. |
+| `write-plan` | No code is written yet, and a spec or approved requirements cover a change with several steps. Reading the code to plan that change belongs here. |
 | `run-plan` | A plan is ready, and its independent tasks go to subagents. |
 | `route-subagents` | A subagent is about to be dispatched, or someone asks which model or effort delegated work gets. |
 | `debug-issue` | The next fix for any bug, failing test or unexpected behavior is not proposed yet. |
@@ -69,7 +69,7 @@ Each thought below means STOP. You are rationalizing.
 |---------|--------------|----|
 | "It is only a simple question." | You answer a task without its skill. | Check the skills, then answer. |
 | "I need context first." | The clarifying question goes out unguided. | Run the skill check BEFORE asking. |
-| "I will look through the codebase." | You explore without the method a skill gives. | Invoke `explore-codebase`, then open files. |
+| "I will look through the codebase." | You explore without the method a skill gives. | Invoke `explore-codebase`, then open files. To plan an approved change, invoke `write-plan` first. |
 | "One quick git or file check." | The files cannot tell you what this conversation asked for. | Check the skills first. |
 | "I will collect some facts." | You gather without the method a skill gives. | Check the skills for HOW to gather, then collect. |
 | "No formal skill is needed." | When a skill covers the work, going without it is a bypass. | Use it. |
