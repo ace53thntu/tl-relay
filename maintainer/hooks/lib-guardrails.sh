@@ -4,16 +4,27 @@
 # TL_RELAY_USER_SETTINGS is colon-separated, one entry per Claude Code config directory.
 _lg_vars="ROOT USER_FRAGMENT FRAGMENT USER_SETTINGS SETTINGS"
 _lg_env=
+_lg_env_failed=
+_lg_quote() {
+  _lq_s=$1 _lq_r=
+  while :; do
+    case $_lq_s in
+      (*\'*) _lq_r="$_lq_r${_lq_s%%\'*}'\\''"; _lq_s=${_lq_s#*\'} ;;
+      (*) break ;;
+    esac
+  done
+  printf "'%s%s'" "$_lq_r" "$_lq_s"
+}
 if [ -n "${TL_RELAY_HOME:-}" ] && [ -f "$TL_RELAY_HOME/env.sh" ]; then
-  _lg_env=$(. "$TL_RELAY_HOME/env.sh" >/dev/null 2>&1
+  _lg_env=$(. "$TL_RELAY_HOME/env.sh" >/dev/null 2>&1 || exit 1
     for _lg_v in $_lg_vars; do
-      eval "printf 'N %s=%s\\n' \$_lg_v \"\${TL_RELAY_$_lg_v:-}\""
-    done)
+      eval "printf '_lg_n_%s=%s\\n' \$_lg_v \"\$(_lg_quote \"\${TL_RELAY_$_lg_v:-}\")\""
+    done) || { _lg_env= _lg_env_failed=$TL_RELAY_HOME/env.sh; }
+  eval "$_lg_env"
 fi
 for _lg_v in $_lg_vars; do
   eval "[ \"\${TL_RELAY_$_lg_v+x}\" = x ]" && continue
-  _lg_new=$(printf '%s\n' "$_lg_env" | sed -n "s/^N $_lg_v=//p")
-  eval "TL_RELAY_$_lg_v=\$_lg_new"
+  eval "TL_RELAY_$_lg_v=\${_lg_n_$_lg_v-}"
 done
 : "${TL_RELAY_COMPARE:=$(dirname "$0")/compare.jq}"
 
@@ -44,6 +55,7 @@ guardrail_problems() {
   _gp_rc=0
   _gp_n=0
 
+  [ -z "$_lg_env_failed" ] || { printf '%s failed to load; fix it or run sdlc.py install\n' "$_lg_env_failed"; _gp_rc=1; }
   for _gp_v in $_lg_vars; do
     if eval "[ -z \"\${TL_RELAY_$_gp_v:-}\" ]"; then
       printf 'TL_RELAY_%s is unset; run sdlc.py install\n' "$_gp_v"
