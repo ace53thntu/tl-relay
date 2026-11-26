@@ -95,12 +95,25 @@ python3 "$S" --knowledge-root "$DROOT" --handle <handle> show
 1. No `D/index.md`: ask the operator for the handle if none was given, then run `init`.
 2. No `D/workflow-state.md`: create it from the template with `step: 1`, and start at step 1.
 3. Otherwise resume at `step`, `stage` and `round`. Resume an unfinished Workflow run by its id in `workflow_runs`.
-   The session records each Workflow it launches itself, at steps 5, 8 and 9, from the launch result, with the stage `round`.
-   The session records no run id for step 1's drift run, so a resume at step 1 reruns ingest.
+   The session records each Workflow it launches itself, at steps 1, 5, 8 and 9.
+   It records the run id from the launch result, with the stage `round` where one exists.
 4. Tell the operator the step, the round and the next human action in one sentence.
 
-At step 1, a source already recorded with `baseline: true` counts as ingested. Skip its snapshot. Run the drift
-check only for a new revision, then present `G-ingest`.
+At step 1, a source already recorded with `baseline: true` counts as ingested. Skip its snapshot.
+A source with no baseline of its kind takes one `design-writer` dispatch for `ingest-sources` steps 1 to 3. The session then presents `G-ingest`.
+A new revision of a `stories` source runs in four parts:
+
+1. Create `$WS` as a new directory under `D/ingest/`, and record it as `ingest_ws` in `workflow-state.md`.
+   Dispatch `design-writer` for `ingest-sources` steps 1 to 4.3 on `$WS`. It stops once `$WS/slices.json` exists.
+   It writes both converted source paths and its step 3 `gen_register.py` command to `$WS/writer.json`.
+   If it returns without `slices.json`, report its reason and stop.
+2. Write the drift args to `$WS/drift-args.json`. Run `ingest-sources` step 4.4 in the session, with the reader tiers it defines.
+   Then run step 4.5.
+3. Dispatch `design-writer` again for `ingest-sources` steps 4.6 and 4.7 on the same `$WS`.
+4. Present `G-ingest`. After it, rerun the `gen_register.py` command in `$WS/writer.json` with the `--page` flags of `ingest-sources` step 3.
+
+A resume at step 1 reads `ingest_ws`. It resumes a recorded drift run with the args in `$WS/drift-args.json`.
+With no recorded run, it continues from the first part whose output is missing.
 
 ## Steps
 
@@ -108,7 +121,7 @@ Advance `step` only when the step's output exists and its human action is done.
 
 | # | Step | Persona → skill/tool | Output | Operator |
 | --- | --- | --- | --- | --- |
-| 1 | Ingest | `design-writer` → `ingest-sources`, `drift-adjudicate.js` | `sources/`, drift record | Accepts the drift, signs `G-ingest` |
+| 1 | Ingest | `design-writer` → `ingest-sources` 1 to 4.3, then 4.6 and 4.7. The session runs 4.4 and 4.5 | `sources/`, drift record | Accepts the drift, signs `G-ingest` |
 | 2 | Interview | tech lead → `AskUserQuestion` | `decisions.md` § Interview | Answers the gaps |
 | 3 | Plan | tech lead | `plan.md`: pages to write, key decisions expected | Approves the outline |
 | 4 | Draft HLA | `design-writer` → `write-hla`, `write-design` | Overview, use case, Schema changes and Dependencies pages | — |
@@ -313,7 +326,7 @@ The `agents` value sets how a persona or writer is dispatched.
   The writer skills define no `key_class`, so the prompt also quotes the [Ask rule](#ask-rule) `key_class` table and its never-ask sentence:
   It never asks about a choice that matches the code at the baseline, follows from an earlier answer, or carries out an answered decision.
 - No subagent tool: the session plays each role itself, loading the bound skill.
-- No Workflow tool: run the script's phases in sequence, one persona lens at a time, and write the same `findings.json`.
+- No Workflow tool: run a persona or design-set script's phases in sequence, one persona lens at a time, and write the same `findings.json`. The step 1 drift run follows the reader tiers of `ingest-sources` instead.
 
 ## Rules
 

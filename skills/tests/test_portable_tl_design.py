@@ -111,5 +111,21 @@ class PortableTlDesignTest(unittest.TestCase):
             self.assertNotIn(needle, self.text)
 
 
+    def test_step_one_splits_ingest_between_writer_and_session(self):
+        row = next(l for l in self.text.splitlines() if l.startswith("| 1 | Ingest |"))
+        self.assertIn("`ingest-sources` 1 to 4.3, then 4.6 and 4.7. The session runs 4.4 and 4.5", row)
+        self.assertNotIn("records no run id for step 1", self.text)
+        self.assertIn("at steps 1, 5, 8 and 9.", self.text)
+        block = self.text.split("A new revision of a `stories` source runs in four parts:", 1)[1].split("## Steps", 1)[0]
+        for needle in ("It stops once `$WS/slices.json` exists.", "If it returns without `slices.json`",
+                       "`$WS/drift-args.json`", "`$WS/writer.json`", "Run `ingest-sources` step 4.4 in the session",
+                       "for `ingest-sources` steps 4.6 and 4.7 on the same `$WS`", "with the `--page` flags",
+                       "A resume at step 1 reads `ingest_ws`"):
+            self.assertIn(needle, block)
+        self.assertIn("steps 1 to 3. The session then presents `G-ingest`.", self.text)
+        template = (SKILLS / "tl-design/templates/workflow-state.md").read_text()
+        self.assertIn("ingest_ws:", template)
+
+
 if __name__ == "__main__":
     unittest.main()
