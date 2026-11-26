@@ -257,14 +257,14 @@ class AssembleTest(unittest.TestCase):
                              [f"{n}: id S-02-AC1 missing", f"{n}: unexpected id S-09-AC1", f"{o}: unexpected id US-99-AC1"])
 
     def test_pending_without_pairs_tsv_fails_with_its_path(self):
-        for damage in ("remove", "garbage", "nul"):
+        for damage in ("remove", "garbage", "oversized"):
             with tempfile.TemporaryDirectory() as d:
                 make_ws(d)
                 path = os.path.join(d, "pairs.tsv")
                 if damage == "remove":
                     os.remove(path)
                 else:
-                    payload = b"\xff\xfe" if damage == "garbage" else b"new_id\told_id\n\x00\n"
+                    payload = b"\xff\xfe" if damage == "garbage" else b"new_id\told_id\n" + b"x" * 200000 + b"\n"
                     with open(path, "wb") as fh:
                         fh.write(payload)
                 err = self.pending_err(d)
