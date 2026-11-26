@@ -12,12 +12,32 @@ ROOT = Path(__file__).resolve().parents[2]
 class PackageTest(unittest.TestCase):
     def test_plugin_manifest(self):
         m = json.loads((ROOT / ".claude-plugin/plugin.json").read_text())
-        self.assertEqual((m["name"], m["version"], m["license"]), ("tl-relay", "0.2.2", "MIT"))
+        self.assertEqual((m["name"], m["version"], m["license"]), ("tl-relay", "0.3.0", "MIT"))
 
     def test_marketplace_version_matches_the_plugin(self):
         plugin = json.loads((ROOT / ".claude-plugin/plugin.json").read_text())
         market = json.loads((ROOT / ".claude-plugin/marketplace.json").read_text())
         self.assertEqual([p.get("version") for p in market["plugins"]], [plugin["version"]])
+
+    def bundles(self):
+        section = (ROOT / "README.md").read_text().split("### Bundles", 1)[1].split("\n### ", 1)[0]
+        rows = {m.group(1): set(re.findall(r"`([a-z-]+)`", m.group(2)))
+                for m in re.finditer(r"^\| (\w+) \| (`.*) \|$", section, re.M)}
+        commands = [set(re.findall(r"--skill ([a-z-]+)", block))
+                    for block in re.findall(r"```sh\n(.*?)```", section, re.S)]
+        return rows, commands
+
+    def test_each_readme_bundle_has_a_matching_install_command(self):
+        rows, commands = self.bundles()
+        self.assertEqual(set(rows), {"Design", "Build"})
+        for name, skills in rows.items():
+            self.assertIn(skills, commands, name)
+
+    def test_build_bundle_carries_the_run_plan_sub_skills(self):
+        rows, _ = self.bundles()
+        required = re.findall(r"the `([a-z-]+)` skill\. \*\*REQUIRED SUB-SKILL", (ROOT / "skills/run-plan/SKILL.md").read_text())
+        self.assertTrue(required)
+        self.assertLessEqual(set(required), rows["Build"])
 
     def test_marketplace_points_at_the_root(self):
         m = json.loads((ROOT / ".claude-plugin/marketplace.json").read_text())

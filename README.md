@@ -29,20 +29,23 @@ The plugin installs the following:
 - a SessionStart hook that loads `using-tl-relay`
 - a lesson hook
 
-To update, run `/plugin marketplace update tl-relay`, then restart Claude Code.
+To update, run `claude plugin marketplace update tl-relay` and `claude plugin update tl-relay@tl-relay`, then restart Claude Code.
 
 ### `npx skills add`
 
 `npx skills` installs the skills for Claude Code, Cursor, Codex and the other agents that the [skills command-line tool](https://github.com/vercel-labs/skills) supports. It does not install agents or hooks.
 
+Inside a project, `npx skills add` installs the skills into that project. Add `-g` to install them for your user account instead.
+
 ```sh
 npx skills add ace53thntu/tl-relay              # all skills, for the agents the CLI detects
+npx skills add ace53thntu/tl-relay -g           # all skills, for your user account
 npx skills add ace53thntu/tl-relay -a cursor    # Cursor only
 npx skills add ace53thntu/tl-relay -a codex     # Codex only
 npx skills add ace53thntu/tl-relay --list       # list the skills without installing
 ```
 
-To install one skill, add `--skill <name>` and add `--skill using-tl-relay`. The skills read their path rules from `using-tl-relay`. That suits the skills that stand alone: `brainstorm`, `debug-issue`, `test-first`, `verify-done`, `review-change`, `technical-writing`, `explore-codebase` and `write-plan`. A few of them hand off to the next skill in a chain, so install the chain together: `brainstorm`, `write-plan` and `run-plan`, or `debug-issue`, `test-first` and `verify-done`.
+To install one skill, add `--skill <name>` and add `--skill using-tl-relay`. The skills read their path rules from `using-tl-relay`. That suits the skills that stand alone: `brainstorm`, `debug-issue`, `test-first`, `verify-done`, `review-change`, `technical-writing`, `explore-codebase` and `write-plan`. A few of them hand off to the next skill in a chain, so install the chain together: `brainstorm`, `write-plan`, `run-plan`, `route-subagents` and `review-change`, or `debug-issue`, `test-first` and `verify-done`.
 
 ### Bundles
 
@@ -51,13 +54,24 @@ The design and build workflows each need a set of skills. Before it runs, each w
 | Bundle | Skills |
 |---|---|
 | Design | `using-tl-relay`, `tl-design`, `ingest-sources`, `write-design`, `write-hla`, `write-lld`, `write-contract`, `write-task-breakdown`, `technical-writing`, `lens-qa-conformance`, `lens-qa-engineer`, `lens-security-engineer`, `lens-shared`, `lens-software-engineer`, `lens-solution-architect` |
-| Build | `using-tl-relay`, `tl-implement`, `tl-design`, `write-plan`, `run-plan`, `review-change`, `verify-done`, `test-first`, `debug-issue`, `lens-qa-conformance`, `lens-shared` |
+| Build | `using-tl-relay`, `tl-implement`, `tl-design`, `write-plan`, `run-plan`, `route-subagents`, `review-change`, `verify-done`, `test-first`, `debug-issue`, `lens-qa-conformance`, `lens-shared` |
 
 The Build bundle carries `tl-design` for its Ask rule and its retro step. To run `tl-design` itself, install the Design bundle.
 
+Design bundle:
+
+```sh
+npx skills add ace53thntu/tl-relay --skill using-tl-relay --skill tl-design --skill ingest-sources --skill write-design \
+  --skill write-hla --skill write-lld --skill write-contract --skill write-task-breakdown --skill technical-writing \
+  --skill lens-qa-conformance --skill lens-qa-engineer --skill lens-security-engineer --skill lens-shared \
+  --skill lens-software-engineer --skill lens-solution-architect
+```
+
+Build bundle:
+
 ```sh
 npx skills add ace53thntu/tl-relay --skill using-tl-relay --skill tl-implement --skill tl-design --skill write-plan --skill run-plan \
-  --skill review-change --skill verify-done --skill test-first --skill debug-issue \
+  --skill route-subagents --skill review-change --skill verify-done --skill test-first --skill debug-issue \
   --skill lens-qa-conformance --skill lens-shared
 ```
 
