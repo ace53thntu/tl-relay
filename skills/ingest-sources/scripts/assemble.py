@@ -129,6 +129,7 @@ def main(argv=None):
         failed = "old.jsonl"
         old = load_jsonl(os.path.join(a.ws, failed))
         old_ids = [o["id"] for o in old]
+        old_story = {o["id"]: o["story"] for o in old}
         failed = "new.jsonl"
         new = load_jsonl(os.path.join(a.ws, failed))
         new_ids = [n["id"] for n in new]
@@ -162,7 +163,7 @@ def main(argv=None):
     if errors:
         print("\n".join(errors), file=sys.stderr)
         return 1
-    ids = ids_to_scan(rows, {o["id"]: o["story"] for o in old})
+    ids = ids_to_scan(rows, old_story)
     with open(a.out, "w", encoding="utf-8") as fh:
         json.dump({"inputs_sha256": digest, "counts": counts, "old": len(old), "new": len(new), "rows": rows,
                    "findings": [os.path.join(a.ws, f"findings-{n}.md") for n in names]}, fh, indent=2, ensure_ascii=False)
