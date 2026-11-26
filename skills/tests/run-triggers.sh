@@ -22,7 +22,7 @@ stop_agent() {
     alive=
     for group in $groups; do kill -0 -- "-$group" 2>/dev/null && alive=1; done
     [ -n "$alive" ] || break
-    sleep 0.1 & wait "$!"
+    sleep 0.1 & wait "$!" 2>/dev/null
   done
   for group in $groups; do kill -KILL -- "-$group" 2>/dev/null; done
   wait 2>/dev/null
@@ -93,7 +93,7 @@ for file in "$prompts"/*.txt; do
   TL_RELAY_TRIGGER_SEEN="$tmp/seen.jsonl" python3 "$here/triggers.py" watch "$expect" "$tmp/timeout" <"$tmp/stream" >"$tmp/verdict" 2>>"$tmp/err" &
   watch_pid=$!
   [ -z "${TL_RELAY_TRIGGER_PGID_FILE:-}" ] || printf '%s\n' "$agent_pid" >"$TL_RELAY_TRIGGER_PGID_FILE"
-  wait "$watch_pid"
+  wait "$watch_pid" 2>/dev/null
   status=$?
   watch_pid=
   stop_agent
