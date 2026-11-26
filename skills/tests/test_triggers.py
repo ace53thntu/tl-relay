@@ -122,7 +122,7 @@ class KillPaths(unittest.TestCase):
         self.tmpdir = pathlib.Path(self.root.name) / "tmp"
         self.tmpdir.mkdir()
 
-    def start(self, mode, timeout=None, pgid_file=None, script=None):
+    def start(self, mode, timeout=None, pgid_file=None, script=None, stderr=None, bash="bash"):
         extra = {"TL_RELAY_TRIGGER_TIMEOUT": str(timeout)} if timeout else {}
         if pgid_file:
             extra["TL_RELAY_TRIGGER_PGID_FILE"] = str(pgid_file)
@@ -136,9 +136,10 @@ class KillPaths(unittest.TestCase):
             **extra,
         )
         return subprocess.Popen(
-            ["bash", str(script or HERE / "run-triggers.sh")],
+            [bash, str(script or HERE / "run-triggers.sh")],
             env=env,
             stdout=subprocess.PIPE,
+            stderr=stderr,
             text=True,
             start_new_session=True,
         )
@@ -162,6 +163,19 @@ class KillPaths(unittest.TestCase):
         self.assertLess(time.time() - started, 15)
         self.assertEqual(out.splitlines(), ["PASS only", "1/1"])
         self.assert_clean()
+
+    # bash also prints a racy "child setpgid" line the runner does not suppress, so only job notices are checked.
+    def test_killing_an_agent_that_ignores_term_prints_no_job_notice(self):
+        proc = self.start("ignore-term", stderr=subprocess.PIPE, bash="/bin/bash")
+        out, err = proc.communicate(timeout=30)
+        self.assertEqual(out.splitlines(), ["PASS only", "1/1"])
+        self.assertNotRegex(err, "Terminated|Killed")
+
+    def test_a_timed_out_agent_prints_no_job_notice(self):
+        proc = self.start("silent", timeout=2, stderr=subprocess.PIPE, bash="/bin/bash")
+        out, err = proc.communicate(timeout=30)
+        self.assertEqual(out.splitlines()[-1], "0/1")
+        self.assertNotRegex(err, "Terminated|Killed")
 
     def assert_times_out(self, mode):
         started = time.time()
