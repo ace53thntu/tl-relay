@@ -220,6 +220,41 @@ class AssembleTest(unittest.TestCase):
             self.assertEqual(len(err.splitlines()), 1)
             self.assertTrue(err.startswith(f"assemble: cannot read {os.path.join(d, 'old.jsonl')}: "))
 
+    def drop_story(self, d):
+        path = os.path.join(d, "old.jsonl")
+        with open(path, encoding="utf-8") as fh:
+            rows = [json.loads(line) for line in fh]
+        for r in rows:
+            if r["id"] == "US-16-AC1b":
+                del r["story"]
+        with open(path, "w", encoding="utf-8") as fh:
+            fh.write("".join(json.dumps(r) + "\n" for r in rows))
+        stamp = asm.STAMP.format(asm.inputs_digest(d))
+        for name in os.listdir(d):
+            if name.startswith(("slice-", "findings-")) and name.endswith(".md"):
+                with open(os.path.join(d, name), encoding="utf-8") as fh:
+                    lines = fh.read().split("\n")
+                lines[0] = stamp
+                with open(os.path.join(d, name), "w", encoding="utf-8") as fh:
+                    fh.write("\n".join(lines))
+
+    def test_pending_rejects_an_old_row_without_story(self):
+        with tempfile.TemporaryDirectory() as d:
+            make_ws(d)
+            self.drop_story(d)
+            err = self.pending_err(d)
+            self.assertEqual(len(err.splitlines()), 1)
+            self.assertTrue(err.startswith(f"assemble: cannot read {os.path.join(d, 'old.jsonl')}: "))
+
+    def test_main_rejects_an_old_row_without_story(self):
+        with tempfile.TemporaryDirectory() as d:
+            make_ws(d)
+            self.drop_story(d)
+            code, _, err = run_main(["--ws", d, "--out", os.path.join(d, "o"), "--ids-out", os.path.join(d, "i")])
+            self.assertEqual(code, 1)
+            self.assertEqual(len(err.splitlines()), 1)
+            self.assertTrue(err.startswith(f"assemble: cannot read {os.path.join(d, 'old.jsonl')}: "))
+
     def test_pending_rejects_a_row_without_id(self):
         with tempfile.TemporaryDirectory() as d:
             make_ws(d)
