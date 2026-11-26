@@ -15,8 +15,8 @@ watch_pid=
 
 stop_agent() {
   local groups group alive i
-  groups=$(jobs -p)
-  [ -n "$groups" ] || return 0
+  groups="$agent_pid $(jobs -p)"
+  [ -n "${groups// /}" ] || return 0
   for group in $groups; do kill -TERM -- "-$group" 2>/dev/null; done
   for i in $(seq 50); do
     alive=

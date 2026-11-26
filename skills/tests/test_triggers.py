@@ -308,12 +308,22 @@ class KillPaths(unittest.TestCase):
         for name, after in forks.items():
             with self.subTest(fork=name):
                 script = self.patched_runner(name, after)
+                self.addCleanup(subprocess.run, ["pkill", "-9", "-f", str(script)])
                 proc = self.start("silent", timeout=40, script=script)
                 self.addCleanup(self.interrupt, proc)
                 proc.communicate(timeout=30)
                 self.assertEqual(proc.returncode, 130)
-                self.assertEqual(subprocess.run(["pgrep", "-f", str(script)]).returncode, 1)
+                left = subprocess.run(["pgrep", "-f", str(script)], stdout=subprocess.PIPE, text=True)
+                self.assertEqual(left.returncode, 1, left.stdout)
                 self.assert_clean()
+
+    def test_a_child_left_by_an_exited_agent_is_killed(self):
+        proc = self.start("leave-child")
+        self.addCleanup(self.interrupt, proc)
+        out, _ = proc.communicate(timeout=30)
+        self.assertEqual(out.splitlines(), ["PASS only", "1/1"])
+        self.assertEqual(proc.returncode, 0)
+        self.assert_clean()
 
     def test_a_closed_pipe_leaves_no_temp_dir(self):
         (self.prompts / "two.txt").write_text("expect: debug-issue\nwhy does this fail\n")
