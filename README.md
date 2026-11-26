@@ -39,7 +39,7 @@ Inside a project, `npx skills add` installs the skills into that project. Add `-
 
 Without `-a`, the command writes to every agent it detects, `.claude/skills/` included. If Claude Code already has the plugin, pass `-a` so Claude Code does not load each skill twice.
 
-`npx skills add` installs the skills from the `main` branch, which can hold changes that no release carries yet. To pin a release, add its tag: `npx skills add ace53thntu/tl-relay@v0.3.4`.
+`npx skills add` installs the skills from the `main` branch, which can hold changes that no release carries yet. To pin a release, add its tag: `npx skills add ace53thntu/tl-relay@v0.3.5`.
 
 ```sh
 npx skills add ace53thntu/tl-relay              # all skills, for the agents the CLI detects
