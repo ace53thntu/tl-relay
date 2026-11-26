@@ -122,7 +122,7 @@ class KillPaths(unittest.TestCase):
         self.tmpdir = pathlib.Path(self.root.name) / "tmp"
         self.tmpdir.mkdir()
 
-    def start(self, mode, timeout=None, pgid_file=None):
+    def start(self, mode, timeout=None, pgid_file=None, script=None):
         extra = {"TL_RELAY_TRIGGER_TIMEOUT": str(timeout)} if timeout else {}
         if pgid_file:
             extra["TL_RELAY_TRIGGER_PGID_FILE"] = str(pgid_file)
@@ -136,7 +136,7 @@ class KillPaths(unittest.TestCase):
             **extra,
         )
         return subprocess.Popen(
-            ["bash", str(HERE / "run-triggers.sh")],
+            ["bash", str(script or HERE / "run-triggers.sh")],
             env=env,
             stdout=subprocess.PIPE,
             text=True,
@@ -285,6 +285,47 @@ class KillPaths(unittest.TestCase):
         proc.communicate(timeout=30)
         self.assertEqual(proc.returncode, 130)
         self.assertEqual(path.read_text(), "")
+        self.assert_clean()
+
+    def patched_runner(self, name, after):
+        root = pathlib.Path(self.root.name) / name
+        tests = root / "skills" / "tests"
+        tests.mkdir(parents=True)
+        (tests / "triggers.py").symlink_to(HERE / "triggers.py")
+        (tests / "fixtures").symlink_to(FIXTURES)
+        (root / "skills" / "alpha").mkdir()
+        (root / "skills" / "alpha" / "SKILL.md").write_text("---\nname: alpha\n---\n")
+        (root / "hooks").mkdir()
+        (root / "hooks" / "session-start-skills.sh").write_text("exit 0\n")
+        text = (HERE / "run-triggers.sh").read_text()
+        self.assertEqual(text.count(after), 1)
+        script = tests / "run-triggers.sh"
+        script.write_text(text.replace(after, after + "  kill -INT $$\n"))
+        return script
+
+    def test_an_interrupt_before_a_pid_is_recorded_stops_every_job(self):
+        forks = {"agent": ') >"$tmp/stream" 2>>"$tmp/err" &\n', "watchdog": '2>/dev/null) &\n'}
+        for name, after in forks.items():
+            with self.subTest(fork=name):
+                script = self.patched_runner(name, after)
+                self.addCleanup(subprocess.run, ["pkill", "-9", "-f", str(script)])
+                proc = self.start("silent", timeout=40, script=script)
+                self.addCleanup(self.interrupt, proc)
+                proc.communicate(timeout=30)
+                self.assertEqual(proc.returncode, 130)
+                left = subprocess.run(["pgrep", "-f", str(script)], stdout=subprocess.PIPE, text=True)
+                self.assertEqual(left.returncode, 1, left.stdout)
+                self.assert_clean()
+
+    def test_a_child_left_by_an_exited_agent_is_killed(self):
+        ready = pathlib.Path(self.root.name) / "child.ready"
+        with mock.patch.dict(os.environ, {"TL_RELAY_STUB_READY": str(ready)}):
+            proc = self.start("leave-child")
+        self.addCleanup(self.interrupt, proc)
+        out, _ = proc.communicate(timeout=30)
+        self.assertEqual(out.splitlines(), ["PASS only", "1/1"])
+        self.assertEqual(proc.returncode, 0)
+        self.assertTrue(ready.exists())
         self.assert_clean()
 
     def test_a_closed_pipe_leaves_no_temp_dir(self):

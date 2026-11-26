@@ -30,6 +30,13 @@ case "${TL_RELAY_STUB_MODE:-}" in
     bash -c "$sleepers" "$marker"
     exit
     ;;
+  leave-child)
+    ready=${TL_RELAY_STUB_READY:-/dev/null}
+    bash -c '(: >"$1"; exec -a "$0" sleep 300) >/dev/null &' "$marker" "$ready"
+    until [ -e "$ready" ]; do sleep 0.01; done
+    bash -c 'while kill -0 "$1" 2>/dev/null; do sleep 0.01; done; cat "$2"' "$marker" "$$" "$here/read-then-skill.jsonl" &
+    exit 0
+    ;;
   orphan-holds-pipe)
     trap '' TERM
     bash -c '(exec -a "$0" sleep 300) &' "$marker"
