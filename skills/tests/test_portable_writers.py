@@ -34,6 +34,22 @@ class PortableWritersTest(unittest.TestCase):
         self.assertIn("slice-<name>.md", text)
         self.assertIn("findings-<name>.md", text)
 
+    def test_fallback_dispatches_a_subagent_per_slice(self):
+        text = (SKILLS / "ingest-sources/SKILL.md").read_text()
+        workflow = text.index("Workflow({scriptPath:")
+        subagent = text.index("With no Workflow tool and a subagent tool")
+        alone = text.index("With no subagent tool")
+        self.assertLess(workflow, subagent)
+        self.assertLess(subagent, alone)
+        tier = text[subagent:alone]
+        self.assertIn("`prompt(a, s)`", tier)
+        self.assertIn("verbatim", tier)
+        self.assertIn("`opus` where the tool takes a model", tier)
+        self.assertIn("redispatch", tier)
+        self.assertIn("Wait until every subagent finishes", tier)
+        self.assertIn("Step 5 starts only after", tier)
+        self.assertLess(alone, text.index("5. Assemble."))
+
     def test_write_design_sibling_stop_precedes_writing(self):
         text = (SKILLS / "write-design/SKILL.md").read_text()
         stop = text.index("--skill tl-design")

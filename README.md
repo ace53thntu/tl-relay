@@ -119,6 +119,7 @@ Without the package, `ingest-sources` stops and names it.
 - Each agent file wraps one skill: a `lens-*` skill, or a `write-*` skill for `design-writer`. Every install carries those skills.
 - Without the agents, a skill dispatches a general subagent on the agent's model, with a prompt that names the skill and the role. With no subagent tool, the main session plays the role itself.
 - Without the Workflow tool, a skill runs the phases of its Workflow script in sequence in the session.
+- `ingest-sources` first dispatches one subagent per slice when the session has a subagent tool.
 
 ## Configuration
 
