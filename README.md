@@ -31,6 +31,22 @@ The plugin installs the following:
 
 To update, run `claude plugin marketplace update tl-relay` and `claude plugin update tl-relay@tl-relay`, then restart Claude Code.
 
+The skills read files in the plugin cache and run their scripts from it. The cache sits outside your project, so Claude Code asks before each read and each script run. To allow them, add these keys to `~/.claude/settings.json`:
+
+```json
+{
+  "permissions": {
+    "additionalDirectories": ["~/.claude/plugins/cache/tl-relay"],
+    "allow": [
+      "Bash(python3 */.claude/plugins/cache/tl-relay/*)",
+      "Bash(sh */.claude/plugins/cache/tl-relay/*)"
+    ]
+  }
+}
+```
+
+`additionalDirectories` lets the agent read the cache. The two `allow` rules let it run the skill scripts with `python3` and `sh`. Claude Code still asks before a command that sets a shell variable first, such as `SK=…; python3 "$SK/…"`.
+
 ### `npx skills add`
 
 `npx skills` installs the skills for Claude Code, Cursor, Codex and the other agents that the [skills command-line tool](https://github.com/vercel-labs/skills) supports. It does not install agents or hooks.
