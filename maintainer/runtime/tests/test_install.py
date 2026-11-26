@@ -1349,6 +1349,11 @@ class GitHook(unittest.TestCase):
         self.hook.write_text(re.sub(r"TL_RELAY_HOME=\S+ ", "", self.hook.read_text()))
         self.notice("names no home")
 
+    def test_a_plain_install_notes_a_hook_with_an_empty_home(self):
+        run_clone(self.clone, self.home, "--git-hook")
+        self.hook.write_text(re.sub(r"TL_RELAY_HOME=\S+ ", "TL_RELAY_HOME= ", self.hook.read_text()))
+        self.notice("names no home")
+
     def test_a_plain_install_notes_a_hook_that_names_no_checkout(self):
         run_clone(self.clone, self.home, "--git-hook")
         self.hook.write_text(re.sub(r"(?m)^main=.*\n", "", self.hook.read_text()))

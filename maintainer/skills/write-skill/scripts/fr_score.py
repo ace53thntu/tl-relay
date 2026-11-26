@@ -120,7 +120,7 @@ def _check_hook_home(repo) -> None:
         return
     named = install._hook_home(text)
     home = os.environ["TL_RELAY_HOME"]
-    if named is None:
+    if not named:
         raise Refused("the pre-push hook %s names no home" % hook)
     if install._differs(named, home):
         raise Refused("the pre-push hook %s names home %s, not %s" % (hook, named, home))

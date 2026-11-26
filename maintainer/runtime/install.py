@@ -487,12 +487,12 @@ def hook_notice(repo, home):
     if not os.access(str(path), os.X_OK):
         return "pre-push hook %s is not executable; run install --git-hook to restore it" % path
     named_main = _hook_value(text, "main=")
-    if named_main is None:
+    if not named_main:
         return "pre-push hook %s names no checkout; run install --git-hook to update it" % path
     if _differs(named_main, target[1]):
         return "pre-push hook %s names checkout %s, not %s; run install --git-hook to update it" % (path, named_main, target[1])
     named = _hook_home(text)
-    if named is None:
+    if not named:
         return "pre-push hook %s names no home; run install --git-hook to update it" % path
     if _differs(named, home):
         return "pre-push hook %s names home %s, not %s; run install --git-hook to update it" % (path, named, home)
