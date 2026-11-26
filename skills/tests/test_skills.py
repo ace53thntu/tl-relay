@@ -78,11 +78,16 @@ def read(path):
 
 def frontmatter(path):
     lines = read(path).splitlines()
+    if not lines or lines[0] != "---" or "---" not in lines[1:]:
+        raise ValueError("no frontmatter in %s" % path)
     end = lines[1:].index("---") + 1
     with tempfile.TemporaryDirectory() as tmp:
         block = pathlib.Path(tmp) / "frontmatter.yaml"
         block.write_text("\n".join(lines[1:end]) + "\n", encoding="utf-8")
-        return yamlio.load(block)
+        try:
+            return yamlio.load(block) or {}
+        except yamlio.YamlError as exc:
+            raise yamlio.YamlError(str(exc).replace(str(block), str(path))) from None
 
 
 class ForkedSkills(unittest.TestCase):
@@ -142,12 +147,29 @@ class ForkedSkills(unittest.TestCase):
 
 
 class Frontmatter(unittest.TestCase):
-    def test_invalid_yaml_raises(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            path = pathlib.Path(tmp) / "SKILL.md"
-            path.write_text("---\nname: x\ndescription: Use when: a thing\n---\nbody\n", encoding="utf-8")
-            with self.assertRaises(yamlio.YamlError):
-                frontmatter(path)
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.path = pathlib.Path(tmp.name) / "SKILL.md"
+
+    def parse(self, text):
+        self.path.write_text(text, encoding="utf-8")
+        return frontmatter(self.path)
+
+    def test_invalid_yaml_raises_the_parser_error(self):
+        with self.assertRaisesRegex(yamlio.YamlError, "mapping values are not allowed"):
+            self.parse("---\nname: x\ndescription: Use when: a thing\n---\nbody\n")
+
+    def test_a_parse_error_names_the_skill_file(self):
+        with self.assertRaisesRegex(yamlio.YamlError, re.escape(str(self.path))):
+            self.parse("---\nname: x\ndescription: Use when: a thing\n---\nbody\n")
+
+    def test_a_file_without_an_opening_marker_raises(self):
+        with self.assertRaisesRegex(ValueError, "no frontmatter"):
+            self.parse("name: x\n---\nbody\n")
+
+    def test_empty_frontmatter_has_no_fields(self):
+        self.assertEqual(self.parse("---\n---\nbody\n"), {})
 
 
 if __name__ == "__main__":
