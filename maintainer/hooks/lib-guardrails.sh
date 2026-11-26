@@ -13,11 +13,7 @@ fi
 for _lg_v in $_lg_vars; do
   eval "[ \"\${TL_RELAY_$_lg_v+x}\" = x ]" && continue
   _lg_new=$(printf '%s\n' "$_lg_env" | sed -n "s/^N $_lg_v=//p")
-  if [ -n "$_lg_new" ]; then
-    eval "TL_RELAY_$_lg_v=\$_lg_new"
-  else
-    eval "TL_RELAY_$_lg_v="
-  fi
+  eval "TL_RELAY_$_lg_v=\$_lg_new"
 done
 : "${TL_RELAY_COMPARE:=$(dirname "$0")/compare.jq}"
 
