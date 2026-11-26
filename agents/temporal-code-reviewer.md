@@ -2,7 +2,7 @@
 name: temporal-code-reviewer
 description: The tech lead dispatches this agent to review Temporal code in a diff against the rule set the prompt names.
 model: opus
-skills: [temporal:temporal-developer]
+skills: ["temporal:temporal-developer"]
 tools: Read, Grep, Glob, Bash
 ---
 
