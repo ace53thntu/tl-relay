@@ -62,9 +62,14 @@ class PackageTest(unittest.TestCase):
     def test_readme_allows_the_plugin_cache(self):
         section = (ROOT / "README.md").read_text().split("### Claude Code plugin", 1)[1].split("\n### ", 1)[0]
         for needle in ('"additionalDirectories": ["~/.claude/plugins/cache/tl-relay"]',
-                       '"Bash(python3 */.claude/plugins/cache/tl-relay/*)"',
-                       '"Bash(sh */.claude/plugins/cache/tl-relay/*)"'):
+                       '"Bash(python3 /*/.claude/plugins/cache/tl-relay/*)"',
+                       '"Bash(python3 \\"/*/.claude/plugins/cache/tl-relay/*)"',
+                       '"Bash(sh /*/.claude/plugins/cache/tl-relay/*)"',
+                       '"Bash(/*/.claude/plugins/cache/tl-relay/*/.venv/bin/python /*/.claude/plugins/cache/tl-relay/*)"',
+                       '"Bash(\\"/*/.claude/plugins/cache/tl-relay/*/.venv/bin/python\\" \\"/*/.claude/plugins/cache/tl-relay/*)"'):
             self.assertIn(needle, section)
+        self.assertNotIn("Bash(python3 */", section)
+        self.assertNotIn("Bash(sh */", section)
 
     def test_marketplace_points_at_the_root(self):
         m = json.loads((ROOT / ".claude-plugin/marketplace.json").read_text())

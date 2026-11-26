@@ -38,14 +38,17 @@ The skills read files in the plugin cache and run their scripts from it. The cac
   "permissions": {
     "additionalDirectories": ["~/.claude/plugins/cache/tl-relay"],
     "allow": [
-      "Bash(python3 */.claude/plugins/cache/tl-relay/*)",
-      "Bash(sh */.claude/plugins/cache/tl-relay/*)"
+      "Bash(python3 /*/.claude/plugins/cache/tl-relay/*)",
+      "Bash(python3 \"/*/.claude/plugins/cache/tl-relay/*)",
+      "Bash(sh /*/.claude/plugins/cache/tl-relay/*)",
+      "Bash(/*/.claude/plugins/cache/tl-relay/*/.venv/bin/python /*/.claude/plugins/cache/tl-relay/*)",
+      "Bash(\"/*/.claude/plugins/cache/tl-relay/*/.venv/bin/python\" \"/*/.claude/plugins/cache/tl-relay/*)"
     ]
   }
 }
 ```
 
-`additionalDirectories` lets the agent read the cache. The two `allow` rules let it run the skill scripts with `python3` and `sh`. Claude Code still asks before a command that sets a shell variable first, such as `SK=…; python3 "$SK/…"`.
+`additionalDirectories` lets the agent read the cache. The `allow` rules let it run the skill scripts with `python3`, `sh` and the Python in the `ingest-sources` `.venv`, with or without quotes around the path. Each rule starts with an absolute path, so `python3 -c` and `sh -c` still ask. A `*` in a rule also matches spaces, so a command that has other arguments before a cache path can still match. Claude Code still asks before a command that sets a shell variable first, such as `SK=…; python3 "$SK/…"`.
 
 ### `npx skills add`
 
