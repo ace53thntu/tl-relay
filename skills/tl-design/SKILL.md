@@ -88,7 +88,7 @@ python3 "$S" --knowledge-root "$DROOT" --handle <handle> show
 - Sign a gate only after the operator says, in this conversation, that it passes. Pass the date the operator gives.
 - Reopening `G-hla` removes `G-hla`, `G-design` and `G-breakdown` from `signed:`. Reopening `G-design` removes `G-design` and `G-breakdown`.
   Either reopen runs `set-stage --stage design --status draft`, which marks a signed `breakdown` stale.
-- After G-ingest, run `set-baseline`, then `add-impact` with the drift record's impact file. Report every stage it marked stale.
+- After G-ingest, run `set-baseline`, then `add-impact` with the drift record's impact file, when one exists. Report every stage it marked stale.
 
 ## Start and resume
 
@@ -100,23 +100,27 @@ python3 "$S" --knowledge-root "$DROOT" --handle <handle> show
 4. Tell the operator the step, the round and the next human action in one sentence.
 
 At step 1, a source already recorded with `baseline: true` counts as ingested. Skip its snapshot.
+Every step 1 dispatch also skips the snapshot of a revision already recorded.
 A source with no baseline of its kind takes one `design-writer` dispatch for `ingest-sources` steps 1 to 3. The session then presents `G-ingest`.
 A new revision of another kind takes one dispatch for steps 1 and 2. The session then presents `G-ingest`.
 A new revision of a `stories` source runs in four parts:
 
-1. Create `$WS` as a new directory under `D/runs/`, and record it as `ingest_ws` in `workflow-state.md`.
+1. Reuse `ingest_ws` when it is set. Otherwise create `$WS` as a new directory under `<runtime>/designs/<handle>/runs/`.
+   Resolve `state_dir` to an absolute path, and record `$WS` as `ingest_ws` in `workflow-state.md`.
+   When `<runtime>` sits inside the workspace, add `<runtime>/designs/*/runs/` to the workspace `.gitignore` if absent.
    Dispatch `design-writer` for `ingest-sources` steps 1 to 4.3 on `$WS`. It stops once `$WS/slices.json` exists.
    It writes both converted source paths to `$WS/writer.json`, with the step 3 command that wrote `$WS/new.jsonl`.
-   If it returns without `slices.json`, report its reason and stop.
+   If it returns without `slices.json` or `writer.json`, report its reason and stop.
 2. Write the drift args to `$WS/drift-args.json`, and rewrite them before each relaunch.
    Run `ingest-sources` step 4.4 in the session, with the reader tiers it defines. Then run step 4.5.
 3. Dispatch `design-writer` again for `ingest-sources` steps 4.6 and 4.7 on the same `$WS`.
-4. Present `G-ingest`. After it, rerun the `gen_register.py` command in `$WS/writer.json` with the `--page` flags of `ingest-sources` step 3.
-   Then clear `ingest_ws` and the step 1 entry in `workflow_runs`.
+4. Present `G-ingest`. After it, run `set-baseline` and `add-impact` as the gate rules say.
+   Then rerun the `gen_register.py` command in `$WS/writer.json` with the `--page` flags of `ingest-sources` step 3.
+   Last, clear `ingest_ws` and every step 1 entry in `workflow_runs`.
 
 A resume at step 1 reads `ingest_ws`. It resumes an unfinished recorded drift run with the args in `$WS/drift-args.json`.
 With no such run, it continues from the first part whose output is missing.
-A part 1 rerun skips the snapshot when the revision is already recorded.
+With `G-ingest` signed, it finishes part 4.
 
 ## Steps
 

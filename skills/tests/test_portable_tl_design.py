@@ -118,10 +118,13 @@ class PortableTlDesignTest(unittest.TestCase):
         self.assertIn("at steps 1, 5, 8 and 9.", self.text)
         block = self.text.split("A new revision of a `stories` source runs in four parts:", 1)[1].split("## Steps", 1)[0]
         for needle in ("It stops once `$WS/slices.json` exists.", "If it returns without `slices.json`",
-                       "`$WS/drift-args.json`", "`$WS/writer.json`", "under `D/runs/`", "Run `ingest-sources` step 4.4 in the session",
+                       "`$WS/drift-args.json`", "`$WS/writer.json`", "`<runtime>/designs/<handle>/runs/`", "Run `ingest-sources` step 4.4 in the session",
                        "for `ingest-sources` steps 4.6 and 4.7 on the same `$WS`", "with the `--page` flags",
-                       "A resume at step 1 reads `ingest_ws`"):
+                       "A resume at step 1 reads `ingest_ws`", "Reuse `ingest_ws` when it is set.",
+                       "every step 1 entry in `workflow_runs`", "With `G-ingest` signed, it finishes part 4."):
             self.assertIn(needle, block)
+        self.assertIn("Every step 1 dispatch also skips the snapshot of a revision already recorded.", self.text)
+        self.assertNotIn("D/ingest/", self.text)
         self.assertIn("steps 1 to 3. The session then presents `G-ingest`.", self.text)
         template = (SKILLS / "tl-design/templates/workflow-state.md").read_text()
         self.assertIn("ingest_ws:", template)
