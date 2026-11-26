@@ -39,7 +39,7 @@ K=<absolute path of the design root>
 H=<handle>
 SK=<skill dir>/scripts
 PY=<the Python defined above>
-WS=<a fresh directory in the session scratchpad>
+WS=<the directory the caller names, else a fresh directory in the session scratchpad>
 ```
 
 ## 1. Snapshot
@@ -125,11 +125,11 @@ For a revision, write the page only after G-ingest.
 
 7. Write `$K/designs/$H/audits/<date>-stories-drift.md` with `type: Audit`. Carry the counts and every story that
    vanished while design rests on it. Also carry the values that changed, contradictions inside the revision,
-   stale references and the readers' open questions. Each item names the file to change and who decides. The workspace does not survive
-   the session, so the record must hold everything the readers found. Copy `$WS/adjudication.json` to
+   stale references and the readers' open questions. Each item names the file to change and who decides. The workspace may be gone
+   after this run, so the record must hold everything the readers found. Copy `$WS/adjudication.json` to
    `$K/designs/$H/audits/<date>-stories-adjudication.json`, which keeps the old-to-new mapping. Add the index entry.
 8. Stop at G-ingest. After the operator accepts, `tl-design` runs `set-baseline` and `add-impact` with `$WS/impact.tsv`, and
-   this skill regenerates `$K/designs/$H/specs/user-stories.md` from the revision.
+   the caller regenerates `$K/designs/$H/specs/user-stories.md` from the revision. Run alone, this skill does.
 
 ## Rules
 
