@@ -67,6 +67,11 @@ class PortableWritersTest(unittest.TestCase):
         self.assertIn("It prints `inputs_sha256`, the digest of `slices.json`, `new.jsonl` and `old.jsonl`, and `pending`", text)
         self.assertIn("`digest` is `inputs_sha256`.", text)
 
+    def test_pending_checks_the_registers(self):
+        text = " ".join((SKILLS / "ingest-sources/SKILL.md").read_text().split())
+        self.assertIn("It first checks that `new.jsonl` and `old.jsonl` parse and hold the ids that `slices.json` and `pairs.tsv` name.", text)
+        self.assertIn("A nonzero exit from `--pending` goes to the operator as a question, and no reader runs.", text)
+
     def test_write_design_sibling_stop_precedes_writing(self):
         text = (SKILLS / "write-design/SKILL.md").read_text()
         stop = text.index("--skill tl-design")
