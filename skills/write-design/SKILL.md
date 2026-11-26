@@ -175,8 +175,8 @@ A set written to an earlier version of these skills has a decisions page, `<top 
 
 ## Rules for every page of a set
 
-- Skills write no `confluence` frontmatter and run no push.
-- A published page carries no local reference: no audit path and no Confluence page id.
+- Skills write no frontmatter that the publish command owns, such as a page id block, and run no push.
+- A published page carries no local reference: no audit path and no publish target page id.
 - A page states each decision as a fact. Never write "the tech lead decided".
 - A design page carries no pseudo-code.
 - A child page does not repeat a fact its parent states.

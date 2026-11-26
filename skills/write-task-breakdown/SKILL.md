@@ -113,5 +113,5 @@ The tech lead confirms each figure and the `tl-design` session writes it. The se
 
 - Never edit between `breakdown:begin` and `breakdown:end`. The next generate overwrites the edit.
 - Rerun the generator after any change to a route page, a use case page, `schema-changes.md`, `dependencies.md` or the estimates file. Two runs on unchanged input write identical files.
-- Skills write no `confluence` frontmatter and run no push.
+- Skills write no frontmatter that the publish command owns, such as a page id block, and run no push.
 - **REQUIRED SUB-SKILL:** `technical-writing` for all prose, then the Vale gate in `technical-writing`. Zero errors.

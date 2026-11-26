@@ -357,7 +357,7 @@ The `agents` value sets how a persona or writer is dispatched.
   Product Owner and other owners from. No design page carries an inline open point.
   - `$D/open-points-full.md` is the full list: every entry, each under its owner with its status.
   - `$D/open-points.md` holds only the entries with status Open, word for word as in the full list.
-  - Neither page has a `confluence` block.
+  - Neither page has a page id block from the publish command.
   - No design page links either page.
   - If the set has no full list yet, create it first as a copy of `open-points.md`.
 - Stage skills and workflow agents return their questions. Add each one at the end of its owner's section, numbered

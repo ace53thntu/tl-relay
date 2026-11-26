@@ -40,7 +40,7 @@ Then `## Terms`, before section 1: a bullet list `- **<term>**: <definition>`. I
   - On an L1 HLA over module HLAs, one item per module, ending with the module's range linked to its section 1: `([PL-UC-1 to PL-UC-6](planning.md#1-requirements-and-scope))`. Every use case belongs to exactly one module HLA.
   - Section 1 holds no use case table. Each use case's name, actor, trigger and source live on its use case page.
 - `### Non-functional requirements` holds `**Core requirements**`, then one bullet per NFR: `**NFR-n** <part> should <quality>, <bound> (<sources>)`. At most five, numbered `NFR-1` onward per HLA with no module prefix. The bound carries a number with its source, or `not measured`. An L1 HLA lists the NFRs its own deep dives cite, and each module HLA lists its own. Every citation of an NFR links the section 1 of the HLA that owns it, so `NFR-4` of two HLAs stay apart by link.
-- Every Jira key in this section is a link, once per citation, followed by its criterion ids as plain text: `[PROJ-30108](https://example.atlassian.net/browse/PROJ-30108) N1, N6`.
+- Every ticket key in this section is a link, once per citation, followed by its criterion ids as plain text: `[PROJ-30108](https://tracker.example.com/PROJ-30108) N1, N6`.
 - `### Out of scope`: two bullet lists. **Functional** names the features the design does not build. **Non-functional** names the qualities it does not target.
 - Capacity: a figure appears only when it changes a design choice.
 
@@ -188,7 +188,7 @@ Never put the label "C4" in a heading.
 - Path: `<slug>/use-cases/uc-N-<use-case-slug>.md`, one page per `UC-n`.
 - Frontmatter: `type: HLD`, `title`, `description`, `tags`, `status`, `generated`, `sources`. The first source is the HLA page.
 - Title `UC-n <use case name>`, with the id and its module prefix if any. The name is a technical verb plus its object, such as `Get order attachments`, `List and view Kenya orders` or `Approve or decline a pending order`. The verb names the operation the system runs: Get, List, Create, Update, Delete, Upload, Approve, Decline, Retry, Sync or Block. A business verb such as Stage, Inspect, Resolve, Refuse or Record does not name the operation.
-- Body: four bullets, **Input.**, **System action.**, **Result.** and **Source.** The input bullet names the actor and the route from the HLA route table. A use case with no route names the event or schedule that starts it. **Source.** cites a ticket or PRD, with every Jira key a link. A use case without a source does not belong in the HLA.
+- Body: four bullets, **Input.**, **System action.**, **Result.** and **Source.** The input bullet names the actor and the route from the HLA route table. A use case with no route names the event or schedule that starts it. **Source.** cites a ticket or PRD, with every ticket key a link. A use case without a source does not belong in the HLA.
 - Then a Mermaid `sequenceDiagram` with only the components that use case needs, and the state the use case changes: table, topic or workflow.
 - A component needed for a quality, such as a cache or a queue, gets one line. The line links the deep dive on the HLA page that owns the component.
 - `## Screens` sits directly before `## Decision`. Its screenshots come from the prototype site, one screen per image, never a design-tool export. It opens with "The prototype shows this use case on the screens below, numbered in flow order.", then each app label, the project's own app or portal name, such as `**Admin Portal**`, and its images from `use-cases/_screens/`: the phone frame only for an app, the portal window for a portal, saved at the capture's own size and never resampled, at most six per label. Leave out a screen that contradicts a decision, and say so in one note under the images. When the prototype shows no screen for the use case, the section holds one sentence that says so and why.
@@ -207,15 +207,15 @@ Never put the label "C4" in a heading.
 
 ## Panels
 
-The publish tool renders a GitHub alert as a Confluence panel. The marker stands alone on its line.
+A panel is a GitHub alert. The marker stands alone on its line.
 
 | Panel | Marker | Holds |
 | --- | --- | --- |
-| Warning, red | `> [!CAUTION]` | A failure with no bound |
-| Note, yellow | `> [!WARNING]` | A deep dive's `**Waits on:**` panel |
-| Bad solution, red | `> [!CAUTION]` | A rejected option that fails a requirement |
-| Good solution, yellow | `> [!WARNING]` | A rejected option that works but carries a cost the Great solution avoids |
-| Great solution, green | `> [!TIP]` | The chosen option |
+| Unbounded failure | `> [!CAUTION]` | A failure with no bound |
+| Waits on | `> [!WARNING]` | A deep dive's `**Waits on:**` panel |
+| Bad solution | `> [!CAUTION]` | A rejected option that fails a requirement |
+| Good solution | `> [!WARNING]` | A rejected option that works but carries a cost the Great solution avoids |
+| Great solution | `> [!TIP]` | The chosen option |
 
 - A panel holds one or two sentences, with links outside the count. Solution panels hold the labelled paragraphs of the deep dive form instead.
 - A panel, except a solution panel, restates a fact the page holds and adds none. The chosen option's costs stay in the Great panel's **Challenges.** A Bad or Good panel's **Challenges.** states why that option lost.
@@ -249,7 +249,7 @@ The section budgets can add past 4,000. The page cap wins: merge deep dives that
 - **Every claim about behaviour cites a file, a commit, or a ticket.** Read the code through `explore-codebase` before writing, not from memory.
 - **Write "not measured" for a number you cannot source**, never an estimate dressed as a measurement.
 - **A link replaces a fact only when the target page states that fact.** Before cutting a fact down to a link, open the target and find the fact there. When it is not there, keep the fact, or move it to the target first.
-- **No table inside a list item**, on any page: Confluence renders it as legacy content with a scroll bar. A short list of names goes inline in one sentence.
+- **No table inside a list item**, on any page: a publish target can render it as a block with a scroll bar. A short list of names goes inline in one sentence.
 - **Link a term on its first use.** `## Terms` on the HLA defines each design-set term once. Every other page links the term to `<hla>.md#terms` on first use and adds no inline gloss. The link text is the entry's term or its plural, such as `[book-again](…#terms)`, not an inflected verb.
 - **A value the design leaves open is `<X> has no value yet`.** Never `No source sets <X>`, `The design does not fix <X>` or `<X>, not decided`. When a ticket holds a placeholder, quote it: `The vendor timeout has no value yet: PROJ-29798 AC 9 says "X minutes".` A number that exists but nobody measured stays `not measured`.
 - **Challenges, Behaviour and Recovery say what happens, to what, and why.** Each sentence names the actor, the action and its effect. A bare noun phrase, such as `The reconciliation scan.` or `Idempotency by vendor event id.`, names a mechanism without saying what it does. A compressed clause, such as `The route has no commit to follow.`, leaves the consequence for the reader to infer.
@@ -292,7 +292,7 @@ The section budgets can add past 4,000. The page cap wins: merge deep dives that
 - A use case named with a business verb, such as `Stage order documents` or `Inspect order documents`, instead of the operation, such as `Upload and delete order attachments` or `Get order attachments`.
 - A use case table or an NFR table under [Requirements and scope](#1-requirements-and-scope). It holds Core requirements lists, and the use case pages hold the use case details.
 - An HLA with no opening sentences before section 1.
-- A Jira key in the requirements section with no link.
+- A ticket key in the requirements section with no link.
 - Use case pages placed directly under the HLA instead of under the container.
 - A use case on an L1 HLA that has module HLAs.
 - An apposition for a term `## Terms` holds, or a component list in 3.N.
