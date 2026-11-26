@@ -153,12 +153,15 @@ class AssembleTest(unittest.TestCase):
                 self.assertEqual(code, 1)
                 self.assertTrue(err.startswith("assemble: cannot read"))
 
-
     def test_a_text_change_in_new_jsonl_makes_every_slice_pending(self):
         with tempfile.TemporaryDirectory() as d:
             make_ws(d)
-            with open(os.path.join(d, "new.jsonl"), "w", encoding="utf-8") as fh:
-                fh.write("".join(json.dumps({"id": i, "story": "S", "text": "reworded"}) + "\n" for i in NEW))
+            path = os.path.join(d, "new.jsonl")
+            with open(path, encoding="utf-8") as fh:
+                rows = [json.loads(line) for line in fh]
+            rows[0]["text"] = "reworded"
+            with open(path, "w", encoding="utf-8") as fh:
+                fh.write("".join(json.dumps(r) + "\n" for r in rows))
             self.assertEqual(asm.pending(d)["pending"], ["A", "B"])
 
     def test_old_jsonl_change_changes_the_digest(self):
@@ -178,6 +181,16 @@ class AssembleTest(unittest.TestCase):
                     self.assertEqual(code, 1)
                     self.assertEqual(len(err.splitlines()), 1)
                     self.assertTrue(err.startswith(f"assemble: cannot read {os.path.join(d, name)}: "))
+
+    def test_malformed_jsonl_fails_with_its_path(self):
+        with tempfile.TemporaryDirectory() as d:
+            make_ws(d)
+            with open(os.path.join(d, "new.jsonl"), "w", encoding="utf-8") as fh:
+                fh.write("{not json\n")
+            code, _, err = run_main(["--ws", d, "--out", os.path.join(d, "o"), "--ids-out", os.path.join(d, "i")])
+            self.assertEqual(code, 1)
+            self.assertEqual(len(err.splitlines()), 1)
+            self.assertTrue(err.startswith(f"assemble: cannot read {os.path.join(d, 'new.jsonl')}: "))
 
 
 if __name__ == "__main__":
