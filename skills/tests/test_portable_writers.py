@@ -62,6 +62,11 @@ class PortableWritersTest(unittest.TestCase):
             self.assertIn(sentence, text)
         self.assertNotIn("check that `$WS/slice-<name>.md` and `$WS/findings-<name>.md` exist", text)
 
+    def test_digest_names_the_three_drift_inputs(self):
+        text = " ".join((SKILLS / "ingest-sources/SKILL.md").read_text().split())
+        self.assertIn("It prints `inputs_sha256`, the digest of `slices.json`, `new.jsonl` and `old.jsonl`, and `pending`", text)
+        self.assertIn("`digest` is `inputs_sha256`.", text)
+
     def test_write_design_sibling_stop_precedes_writing(self):
         text = (SKILLS / "write-design/SKILL.md").read_text()
         stop = text.index("--skill tl-design")
