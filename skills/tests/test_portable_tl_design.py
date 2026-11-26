@@ -122,13 +122,14 @@ class PortableTlDesignTest(unittest.TestCase):
                        "for `ingest-sources` steps 4.6 and 4.7 on the same `$WS`", "with the `--page` flags",
                        "A resume at step 1 reads `ingest_ws`", "Reuse `ingest_ws` when it is set.",
                        "every step 1 entry in `workflow_runs`", "With `G-ingest` signed, it finishes part 4.",
-                       "If it returns without `$WS/impact.tsv`", "Write that line relative to the workspace root."):
+                       "is not empty and `$WS/impact.tsv` is missing", "`ingest-<date>-<first 8 characters of ingest_sha256>`", "Write that line relative to the workspace root."):
             self.assertIn(needle, block)
         self.assertIn("A dispatch skips the snapshot when the revision in `ingest_sha256` is already recorded.", self.text)
         self.assertNotIn("D/ingest/", self.text)
         self.assertIn("Then remove `G-ingest` from `signed:`, and run `set-stage --stage ingest --status draft`.", self.text)
         self.assertIn("rerun `set-stage --stage ingest --status signed-off` with the gate date", self.text)
         self.assertNotIn("under `D/runs/`", self.text)
+        self.assertIn("Also clear `ingest_ws` and every step 1 entry in `workflow_runs`.", self.text)
         self.assertIn("steps 1 to 3. The session then presents `G-ingest`.", self.text)
         template = (SKILLS / "tl-design/templates/workflow-state.md").read_text()
         self.assertIn("ingest_ws:", template)

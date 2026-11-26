@@ -89,7 +89,7 @@ python3 "$S" --knowledge-root "$DROOT" --handle <handle> show
 - Reopening `G-hla` removes `G-hla`, `G-design` and `G-breakdown` from `signed:`. Reopening `G-design` removes `G-design` and `G-breakdown`.
   Either reopen runs `set-stage --stage design --status draft`, which marks a signed `breakdown` stale.
 - After G-ingest, run `set-baseline`, then `add-impact` with the drift record's impact file, when one exists. Report every stage it marked stale.
-  Then rerun `set-stage --stage ingest --status signed-off` with the gate date, and clear `ingest_sha256`.
+  Then rerun `set-stage --stage ingest --status signed-off` with the gate date.
 
 ## Start and resume
 
@@ -103,13 +103,16 @@ python3 "$S" --knowledge-root "$DROOT" --handle <handle> show
 At step 1, a source already recorded with `baseline: true` counts as ingested. Skip its snapshot.
 A source with no baseline of its kind takes one `design-writer` dispatch for `ingest-sources` steps 1 to 3. The session then presents `G-ingest`.
 A new revision enters step 1 fresh when `ingest_sha256` does not hold its file `sha256`.
-On a fresh entry, record that digest as `ingest_sha256` in `workflow-state.md`, and clear `ingest_ws`.
+On a fresh entry, record that digest as `ingest_sha256` in `workflow-state.md`.
+Also clear `ingest_ws` and every step 1 entry in `workflow_runs`.
 Then remove `G-ingest` from `signed:`, and run `set-stage --stage ingest --status draft`.
 A dispatch skips the snapshot when the revision in `ingest_sha256` is already recorded.
 A new revision of another kind takes one dispatch for steps 1 and 2. The session then presents `G-ingest`.
+After the gate rules, it clears `ingest_sha256`.
 A new revision of a `stories` source runs in four parts:
 
-1. Reuse `ingest_ws` when it is set. Otherwise create `$WS` as a new `ingest-<date>` directory under `<runtime>/designs/<handle>/runs/`.
+1. Reuse `ingest_ws` when it is set. Otherwise create `$WS` under `<runtime>/designs/<handle>/runs/`.
+   Name it `ingest-<date>-<first 8 characters of ingest_sha256>`.
    Resolve `state_dir` to an absolute path, and record `$WS` as `ingest_ws` in `workflow-state.md`.
    When `<runtime>` sits inside the workspace, add `<runtime>/designs/*/runs/` to the workspace `.gitignore` if absent.
    Write that line relative to the workspace root.
@@ -119,10 +122,10 @@ A new revision of a `stories` source runs in four parts:
 2. Write the drift args to `$WS/drift-args.json`, and rewrite them before each relaunch.
    Run `ingest-sources` step 4.4 in the session, with the reader tiers it defines. Then run step 4.5.
 3. Dispatch `design-writer` again for `ingest-sources` steps 4.6 and 4.7 on the same `$WS`.
-   If it returns without `$WS/impact.tsv`, report its reason and stop.
+   If `$WS/ids-to-scan.txt` is not empty and `$WS/impact.tsv` is missing, report its reason and stop.
 4. Present `G-ingest`. After it, follow the gate rules, with `ingest_sha256` as the `set-baseline` digest.
    Then rerun the `gen_register.py` command in `$WS/writer.json` with the `--page` flags of `ingest-sources` step 3.
-   Last, clear `ingest_ws` and every step 1 entry in `workflow_runs`.
+   Last, clear `ingest_ws`, `ingest_sha256` and every step 1 entry in `workflow_runs`.
 
 A resume at step 1 reads `ingest_ws`. It resumes an unfinished recorded drift run with the args in `$WS/drift-args.json`.
 With no such run, it continues from the first part whose output is missing.
