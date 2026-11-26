@@ -46,6 +46,7 @@ class PortableWritersTest(unittest.TestCase):
         self.assertIn("verbatim", tier)
         self.assertIn("`opus` where the tool takes a model", tier)
         self.assertIn("redispatch", tier)
+        self.assertIn("Wait until every subagent finishes", tier)
         self.assertIn("Step 5 starts only after", tier)
         self.assertLess(alone, text.index("5. Assemble."))
 

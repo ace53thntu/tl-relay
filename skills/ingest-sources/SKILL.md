@@ -104,10 +104,10 @@ For a revision, write the page only after G-ingest.
    Fill `a` from the args above and `s` from that slice in `slices.json`.
    Dispatch on `opus` where the tool takes a model, else on the tool's default.
    Wait until every subagent finishes, a failed one included. Then check that `$WS/slice-<name>.md` and `$WS/findings-<name>.md` exist for every slice.
-   Next, redispatch only the slices that lack one, and repeat the wait and the check.
+   Next, redispatch only the slices that lack either file, and repeat the wait and the check.
    Step 5 starts only after both files exist for every slice.
 
-   With no subagent tool, the session adjudicates the slices one at a time, following the same reader instructions.
+   With no subagent tool, the session adjudicates the slices one at a time, following the reader instructions in `<skill dir>/workflows/drift-adjudicate.js`.
    Each slice writes `$WS/slice-<name>.md` and `$WS/findings-<name>.md`. Check that both files exist for every slice before step 5.
 
 5. Assemble. Put every error to the operator as a question. Write the ruling into the named slice file and note it in
