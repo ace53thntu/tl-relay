@@ -51,9 +51,17 @@ class PortableWritersTest(unittest.TestCase):
         self.assertIn("--pending", tier)
         self.assertLess(alone, text.index("5. Assemble."))
 
+    def test_script_commands_set_no_shell_variable(self):
+        for name in ("ingest-sources", "write-contract"):
+            text = (SKILLS / name / "SKILL.md").read_text()
+            self.assertNotIn("$SK", text, name)
+            self.assertNotIn("SK=", text, name)
+            self.assertIn("Set no shell variable in a command, because Claude Code asks before every command that sets one.",
+                          " ".join(text.split()), name)
+
     def test_readers_and_record_follow_the_digest(self):
         text = " ".join((SKILLS / "ingest-sources/SKILL.md").read_text().split())
-        for sentence in ('python3 "$SK/assemble.py" --ws "$WS" --pending',
+        for sentence in ('python3 "<skill dir>/scripts/assemble.py" --ws "$WS" --pending',
                          "args: {kind, ws, oldSource, newSource, slices, digest}",
                          "Step 5 starts only after `--pending` lists no slice.",
                          "A stamp error goes back to step 4 for the slice it names, never to the operator.",

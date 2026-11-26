@@ -37,15 +37,17 @@ stop and name `tl-design` with `npx skills add ace53thntu/tl-relay --skill tl-de
 ```bash
 K=<absolute path of the design root>
 H=<handle>
-SK=<skill dir>/scripts
 PY=<the Python defined above>
 WS=<the directory the caller names, else a fresh directory in the session scratchpad>
 ```
 
+Each command below names these values as variables. Write each value in place in the Bash call. Set no shell variable
+in a command, because Claude Code asks before every command that sets one.
+
 ## 1. Snapshot
 
 ```bash
-python3 "$SK/snapshot.py" --knowledge-root "$K" --handle "$H" --kind stories \
+python3 "<skill dir>/scripts/snapshot.py" --knowledge-root "$K" --handle "$H" --kind stories \
   --label "8 September revision" --received 2026-09-12 "<file>"
 ```
 
@@ -54,9 +56,9 @@ If `duplicate_of` is not null, report that the file is not a new revision and st
 ## 2. Convert
 
 ```bash
-python3 "$SK/xlsx2md.py" "$K/<path>" --list
-python3 "$SK/xlsx2md.py" "$K/<path>" --sheet "<sheet>" --out "$K/<path>.md"
-"$PY" "$SK/pdf2md.py" "$K/<path>" --out "$K/<path>.md"
+python3 "<skill dir>/scripts/xlsx2md.py" "$K/<path>" --list
+python3 "<skill dir>/scripts/xlsx2md.py" "$K/<path>" --sheet "<sheet>" --out "$K/<path>.md"
+"$PY" "<skill dir>/scripts/pdf2md.py" "$K/<path>" --out "$K/<path>.md"
 ```
 
 The converted Markdown sits beside the original. A PDF needs `$PY` with the `requirements.txt` packages installed, because pypdf is not in the standard library.
@@ -67,8 +69,8 @@ Agree the minting rule with the operator before the first run for a project. Min
 none. Read them from the columns of a revision that carries them.
 
 ```bash
-python3 "$SK/gen_register.py" "$K/<path>" --sheet "<sheet>" --mint S --jsonl "$WS/new.jsonl"
-python3 "$SK/gen_register.py" "$K/<path>" --sheet "<sheet>" --id-col Criterion --story-col "Old ID" --jsonl "$WS/old.jsonl"
+python3 "<skill dir>/scripts/gen_register.py" "$K/<path>" --sheet "<sheet>" --mint S --jsonl "$WS/new.jsonl"
+python3 "<skill dir>/scripts/gen_register.py" "$K/<path>" --sheet "<sheet>" --id-col Criterion --story-col "Old ID" --jsonl "$WS/old.jsonl"
 ```
 
 For a first snapshot, also pass `--page "$K/designs/$H/specs/user-stories.md"` with `--page-title`,
@@ -81,17 +83,17 @@ For a revision, the caller writes the page after G-ingest, as step 4.8 says.
 2. Pair them. The counts are hints: for S6 a text match said 42 withdrawn and the readers found 31.
 
    ```bash
-   python3 "$SK/pair.py" --old "$WS/old.jsonl" --new "$WS/new.jsonl" --out "$WS/pairs.tsv" --unclaimed "$WS/unclaimed.txt"
+   python3 "<skill dir>/scripts/pair.py" --old "$WS/old.jsonl" --new "$WS/new.jsonl" --out "$WS/pairs.tsv" --unclaimed "$WS/unclaimed.txt"
    ```
 
 3. Slice. Use one slice per 30 new criteria, at most 8.
 
    ```bash
-   python3 "$SK/slices.py" --new "$WS/new.jsonl" --old "$WS/old.jsonl" --pairs "$WS/pairs.tsv" \
+   python3 "<skill dir>/scripts/slices.py" --new "$WS/new.jsonl" --old "$WS/old.jsonl" --pairs "$WS/pairs.tsv" \
      --unclaimed "$WS/unclaimed.txt" --count <n> --out "$WS/slices.json"
    ```
 
-4. Run the readers. First run `python3 "$SK/assemble.py" --ws "$WS" --pending`. It prints `inputs_sha256`, the digest of
+4. Run the readers. First run `python3 "<skill dir>/scripts/assemble.py" --ws "$WS" --pending`. It prints `inputs_sha256`, the digest of
    `slices.json`, `new.jsonl` and `old.jsonl`, and `pending`, the slices that lack a slice file or a findings file stamped
    with that digest. It first checks that `new.jsonl` and `old.jsonl` parse and hold the ids that `slices.json` and
    `pairs.tsv` name. A nonzero exit from `--pending` goes to the operator as a question, and no reader runs. Call the
@@ -120,13 +122,13 @@ For a revision, the caller writes the page after G-ingest, as step 4.8 says.
    that slice's findings. Keep line 1 of both files unchanged when you write the ruling. Rerun until the exit code is 0.
 
    ```bash
-   python3 "$SK/assemble.py" --ws "$WS" --out "$WS/adjudication.json" --ids-out "$WS/ids-to-scan.txt"
+   python3 "<skill dir>/scripts/assemble.py" --ws "$WS" --out "$WS/adjudication.json" --ids-out "$WS/ids-to-scan.txt"
    ```
 
 6. Scan the impact. The root is `$K/designs/$H`.
 
    ```bash
-   python3 "$SK/impact.py" --root "$K/designs/$H" --ids-file "$WS/ids-to-scan.txt" --out "$WS/impact.tsv"
+   python3 "<skill dir>/scripts/impact.py" --root "$K/designs/$H" --ids-file "$WS/ids-to-scan.txt" --out "$WS/impact.tsv"
    ```
 
 7. Write `$K/designs/$H/audits/<date>-stories-drift.md` with `type: Audit`. Read the findings only from the files

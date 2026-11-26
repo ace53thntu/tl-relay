@@ -26,9 +26,8 @@ A route list is any Markdown table with a cell that starts with a method and a p
 
 ## Procedure
 
-```bash
-SK=<skill dir>/scripts
-```
+Write `<skill dir>` in place in each command below. Set no shell variable in a command, because Claude Code asks before
+every command that sets one.
 
 1. Read the Overview, the route list, the shared components and the Overview's section 4 deep dives. Then
    read the screens, the `S-nn-ACm` register and the `T-nn` page, for the jobs each route serves.
@@ -38,7 +37,7 @@ SK=<skill dir>/scripts
 4. Render the route pages and the common errors:
 
    ```bash
-   python3 "$SK/render_lld.py" --contract <contract> --lld <lld> [--module <module>] [--common <page>]
+   python3 "<skill dir>/scripts/render_lld.py" --contract <contract> --lld <lld> [--module <module>] [--common <page>]
    ```
 
    It creates a page under `<lld dir>/<module>/api/` for each route that has none, renders every block on the route pages, and renders the `common-errors` block on the `--common` page, or on `<lld dir>/<module>/interface-contracts.md` without it. In a design set with an API page, pass `--lld` and `--common` as `<lld dir>/<module>-api.md` with `--module <module>`. It writes only between markers on the `--common` page and never writes the LLD file. A common response is a response component that two or more routes reference. It appears in the common errors and on no route page.
@@ -68,7 +67,7 @@ SK=<skill dir>/scripts
 6. Check, and fix what it reports until it exits 0:
 
    ```bash
-   python3 "$SK/check_contract.py" --contract <contract> --lld <lld> --api <route list> [--module <module>] [--common <page>]
+   python3 "<skill dir>/scripts/check_contract.py" --contract <contract> --lld <lld> --api <route list> [--module <module>] [--common <page>]
    ```
 
    Exit 3 means the gate's self-test broke. Stop and report it, and do not work around it.
