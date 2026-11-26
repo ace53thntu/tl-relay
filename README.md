@@ -94,7 +94,7 @@ Without the package, `ingest-sources` stops and prints this command with the rea
 
 ### First session
 
-Start a new session after you install. With the plugin, the SessionStart hook loads `using-tl-relay` as the session starts.
+Start a new session after you install. With the plugin, the SessionStart hook loads `using-tl-relay` as the session starts. `/reload-plugins` loads the skills into a running session but does not run that hook, so start a new session or run `/clear`.
 
 To check the install, give the agent any task. Before it edits code, it calls a skill such as `tl-relay:brainstorm` or `tl-relay:test-first`, and it usually announces the pick: "Using <skill> to <purpose>".
 

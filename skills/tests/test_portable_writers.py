@@ -87,6 +87,16 @@ class PortableWritersTest(unittest.TestCase):
         for text in (lld, hla):
             self.assertIn("only when the page sits under `knowledge_dir`", text)
 
+    def test_workspace_and_register_follow_the_caller(self):
+        text = " ".join((SKILLS / "ingest-sources/SKILL.md").read_text().split())
+        for sentence in ("WS=<the directory the caller names, else a fresh directory in the session scratchpad>",
+                         "The workspace may be gone after this run, so the record must hold everything the readers found.",
+                         "the caller regenerates `$K/designs/$H/specs/user-stories.md` from the revision. Run alone, this skill does."):
+            self.assertIn(sentence, text)
+            self.assertNotIn("tl-design", sentence)
+        self.assertNotIn("does not survive", text)
+        self.assertNotIn("this skill regenerates", text)
+
 
 if __name__ == "__main__":
     unittest.main()
