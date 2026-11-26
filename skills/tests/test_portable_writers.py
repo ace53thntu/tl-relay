@@ -48,7 +48,18 @@ class PortableWritersTest(unittest.TestCase):
         self.assertIn("redispatch", tier)
         self.assertIn("Wait until every subagent finishes", tier)
         self.assertIn("Step 5 starts only after", tier)
+        self.assertIn("--pending", tier)
         self.assertLess(alone, text.index("5. Assemble."))
+
+    def test_readers_and_record_follow_the_digest(self):
+        text = " ".join((SKILLS / "ingest-sources/SKILL.md").read_text().split())
+        for sentence in ('python3 "$SK/assemble.py" --ws "$WS" --pending',
+                         "args: {kind, ws, oldSource, newSource, slices, digest}",
+                         "Step 5 starts only after `--pending` lists no slice.",
+                         "A stamp error goes back to step 4 for the slice it names, never to the operator.",
+                         "Read the findings only from the files that `$WS/adjudication.json` lists under `findings`."):
+            self.assertIn(sentence, text)
+        self.assertNotIn("check that `$WS/slice-<name>.md` and `$WS/findings-<name>.md` exist", text)
 
     def test_write_design_sibling_stop_precedes_writing(self):
         text = (SKILLS / "write-design/SKILL.md").read_text()

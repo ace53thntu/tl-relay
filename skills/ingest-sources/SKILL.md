@@ -91,26 +91,30 @@ For a revision, the caller writes the page after G-ingest, as step 4.8 says.
      --unclaimed "$WS/unclaimed.txt" --count <n> --out "$WS/slices.json"
    ```
 
-4. Run the readers with the call below, where `slices` is the parsed content of `slices.json`.
+4. Run the readers. First run `python3 "$SK/assemble.py" --ws "$WS" --pending`. It prints `slices_sha256`, the digest of
+   `slices.json`, and `pending`, the slices that lack a slice file or a findings file stamped with that digest.
+   Call the workflow below, where `slices` holds the pending entries of `slices.json` and `digest` is `slices_sha256`.
 
    ```js
-   Workflow({scriptPath: "<skill dir>/workflows/drift-adjudicate.js", args: {kind, ws, oldSource, newSource, slices}})
+   Workflow({scriptPath: "<skill dir>/workflows/drift-adjudicate.js", args: {kind, ws, oldSource, newSource, slices, digest}})
    ```
 
-   If the result lists a slice under `missing` or `incomplete`, run the workflow again with only those slices.
+   Then run `--pending` again. If it lists a slice, run the workflow again with only the slices it lists.
 
-   With no Workflow tool and a subagent tool, dispatch one subagent per slice, all at once where the tool allows.
+   With no Workflow tool and a subagent tool, dispatch one subagent per pending slice, all at once where the tool allows.
    Each subagent's prompt is the text that `prompt(a, s)` builds in `<skill dir>/workflows/drift-adjudicate.js`, copied verbatim.
    Fill `a` from the args above and `s` from that slice in `slices.json`.
    Dispatch on `opus` where the tool takes a model, else on the tool's default.
-   Wait until every subagent finishes, a failed one included. Then check that `$WS/slice-<name>.md` and `$WS/findings-<name>.md` exist for every slice.
-   Next, redispatch only the slices that lack either file, and repeat the wait and the check.
-   Step 5 starts only after both files exist for every slice.
+   Wait until every subagent finishes, a failed one included. Then run `--pending` again.
+   Next, redispatch only the slices it lists, and repeat the wait and the check.
+   Step 5 starts only after `--pending` lists no slice.
 
-   With no subagent tool, the session adjudicates the slices one at a time, following the reader instructions in `<skill dir>/workflows/drift-adjudicate.js`.
-   Each slice writes `$WS/slice-<name>.md` and `$WS/findings-<name>.md`. Check that both files exist for every slice before step 5.
+   With no subagent tool, the session adjudicates the pending slices one at a time, following the reader instructions in `<skill dir>/workflows/drift-adjudicate.js`.
+   Each slice writes `$WS/slice-<name>.md` and `$WS/findings-<name>.md`, each opening with the stamp those instructions give.
+   Step 5 starts only after `--pending` lists no slice.
 
-5. Assemble. Put every error to the operator as a question. Write the ruling into the named slice file and note it in
+5. Assemble. A stamp error goes back to step 4 for the slice it names, never to the operator. Put every other
+   error to the operator as a question. Write the ruling into the named slice file and note it in
    that slice's findings. Rerun until the exit code is 0.
 
    ```bash
@@ -123,10 +127,11 @@ For a revision, the caller writes the page after G-ingest, as step 4.8 says.
    python3 "$SK/impact.py" --root "$K/designs/$H" --ids-file "$WS/ids-to-scan.txt" --out "$WS/impact.tsv"
    ```
 
-7. Write `$K/designs/$H/audits/<date>-stories-drift.md` with `type: Audit`. Carry the counts and every story that
-   vanished while design rests on it. Also carry the values that changed, contradictions inside the revision,
-   stale references and the readers' open questions. Each item names the file to change and who decides. The workspace may be gone
-   after this run, so the record must hold everything the readers found. Copy `$WS/adjudication.json` to
+7. Write `$K/designs/$H/audits/<date>-stories-drift.md` with `type: Audit`. Read the findings only from the files
+   that `$WS/adjudication.json` lists under `findings`. Carry the counts and every story that vanished while design
+   rests on it. Also carry the values that changed, contradictions inside the revision, stale references and the
+   readers' open questions. Each item names the file to change and who decides. The workspace may be gone after this
+   run, so the record must hold everything the readers found. Copy `$WS/adjudication.json` to
    `$K/designs/$H/audits/<date>-stories-adjudication.json`, which keeps the old-to-new mapping. Add the index entry.
 8. Stop at G-ingest. After the operator accepts, the caller runs `set-baseline` and `add-impact` with `$WS/impact.tsv`,
    then regenerates `$K/designs/$H/specs/user-stories.md` from the revision. Run alone, this skill presents G-ingest and
