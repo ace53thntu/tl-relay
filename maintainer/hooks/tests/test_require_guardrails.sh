@@ -142,13 +142,19 @@ printf "TL_RELAY_ROOT='%s'\nTL_RELAY_USER_FRAGMENT='%s'\nTL_RELAY_FRAGMENT='%s'\
 o=$(bare TL_RELAY_HOME="$TMP/nlhome")
 allows "$o" && ok "keeps an env.sh value that spans lines" || bad "multi-line env.sh value cut short: $(rsn "$o")"
 
-for extra in 'IFS=:' 'printf() { :; }'; do
+for extra in 'IFS=:' 'printf() { :; }' 'set -- ROOT'; do
   rm -rf "$TMP/xhome"; mkdir "$TMP/xhome"
   cp "$TMP/ahome/env.sh" "$TMP/xhome/env.sh"
   printf '%s\n' "$extra" >> "$TMP/xhome/env.sh"
   o=$(bare TL_RELAY_HOME="$TMP/xhome")
   allows "$o" && ok "env.sh with $extra still passes its values back" || bad "env.sh with $extra lost its values: $(rsn "$o")"
 done
+
+rm -rf "$TMP/xhome"; mkdir "$TMP/xhome"
+cp "$TMP/ahome/env.sh" "$TMP/xhome/env.sh"
+printf '_lg_vars=ROOT\n' >> "$TMP/xhome/env.sh"
+o=$(bare TL_RELAY_HOME="$TMP/xhome")
+{ [ "$(dec "$o")" = "deny" ] && printf '%s' "$(rsn "$o")" | grep -qF "$TMP/xhome/env.sh failed to load"; } && ok "env.sh cannot change the variable list" || bad "env.sh changed the variable list: $(rsn "$o")"
 
 mkdir "$TMP/lhome"
 printf 'AI_SDLC_ROOT=%s\nAI_SDLC_USER_FRAGMENT=%s\nAI_SDLC_FRAGMENT=%s\nAI_SDLC_USER_SETTINGS=%s\nAI_SDLC_SETTINGS=%s\n' \

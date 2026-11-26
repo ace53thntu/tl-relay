@@ -3,6 +3,7 @@
 # environment wins, even when empty. env.sh is read once, in a subshell.
 # TL_RELAY_USER_SETTINGS is colon-separated, one entry per Claude Code config directory.
 _lg_vars="ROOT USER_FRAGMENT FRAGMENT USER_SETTINGS SETTINGS"
+readonly _lg_vars
 _lg_env=
 _lg_env_failed=
 for _lg_v in $_lg_vars; do eval "_lg_n_$_lg_v="; done
@@ -11,7 +12,6 @@ if [ -n "${TL_RELAY_HOME:-}" ] && [ -f "$TL_RELAY_HOME/env.sh" ]; then
     trap - EXIT
     unset IFS
     unset -f printf
-    _lg_vars="ROOT USER_FRAGMENT FRAGMENT USER_SETTINGS SETTINGS"
     _lg_quote() {
       _lq_s=$1 _lq_r=
       while :; do
