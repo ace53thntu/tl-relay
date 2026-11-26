@@ -7,7 +7,7 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from registerio import load_jsonl  # noqa: E402
+from registerio import load_jsonl, register_field  # noqa: E402
 
 NAMES = "ABCDEFGH"
 
@@ -57,11 +57,24 @@ def main(argv=None):
     p.add_argument("--count", type=int, required=True)
     p.add_argument("--out", required=True)
     a = p.parse_args(argv)
-    with open(a.pairs, encoding="utf-8", newline="") as fh:
-        pairs = list(csv.DictReader(fh, delimiter="\t"))
-    with open(a.unclaimed, encoding="utf-8") as fh:
-        unclaimed = [line.strip() for line in fh if line.strip()]
-    result = make_slices(load_jsonl(a.new), pairs, load_jsonl(a.old), unclaimed, a.count)
+    path = a.pairs
+    try:
+        with open(path, encoding="utf-8", newline="") as fh:
+            pairs = list(csv.DictReader(fh, delimiter="\t"))
+        path = a.unclaimed
+        with open(path, encoding="utf-8") as fh:
+            unclaimed = [line.strip() for line in fh if line.strip()]
+        registers = []
+        for path in (a.new, a.old):
+            rows = load_jsonl(path)
+            for n, row in enumerate(rows, 1):
+                register_field(row, n, "id")
+                register_field(row, n, "story")
+            registers.append(rows)
+    except (OSError, ValueError, csv.Error) as e:
+        print(f"slices: cannot read {path}: {e}", file=sys.stderr)
+        return 1
+    result = make_slices(registers[0], pairs, registers[1], unclaimed, a.count)
     with open(a.out, "w", encoding="utf-8") as fh:
         json.dump(result, fh, indent=2, ensure_ascii=False)
     print(json.dumps([{"name": s["name"], "new": len(s["new_ids"]), "rule_on": len(s["rule_on"])} for s in result]))

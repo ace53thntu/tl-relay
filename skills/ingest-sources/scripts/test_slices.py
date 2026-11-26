@@ -1,5 +1,9 @@
+import contextlib
+import io
+import json
 import os
 import sys
+import tempfile
 import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -33,6 +37,81 @@ class SlicesTest(unittest.TestCase):
     def test_count_is_bounded(self):
         with self.assertRaises(SystemExit):
             sl.make_slices(NEW, PAIRS, OLD, UNCLAIMED, 9)
+
+
+class SlicesMainTest(unittest.TestCase):
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        d = tmp.name
+        self.new, self.old = os.path.join(d, "new.jsonl"), os.path.join(d, "old.jsonl")
+        self.pairs, self.unc = os.path.join(d, "pairs.tsv"), os.path.join(d, "unclaimed.txt")
+        self.out = os.path.join(d, "slices.json")
+        self.write_jsonl(self.new, NEW)
+        self.write_jsonl(self.old, OLD)
+        with open(self.pairs, "w", encoding="utf-8") as fh:
+            fh.write("new_id\told_id\tkind\trule_changed\tratio\n")
+            for p in PAIRS:
+                fh.write(f"{p['new_id']}\t{p['old_id']}\t\t\t\n")
+        with open(self.unc, "w", encoding="utf-8") as fh:
+            fh.write("".join(i + "\n" for i in UNCLAIMED))
+
+    def write_jsonl(self, path, rows):
+        with open(path, "w", encoding="utf-8") as fh:
+            fh.write("".join(json.dumps(r) + "\n" for r in rows))
+
+    def run_main(self):
+        out, err = io.StringIO(), io.StringIO()
+        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+            code = sl.main(["--new", self.new, "--old", self.old, "--pairs", self.pairs,
+                            "--unclaimed", self.unc, "--count", "3", "--out", self.out])
+        return code, out.getvalue(), err.getvalue()
+
+    def test_main_rejects_a_missing_register(self):
+        os.remove(self.new)
+        code, _, err = self.run_main()
+        self.assertEqual(code, 1)
+        self.assertEqual(len(err.splitlines()), 1)
+        self.assertTrue(err.startswith(f"slices: cannot read {self.new}: "))
+
+    def test_main_rejects_a_line_that_is_not_json(self):
+        with open(self.old, "w", encoding="utf-8") as fh:
+            fh.write('{"id": "US-01-AC1a"')
+        code, _, err = self.run_main()
+        self.assertEqual(code, 1)
+        self.assertEqual(len(err.splitlines()), 1)
+        self.assertTrue(err.startswith(f"slices: cannot read {self.old}: "))
+
+    def test_main_rejects_a_list_story(self):
+        rows = [dict(o) for o in OLD]
+        rows[2]["story"] = ["US-09"]
+        self.write_jsonl(self.old, rows)
+        code, _, err = self.run_main()
+        self.assertEqual(code, 1)
+        self.assertEqual(err, f"slices: cannot read {self.old}: row 3: 'story' must be a non-empty string\n")
+
+    def test_main_rejects_a_null_new_id(self):
+        rows = [dict(n) for n in NEW]
+        rows[0]["id"] = None
+        self.write_jsonl(self.new, rows)
+        code, _, err = self.run_main()
+        self.assertEqual(code, 1)
+        self.assertEqual(err, f"slices: cannot read {self.new}: row 1: 'id' must be a non-empty string\n")
+
+    def test_main_rejects_a_missing_unclaimed_file(self):
+        os.remove(self.unc)
+        code, _, err = self.run_main()
+        self.assertEqual(code, 1)
+        self.assertEqual(len(err.splitlines()), 1)
+        self.assertTrue(err.startswith(f"slices: cannot read {self.unc}: "))
+
+    def test_main_rejects_a_malformed_pairs_tsv(self):
+        with open(self.pairs, "wb") as fh:
+            fh.write(b"new_id\told_id\n" + b"x" * 200000 + b"\n")
+        code, _, err = self.run_main()
+        self.assertEqual(code, 1)
+        self.assertEqual(len(err.splitlines()), 1)
+        self.assertTrue(err.startswith(f"slices: cannot read {self.pairs}: "))
 
 
 if __name__ == "__main__":
