@@ -1,8 +1,13 @@
 import pathlib
 import re
+import sys
+import tempfile
 import unittest
 
 SKILLS = pathlib.Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(SKILLS.parent / "maintainer"))
+
+from runtime import yamlio  # noqa: E402
 
 FORKED = ("debug-issue", "test-first", "verify-done", "brainstorm", "write-plan", "run-plan", "review-change", "using-tl-relay")
 
@@ -74,12 +79,10 @@ def read(path):
 def frontmatter(path):
     lines = read(path).splitlines()
     end = lines[1:].index("---") + 1
-    fields = {}
-    for line in lines[1:end]:
-        key, sep, value = line.partition(":")
-        if sep:
-            fields[key.strip()] = value.strip().strip("\"'")
-    return fields
+    with tempfile.TemporaryDirectory() as tmp:
+        block = pathlib.Path(tmp) / "frontmatter.yaml"
+        block.write_text("\n".join(lines[1:end]) + "\n", encoding="utf-8")
+        return yamlio.load(block)
 
 
 class ForkedSkills(unittest.TestCase):
@@ -136,6 +139,15 @@ class ForkedSkills(unittest.TestCase):
             for name in UPSTREAM_NAMES:
                 with self.subTest(file=str(relative), name=name):
                     self.assertIsNone(re.search(upstream_pattern(name), text))
+
+
+class Frontmatter(unittest.TestCase):
+    def test_invalid_yaml_raises(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = pathlib.Path(tmp) / "SKILL.md"
+            path.write_text("---\nname: x\ndescription: Use when: a thing\n---\nbody\n", encoding="utf-8")
+            with self.assertRaises(yamlio.YamlError):
+                frontmatter(path)
 
 
 if __name__ == "__main__":
