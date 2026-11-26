@@ -103,9 +103,9 @@ python3 "$S" --knowledge-root "$DROOT" --handle <handle> show
 At step 1, a source already recorded with `baseline: true` counts as ingested. Skip its snapshot.
 A source with no baseline of its kind takes one `design-writer` dispatch for `ingest-sources` steps 1 to 3. The session then presents `G-ingest`.
 A new revision enters step 1 fresh when `ingest_sha256` does not hold its file `sha256`.
-On a fresh entry, record that digest as `ingest_sha256` in `workflow-state.md`.
+On a fresh entry, remove `G-ingest` from `signed:`, and run `set-stage --stage ingest --status draft`.
 Also clear `ingest_ws` and every step 1 entry in `workflow_runs`.
-Then remove `G-ingest` from `signed:`, and run `set-stage --stage ingest --status draft`.
+Then record the revision's file `sha256` as `ingest_sha256` in `workflow-state.md`.
 A dispatch skips the snapshot when the revision in `ingest_sha256` is already recorded.
 A new revision of another kind takes one dispatch for steps 1 and 2. The session then presents `G-ingest`.
 After the gate rules, it clears `ingest_sha256`.
@@ -117,10 +117,12 @@ A new revision of a `stories` source runs in four parts:
    When `<runtime>` sits inside the workspace, add `<runtime>/designs/*/runs/` to the workspace `.gitignore` if absent.
    Write that line relative to the workspace root.
    Dispatch `design-writer` for `ingest-sources` steps 1 to 4.3 on `$WS`. It stops once `$WS/slices.json` exists.
-   It writes both converted source paths to `$WS/writer.json`, with the step 3 command that wrote `$WS/new.jsonl`.
+   It writes both converted source paths to `$WS/writer.json`, with the step 3 command that wrote `$WS/new.jsonl`, every path absolute.
    If it returns without `slices.json` or `writer.json`, report its reason and stop.
 2. Write the drift args to `$WS/drift-args.json`, and rewrite them before each relaunch.
    Run `ingest-sources` step 4.4 in the session, with the reader tiers it defines. Then run step 4.5.
+   Part 2 is done once `$WS/adjudication.json` exists.
+   A resume that finds every slice and findings file reruns only step 4.5.
 3. Dispatch `design-writer` again for `ingest-sources` steps 4.6 and 4.7 on the same `$WS`.
    If `$WS/ids-to-scan.txt` is not empty and `$WS/impact.tsv` is missing, report its reason and stop.
 4. Present `G-ingest`. After it, follow the gate rules, with `ingest_sha256` as the `set-baseline` digest.
@@ -234,7 +236,7 @@ Line 1 is `READY|FAIL|BLOCKED <stage> r<n>`: `FAIL` when a check exits non-zero,
 Then a summary of at most 5 bullets, changed anchors, Agent decisions, Key decisions and Known gaps. The operator
 reads the head and opens only the anchors it names.
 
-`## Decided for veto` lists every row of the Agent decisions section of the stage with a `key_class` other than `none`, one line
+`## Decided for veto` lists every Agent decisions row of the stage, from `decisions.md`, with a `key_class` other than `none`, one line
 each: page#anchor, the choice, the rejected option. A veto at the gate becomes a `## Revise log` row and a `DR-n`.
 
 ## Check scripts
