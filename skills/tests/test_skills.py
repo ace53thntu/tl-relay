@@ -1,8 +1,13 @@
 import pathlib
 import re
+import sys
+import tempfile
 import unittest
 
 SKILLS = pathlib.Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(SKILLS.parent / "maintainer"))
+
+from runtime import yamlio  # noqa: E402
 
 FORKED = ("debug-issue", "test-first", "verify-done", "brainstorm", "write-plan", "run-plan", "review-change", "using-tl-relay")
 
@@ -73,12 +78,22 @@ def read(path):
 
 def frontmatter(path):
     lines = read(path).splitlines()
+    if not lines or lines[0] != "---":
+        raise ValueError("no frontmatter in %s" % path)
+    if "---" not in lines[1:]:
+        raise ValueError("no closing --- in %s" % path)
     end = lines[1:].index("---") + 1
-    fields = {}
-    for line in lines[1:end]:
-        key, sep, value = line.partition(":")
-        if sep:
-            fields[key.strip()] = value.strip().strip("\"'")
+    with tempfile.TemporaryDirectory() as tmp:
+        block = pathlib.Path(tmp) / "frontmatter.yaml"
+        block.write_text("\n".join([""] + lines[1:end]) + "\n", encoding="utf-8")
+        try:
+            fields = yamlio.load(block)
+        except yamlio.YamlError as exc:
+            raise yamlio.YamlError(str(exc).replace(str(block), str(path))) from None
+    if fields is None:
+        return {}
+    if not isinstance(fields, dict):
+        raise ValueError("frontmatter is not a mapping in %s" % path)
     return fields
 
 
@@ -136,6 +151,44 @@ class ForkedSkills(unittest.TestCase):
             for name in UPSTREAM_NAMES:
                 with self.subTest(file=str(relative), name=name):
                     self.assertIsNone(re.search(upstream_pattern(name), text))
+
+
+class Frontmatter(unittest.TestCase):
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.path = pathlib.Path(tmp.name) / "SKILL.md"
+
+    def parse(self, text):
+        self.path.write_text(text, encoding="utf-8")
+        return frontmatter(self.path)
+
+    def test_invalid_yaml_raises_the_parser_error(self):
+        with self.assertRaisesRegex(yamlio.YamlError, "mapping values are not allowed"):
+            self.parse("---\nname: x\ndescription: Use when: a thing\n---\nbody\n")
+
+    def test_a_parse_error_names_the_skill_file(self):
+        with self.assertRaisesRegex(yamlio.YamlError, re.escape(str(self.path))):
+            self.parse("---\nname: x\ndescription: Use when: a thing\n---\nbody\n")
+
+    def test_a_parse_error_gives_the_skill_file_line(self):
+        with self.assertRaisesRegex(yamlio.YamlError, "at line 3 "):
+            self.parse("---\nname: x\ndescription: Use when: a thing\n---\nbody\n")
+
+    def test_a_file_without_an_opening_marker_raises(self):
+        with self.assertRaisesRegex(ValueError, "no frontmatter"):
+            self.parse("name: x\n---\nbody\n")
+
+    def test_a_file_without_a_closing_marker_raises(self):
+        with self.assertRaisesRegex(ValueError, "no closing --- in"):
+            self.parse("---\nname: x\nbody\n")
+
+    def test_frontmatter_that_is_not_a_mapping_raises(self):
+        with self.assertRaisesRegex(ValueError, "not a mapping"):
+            self.parse("---\njust text\n---\nbody\n")
+
+    def test_empty_frontmatter_has_no_fields(self):
+        self.assertEqual(self.parse("---\n---\nbody\n"), {})
 
 
 if __name__ == "__main__":
