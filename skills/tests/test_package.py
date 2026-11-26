@@ -59,6 +59,13 @@ class PackageTest(unittest.TestCase):
         section = (ROOT / "README.md").read_text().split("### Requirements", 1)[1].split("\n### ", 1)[0]
         self.assertIn("- macOS or Linux.", section)
 
+    def test_readme_allows_the_plugin_cache(self):
+        section = (ROOT / "README.md").read_text().split("### Claude Code plugin", 1)[1].split("\n### ", 1)[0]
+        for needle in ('"additionalDirectories": ["~/.claude/plugins/cache/tl-relay"]',
+                       '"Bash(python3 */.claude/plugins/cache/tl-relay/*)"',
+                       '"Bash(sh */.claude/plugins/cache/tl-relay/*)"'):
+            self.assertIn(needle, section)
+
     def test_marketplace_points_at_the_root(self):
         m = json.loads((ROOT / ".claude-plugin/marketplace.json").read_text())
         self.assertEqual(m["name"], "tl-relay")
