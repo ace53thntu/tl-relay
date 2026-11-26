@@ -13,7 +13,8 @@ from registerio import load_jsonl  # noqa: E402
 VERDICTS = ("changed", "identical", "new", "reworded", "withdrawn")
 ROW = re.compile(r"^\|\s*`?([^|`]*?)`?\s*\|\s*`?([^|`]*?)`?\s*\|\s*(\w+)\s*\|")
 EMPTY = {"", "—", "-"}
-STAMP = "<!-- slices.json sha256 {} -->"
+STAMP = "<!-- drift inputs sha256 {} -->"
+INPUTS = ("slices.json", "new.jsonl", "old.jsonl")
 
 
 def read_slices(paths):
@@ -67,9 +68,13 @@ def ids_to_scan(rows, old_story):
     return sorted(ids)
 
 
-def slices_digest(ws):
-    with open(os.path.join(ws, "slices.json"), "rb") as fh:
-        return hashlib.sha256(fh.read()).hexdigest()
+def inputs_digest(ws):
+    h = hashlib.sha256()
+    for name in INPUTS:
+        with open(os.path.join(ws, name), "rb") as fh:
+            data = fh.read()
+        h.update(name.encode() + b"\n" + str(len(data)).encode() + b"\n" + data)
+    return h.hexdigest()
 
 
 def slice_names(ws):
@@ -91,8 +96,8 @@ def stale_files(ws, digest, name):
 
 
 def pending(ws):
-    digest = slices_digest(ws)
-    return {"slices_sha256": digest, "pending": [n for n in slice_names(ws) if stale_files(ws, digest, n)]}
+    digest = inputs_digest(ws)
+    return {"inputs_sha256": digest, "pending": [n for n in slice_names(ws) if stale_files(ws, digest, n)]}
 
 
 def main(argv=None):
@@ -106,17 +111,23 @@ def main(argv=None):
         p.error("--pending cannot be combined with --out or --ids-out")
     if not a.pending and not (a.out and a.ids_out):
         p.error("--out and --ids-out are required without --pending")
+    failed = "slices.json"
     try:
-        digest, names = slices_digest(a.ws), slice_names(a.ws)
+        digest = inputs_digest(a.ws)
+        names = slice_names(a.ws)
+        if not a.pending:
+            failed = "old.jsonl"
+            old = load_jsonl(os.path.join(a.ws, failed))
+            failed = "new.jsonl"
+            new = load_jsonl(os.path.join(a.ws, failed))
     except (OSError, ValueError, KeyError, TypeError) as e:
-        print(f"assemble: cannot read {os.path.join(a.ws, 'slices.json')}: {e}", file=sys.stderr)
+        path = e.filename if isinstance(e, OSError) and e.filename else os.path.join(a.ws, failed)
+        print(f"assemble: cannot read {path}: {e}", file=sys.stderr)
         return 1
     if a.pending:
         print(json.dumps(pending(a.ws)))
         return 0
-    old = load_jsonl(os.path.join(a.ws, "old.jsonl"))
-    new = load_jsonl(os.path.join(a.ws, "new.jsonl"))
-    stale = [f"{path}: no stamp for slices.json sha256 {digest[:12]}; rerun reader {name}"
+    stale = [f"{path}: no stamp for drift inputs sha256 {digest[:12]}; rerun reader {name}"
              for name in names for path in stale_files(a.ws, digest, name)]
     if stale:
         print("\n".join(stale), file=sys.stderr)
@@ -128,7 +139,7 @@ def main(argv=None):
         return 1
     ids = ids_to_scan(rows, {o["id"]: o["story"] for o in old})
     with open(a.out, "w", encoding="utf-8") as fh:
-        json.dump({"slices_sha256": digest, "counts": counts, "old": len(old), "new": len(new), "rows": rows,
+        json.dump({"inputs_sha256": digest, "counts": counts, "old": len(old), "new": len(new), "rows": rows,
                    "findings": [os.path.join(a.ws, f"findings-{n}.md") for n in names]}, fh, indent=2, ensure_ascii=False)
     with open(a.ids_out, "w", encoding="utf-8") as fh:
         fh.write("".join(i + "\n" for i in ids))

@@ -91,9 +91,10 @@ For a revision, the caller writes the page after G-ingest, as step 4.8 says.
      --unclaimed "$WS/unclaimed.txt" --count <n> --out "$WS/slices.json"
    ```
 
-4. Run the readers. First run `python3 "$SK/assemble.py" --ws "$WS" --pending`. It prints `slices_sha256`, the digest of
-   `slices.json`, and `pending`, the slices that lack a slice file or a findings file stamped with that digest.
-   Call the workflow below, where `slices` holds the pending entries of `slices.json` and `digest` is `slices_sha256`.
+4. Run the readers. First run `python3 "$SK/assemble.py" --ws "$WS" --pending`. It prints `inputs_sha256`, the digest of
+   `slices.json`, `new.jsonl` and `old.jsonl`, and `pending`, the slices that lack a slice file or a findings file stamped
+   with that digest. Call the workflow below, where `slices` holds the pending entries of `slices.json` and `digest` is
+   `inputs_sha256`.
 
    ```js
    Workflow({scriptPath: "<skill dir>/workflows/drift-adjudicate.js", args: {kind, ws, oldSource, newSource, slices, digest}})

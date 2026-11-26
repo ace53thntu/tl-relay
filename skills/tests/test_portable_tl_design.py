@@ -130,9 +130,9 @@ class PortableTlDesignTest(unittest.TestCase):
                        "is not empty and `$WS/impact.tsv` is missing", "`ingest-<date>-<first 8 characters of ingest_sha256>`", "Write that line relative to the workspace root."):
             self.assertIn(needle, block)
         for needle in ("Write the drift args, `digest` included, to `$WS/drift-args.json`",
-                       "Part 2 is done once `$WS/adjudication.json` carries the `slices_sha256` that `assemble.py --pending` prints.",
+                       "Part 2 is done once `$WS/adjudication.json` carries the `inputs_sha256` that `assemble.py --pending` prints.",
                        "A resume whose `--pending` list is empty reruns only step 4.5.",
-                       "Part 3 is done once the drift record's `audits/<date>-stories-adjudication.json` carries that `slices_sha256`."):
+                       "Part 3 is done once the drift record's `audits/<date>-stories-adjudication.json` carries that `inputs_sha256`."):
             self.assertIn(needle, block)
         self.assertIn("With no such run, it continues from the first part that is not done.", self.text)
         self.assertNotIn("Part 2 is done once `$WS/adjudication.json` exists.", block)

@@ -121,11 +121,11 @@ A new revision of a `stories` source runs in four parts:
    If it returns without `slices.json` or `writer.json`, report its reason and stop.
 2. Write the drift args, `digest` included, to `$WS/drift-args.json`, and rewrite them before each relaunch.
    Run `ingest-sources` step 4.4 in the session, with the reader tiers it defines. Then run step 4.5.
-   Part 2 is done once `$WS/adjudication.json` carries the `slices_sha256` that `assemble.py --pending` prints.
+   Part 2 is done once `$WS/adjudication.json` carries the `inputs_sha256` that `assemble.py --pending` prints.
    A resume whose `--pending` list is empty reruns only step 4.5.
 3. Dispatch `design-writer` again for `ingest-sources` steps 4.6 and 4.7 on the same `$WS`.
    If `$WS/ids-to-scan.txt` is not empty and `$WS/impact.tsv` is missing, report its reason and stop.
-   Part 3 is done once the drift record's `audits/<date>-stories-adjudication.json` carries that `slices_sha256`.
+   Part 3 is done once the drift record's `audits/<date>-stories-adjudication.json` carries that `inputs_sha256`.
 4. Present `G-ingest`. After it, follow the gate rules, with `ingest_sha256` as the `set-baseline` digest.
    Then rerun the `gen_register.py` command in `$WS/writer.json` with the `--page` flags of `ingest-sources` step 3.
    Last, clear `ingest_ws`, `ingest_sha256` and every step 1 entry in `workflow_runs`.

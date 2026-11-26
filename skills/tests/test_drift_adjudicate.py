@@ -48,7 +48,7 @@ class DriftAdjudicateTest(unittest.TestCase):
         for p in prompts:
             step3 = next(l for l in p.splitlines() if l.startswith("Step 3."))
             step4 = next(l for l in p.splitlines() if l.startswith("Step 4."))
-            self.assertIn("whose first line is <!-- slices.json sha256 " + DIGEST + " -->", step3)
+            self.assertIn("whose first line is <!-- drift inputs sha256 " + DIGEST + " -->", step3)
             self.assertIn("whose first line is the same stamp", step4)
 
     def test_missing_digest_stops_the_run(self):
