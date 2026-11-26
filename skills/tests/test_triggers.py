@@ -106,6 +106,9 @@ class Parser(unittest.TestCase):
         self.assertEqual(triggers.first_skill(lines), "debug-issue")
 
 
+BASH_3 = subprocess.run(["/bin/bash", "-c", "echo ${BASH_VERSINFO[0]}"], capture_output=True, text=True).stdout.strip() == "3"
+
+
 def alive(marker):
     return subprocess.run(["pgrep", "-f", marker], capture_output=True).returncode == 0
 
@@ -164,13 +167,15 @@ class KillPaths(unittest.TestCase):
         self.assertEqual(out.splitlines(), ["PASS only", "1/1"])
         self.assert_clean()
 
-    # macOS bash 3.2 also prints a racy "child setpgid" line; only job notices are ours.
+    # The runner still leaks bash 3.2's racy "child setpgid" line, so only job notices are checked.
+    @unittest.skipUnless(BASH_3, "job notices appear only under bash 3.2, which score runs on macOS")
     def test_killing_an_agent_that_ignores_term_prints_no_job_notice(self):
         proc = self.start("ignore-term", stderr=subprocess.PIPE, bash="/bin/bash")
         out, err = proc.communicate(timeout=30)
         self.assertEqual(out.splitlines(), ["PASS only", "1/1"])
         self.assertNotRegex(err, "Terminated|Killed")
 
+    @unittest.skipUnless(BASH_3, "job notices appear only under bash 3.2, which score runs on macOS")
     def test_a_timed_out_agent_prints_no_job_notice(self):
         proc = self.start("silent", timeout=2, stderr=subprocess.PIPE, bash="/bin/bash")
         out, err = proc.communicate(timeout=30)
