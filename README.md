@@ -138,7 +138,7 @@ Without the package, `ingest-sources` stops and prints this command with the rea
 
 ## Configuration
 
-Every skill runs with no config. The lookup and the paths follow [`skills/using-tl-relay/config.md`](skills/using-tl-relay/config.md). To override a default, add `.tl-relay/config.yaml` at the workspace root:
+Every skill runs with no config. The lookup and the paths follow [`skills/using-tl-relay/config.md`](skills/using-tl-relay/config.md). To override a default, add `.tl-relay/config.yaml` at the workspace root, or `~/.tl-relay/config.yaml` for every workspace. The workspace file wins key by key:
 
 ```yaml
 state_dir: ~/work/tl-relay-state
@@ -168,23 +168,16 @@ vale:
 - A relative path resolves against the workspace root.
 - Commit `.tl-relay/config.yaml`. `run-plan` writes a `.gitignore` in each plan-runs dir. With a `state_dir` inside a git tree, `tl-design` and `tl-implement` ignore `designs/*/publish/` and `designs/*/runs/`.
 - A project `CLAUDE.md` or `AGENTS.md` outranks the skills. A model rule in it overrides `route-subagents`.
-- Upgrading from the old layout:
-  - Move design pages from `_knowledge/designs/<handle>/` into `<state_dir>/<workspace>/designs/<handle>/` before the next publish.
-  - Move publish and run state from `.tl-relay/designs/<handle>/` into the same directory.
-  - Move the contents of each old folder below, subfolders included, into `<state_dir>/<workspace>/`:
-    - `_knowledge/plans/specs/` to `specs/`
-    - `_knowledge/plans/implementation/` to `plans/`
-    - `_knowledge/plans/lld/` to `plans/lld/`
-    - `_knowledge/plans/audits/` to `audits/`
-    - `_knowledge/hlds/` to `hlds/`
-    - A `CLAUDE.md` "Skill output targets" section keeps these old paths instead.
-  - Delete `.tl-relay/sdd/` at each repo and worktree root once no run is in progress. `run-plan` cannot resume those runs.
-  - Set `knowledge_dir` if the workspace has a hub.
 - [`config.example.yaml`](config.example.yaml) documents every key.
 
 ## Lessons
 
-Set `TL_RELAY_LESSONS` to the absolute path of a folder of `<skill>.md` files. When a skill loads, the plugin's lesson hook injects the matching file. A lesson replaces a default of that skill.
+Set `TL_RELAY_LESSONS` to the absolute path of a folder of `<skill>.md` files. Name each file after the skill, without the `tl-relay:` prefix. A lesson replaces a default of that skill.
+
+In Claude Code, set the variable in the `env` block of `settings.json`. Otherwise, export it in the shell that starts the agent.
+
+- With the plugin, the lesson hook injects the matching file when a skill loads.
+- With `npx skills`, a step in `using-tl-relay` reads `$TL_RELAY_LESSONS/<skill>.md` before the skill runs.
 
 ## Licence
 
