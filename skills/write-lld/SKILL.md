@@ -144,7 +144,7 @@ A long LLD may move section 5 to `lld/<module>/execution-logic.md`, titled `<LLD
 - A paragraph that another page already holds becomes one sentence that links that page.
 - **A link replaces a fact only when the target page states that fact.** Before cutting a fact down to a link, open the target and find the fact there. When it is not there, keep the fact, or move it to the target first.
 
-- No table inside a list item on any design page: Confluence renders it as legacy content with a scroll bar. A short list of names goes inline in one sentence.
+- No table inside a list item on any design page: a publish target can render it as a block with a scroll bar. A short list of names goes inline in one sentence.
 
 **The Schema page** holds the data model diagrams and the index tables. It has one section, `## Data model`, and no table of changes, no purpose tables, no DDL and no migration order section:
 
@@ -163,7 +163,7 @@ A long LLD may move section 5 to `lld/<module>/execution-logic.md`, titled `<LLD
 
 A lock model, a retry policy and a route shape are choices an LLD owns. When the LLD weighs options for such a choice, it uses this form: one or two problem sentences, `**Decision.**`, `**Rejected.**` and `**Cost.**`.
 
-- `**Decision.**` ends with the choice's source as its last sentence: `Decision: [HLA 4.N](…)` when an HLA deep dive records the choice, or `Rule: [<rule name>](…)` when a module rule does, adding `, with [HLA 4.M](…)` for each further deep dive. A choice this LLD makes alone ends with `Source: [PROJ-40001](https://example.atlassian.net/browse/PROJ-40001)`, a Jira key always as a link, or a link to the analysis the LLD records.
+- `**Decision.**` ends with the choice's source as its last sentence: `Decision: [HLA 4.N](…)` when an HLA deep dive records the choice, or `Rule: [<rule name>](…)` when a module rule does, adding `, with [HLA 4.M](…)` for each further deep dive. A choice this LLD makes alone ends with `Source: [PROJ-40001](https://tracker.example.com/PROJ-40001)`, a ticket key always as a link, or a link to the analysis the LLD records.
 - The reason a source gives for the choice goes into `**Decision.**`, at most 75 words.
 - `**Rejected.**` holds one bullet per recorded option, at most 3: its name and the source's rejection reason in one sentence, with no mechanism the source does not state.
 - `**Cost.**` holds one bullet per cost the source records, at most 30 words each. Never merge two costs with different scopes. A single cost may be one unbulleted paragraph of at most 30 words. A cost another section holds is one clause with its link.
@@ -180,7 +180,7 @@ An LLD records the design as decided. It carries no `Proposed` marker, no ratifi
 
 There is no Assumptions section. An unverified premise is written inline in the section that depends on it, prefixed `Assumption:`, with what would confirm it.
 Write it as a plain paragraph with bold labels: **Assumption:** the premise. **Confirms:** who or what settles it.
-Never wrap the line in backticks. A code span publishes to Confluence as code.
+Never wrap the line in backticks. A code span renders as code.
 
 ## Output
 
@@ -192,13 +192,13 @@ With a contract, the route pages sit in `lld/<module>/api/`, children of the API
 
 ## Panels
 
-The publish tool renders a GitHub alert as a Confluence panel. The marker stands alone on its line.
+A panel is a GitHub alert. The marker stands alone on its line.
 
 | Panel | Marker | Holds |
 | --- | --- | --- |
-| Info | `> [!NOTE]` | The scenario or the risk a section answers, stated once at its top |
-| Warning, red | `> [!CAUTION]` | A failure with no bound, such as no expiry, no alert or no retry |
-| Note, yellow | `> [!WARNING]` | A fail-closed adapter, an external dependency not yet in place, or a `**Waits on:**` line |
+| Scenario | `> [!NOTE]` | The scenario or the risk a section answers, stated once at its top |
+| Unbounded failure | `> [!CAUTION]` | A failure with no bound, such as no expiry, no alert or no retry |
+| Caveat | `> [!WARNING]` | A fail-closed adapter, an external dependency not yet in place, or a `**Waits on:**` line |
 
 - Every panel holds one or two sentences, with links outside the count.
 - A panel restates a fact the page holds and adds none. A cost stays in **Cost.**, not in a panel.
