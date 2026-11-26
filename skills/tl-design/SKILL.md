@@ -138,13 +138,13 @@ Advance `step` only when the step's output exists and its human action is done.
 | # | Step | Persona → skill/tool | Output | Operator |
 | --- | --- | --- | --- | --- |
 | 1 | Ingest | `design-writer` → `ingest-sources`. For a `stories` revision: 1 to 4.3, then 4.6 and 4.7. The session runs 4.4 and 4.5 | `sources/`, drift record | Accepts the drift, signs `G-ingest` |
-| 2 | Interview | tech lead → `AskUserQuestion` | `decisions.md` § Interview | Answers the gaps |
+| 2 | Interview | tech lead → `AskUserQuestion` | `decisions.md`, Interview section | Answers the gaps |
 | 3 | Plan | tech lead | `plan.md`: pages to write, key decisions expected | Approves the outline |
-| 4 | Draft HLA | `design-writer` → `write-hla`, `write-design` | Overview, use case, Schema changes and Dependencies pages | — |
-| 5 | Persona review | `design-persona-review.js` → SA, SE, QA, Security, stage `hla` | `rounds/hla-r<n>/findings.json` | — |
+| 4 | Draft HLA | `design-writer` → `write-hla`, `write-design` | Overview, use case, Schema changes and Dependencies pages | None |
+| 5 | Persona review | `design-persona-review.js` → SA, SE, QA, Security, stage `hla` | `rounds/hla-r<n>/findings.json` | None |
 | 6 | Decision loop | see [Decision loop](#decision-loop) | Updated pages, `decisions.md` | Key decisions |
 | 7 | Sign HLA | tech lead → check scripts, head | `head.md` | Signs `G-hla` |
-| 8 | LLD + contracts | `design-set-write.js`: `write`, `review`, `fix`, `rereview` | `lld/`, `contracts/` | — |
+| 8 | LLD + contracts | `design-set-write.js`: `write`, `review`, `fix`, `rereview` | `lld/`, `contracts/` | None |
 | 9 | Persona review + loop | steps 5–6 at stage `design`: `design-persona-review.js` → SA, SE, QA, Security, plus Temporal when it applies | `rounds/design-r<n>/findings.json` | Key decisions |
 | 10 | Sign LLD | tech lead → check scripts, head | `head.md` | Signs `G-design` |
 | 11 | Breakdown + estimates | `design-writer` → `write-task-breakdown`; `check_breakdown.py` | Task tables, proposed man-days | Confirms estimates (`timeline`), signs `G-breakdown` |
@@ -152,8 +152,8 @@ Advance `step` only when the step's output exists and its human action is done.
 | 13 | File tasks | The workspace's ticket-create command, dry run, then its confirm flag; with no such command, report a skip and go to step 14 | Ticket keys in the `ticket` column of the estimates TSV, or a reported skip | Approves the filing |
 | 14 | Retro | tech lead | `retro.md`, proposed edits | Approves the edits |
 
-The session dispatches `design-writer` with `Agent`, by the [agents rule](#running-without-agents-or-workflows); its bound skills are the writer skills, such as `write-hla`. The writer tags every new or changed deep dive and module rule
-in `decisions.md` § Agent decisions, with its `key_class`, reason and rejected option.
+The session dispatches `design-writer` with `Agent`, by the [agents rule](#running-without-agents-or-workflows). Its bound skills are the writer skills, such as `write-hla`. The writer tags every new or changed deep dive and module rule
+in the Agent decisions section of `decisions.md`, with its `key_class`, reason and rejected option.
 Every `design-writer` dispatch prompt, in `plugin`, `bare` and `none` mode, quotes the [Ask rule](#ask-rule) `key_class` table, with the `none` row, and its never-ask sentence.
 
 Questions to the operator go through `AskUserQuestion` in the language `operator_language` names, `en` when it is unset, at most 4 per round, by the [Ask rule](#ask-rule). Ids and
@@ -163,10 +163,10 @@ code terms stay unchanged.
 
 Steps 6 and 9 run this loop. `round` starts at 1 for each stage.
 
-1. The writer fixes every `blocking` finding, or disputes it in `decisions.md` § Disputes. It decides a key-class
+1. The writer fixes every `blocking` finding, or disputes it in the Disputes section of `decisions.md`. It decides a key-class
    finding itself unless the [Ask rule](#ask-rule) sends it to the operator.
 2. Items the Ask rule sends, and open disputes, go to the operator in one `AskUserQuestion` round, at most 4
-   questions. Each gets an id `DR-n` in § Key decisions and in `open_decisions`.
+   questions. Each gets an id `DR-n` in the Key decisions section and in `open_decisions`.
 3. The writer applies the answers. The session records each answer and its page#anchor, then drops the id from `open_decisions`. Steps 5–6 repeat with `round` + 1.
 4. The loop exits when a review returns no `blocking` finding and `open_decisions` is empty.
 5. After round 3 the session stops, lists what is still open, and waits for the operator.
@@ -176,7 +176,7 @@ dive (`HLA 4.N`) or a module rule. No page carries a `DR-n` id.
 
 ## Ask rule
 
-The writer decides every item it can recommend, records it in § Agent decisions with its `key_class`, reason and
+The writer decides every item it can recommend, records it in the Agent decisions section with its `key_class`, reason and
 rejected option, and the head lists it for the operator's veto. It asks the operator only when the item:
 
 1. Changes what another team builds or sees: a contract, event or shared schema another team consumes, or a dependency row.
@@ -224,7 +224,7 @@ An interrupted run then resumes by that id. The script returns `{stage, round, f
   only the unchanged prefix of `agent()` calls, so personas after the first missing one may rerun with it and the merge.
 - `missing` contains `merge`: `findings` and `out` are null. Relaunch the same way to rerun the merge.
 
-Reviewers read only the pages, never `decisions.md` or sources. The merge marks a key-class finding `key_decision_unasked` only when its anchor matches a heading on its page. It also needs § Agent decisions to have no row for that page and anchor. A key-class finding with an empty or off-page anchor stays `missing_detail` and is `blocking`.
+Reviewers read only the pages, never `decisions.md` or sources. The merge marks a key-class finding `key_decision_unasked` only when its anchor matches a heading on its page. It also needs the Agent decisions section to have no row for that page and anchor. A key-class finding with an empty or off-page anchor stays `missing_detail` and is `blocking`.
 
 ## Draft head
 
@@ -234,7 +234,7 @@ Line 1 is `READY|FAIL|BLOCKED <stage> r<n>`: `FAIL` when a check exits non-zero,
 Then a summary of at most 5 bullets, changed anchors, Agent decisions, Key decisions and Known gaps. The operator
 reads the head and opens only the anchors it names.
 
-`## Decided for veto` lists every § Agent decisions row of the stage with a `key_class` other than `none`, one line
+`## Decided for veto` lists every row of the Agent decisions section of the stage with a `key_class` other than `none`, one line
 each: page#anchor, the choice, the rejected option. A veto at the gate becomes a `## Revise log` row and a `DR-n`.
 
 ## Check scripts
@@ -270,7 +270,7 @@ python3 <skill dir>/scripts/stage_publish.py "$D" <publish dir>
 - Otherwise ask the operator for the target. Fill `{dir}` with `<publish dir>/_knowledge` and `{target}` with the target.
   Run the command once without `publish.confirm_flag` and show the output. Then stop and wait for the operator to approve that output.
   Only then run it with the flag. When `publish.confirm_flag` is unset, run the command once, only after the operator approves the target.
-  When the operator rejects the dry run output, fix the pages and restage, or record a skip in `workflow-state.md`; run no confirm run.
+  When the operator rejects the dry run output, fix the pages and restage, or record a skip in `workflow-state.md`. Run no confirm run.
 - Record the push in a `## Publish` table in `workflow-state.md`: date, target, root page, page count, publish dir.
 
 ## Operator records
@@ -336,7 +336,7 @@ The `agents` value sets how a persona or writer is dispatched.
   such as the lens skill for a persona or the writer skill for the current step, and carries the role text.
   The persona roles and models come from the `ROLES` and `MODELS` constants in `<skill dir>/workflows/design-persona-review.js`.
   `design-writer` runs on `opus` with this role: write and fix the pages of a design set through the bound writer skills. Tag each new or
-  changed deep dive and module rule in `decisions.md` § Agent decisions with its `key_class`, reason and rejected option. Decide every
+  changed deep dive and module rule in the Agent decisions section of `decisions.md` with its `key_class`, reason and rejected option. Decide every
   key-class item you can recommend. Return an item as a question, with options and your recommendation, only when it changes what
   another team builds or sees, changes the timeline or a man-day figure, reverses an operator answer or a signed fact, or has no clear recommendation.
   The writer skills define no `key_class`, so the prompt also quotes the [Ask rule](#ask-rule) `key_class` table and its never-ask sentence:
