@@ -81,6 +81,7 @@ npx skills add ace53thntu/tl-relay --skill using-tl-relay --skill tl-implement -
 
 ### Requirements
 
+- macOS or Linux. The hooks and the skill scripts run under `sh`, and tl-relay does not support Windows.
 - Claude Code, Cursor or Codex.
 - `git`, and `gh` for `tl-implement`, which pushes branches and opens pull requests. Run `gh auth login` once before the first run.
 - `python3` 3.9 or later for the skill scripts.
