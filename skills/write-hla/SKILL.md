@@ -242,7 +242,7 @@ The section budgets can add past 4,000. The page cap wins: merge deep dives that
 
 ## Rules that apply to every section
 
-- **REQUIRED SUB-SKILL:** `technical-writing` for prose and its House rules, then `unslop`, then the Vale gate in `technical-writing`. Zero errors.
+- **REQUIRED SUB-SKILL:** `technical-writing` for prose and its House rules, then `unslop` when the session lists it (see `technical-writing`), then the Vale gate in `technical-writing`. Zero errors.
 - **Technical wording, not narrative.** Headings are technical labels (`API changes`, not `Routes this
   design adds`). Body text uses technical terms, not colloquial phrases. Names use the operation and the code's own terms. See `technical-writing`, House rules.
 - **State it, or state that it is absent.** Write what the code has. Where it has none, write "none" and whether this document adds it. Never fill a slot with a placeholder value the design did not decide.

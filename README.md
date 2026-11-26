@@ -78,10 +78,10 @@ npx skills add ace53thntu/tl-relay --skill using-tl-relay --skill tl-implement -
 ### Requirements
 
 - Claude Code, Cursor or Codex.
-- `git`, and `gh` for `tl-implement`, which pushes branches and opens pull requests.
+- `git`, and `gh` for `tl-implement`, which pushes branches and opens pull requests. Run `gh auth login` once before the first run.
 - `python3` 3.9 or later for the skill scripts.
 - `jq` for the plugin hooks. Without `jq` the hooks print nothing.
-- `vale` for the writing gate in `technical-writing` and `tl-design`.
+- `vale` for the writing gate in `technical-writing` and `tl-design`. See the [Vale install guide](https://docs.vale.sh/topics/installation) for each OS. The gate ships its styles, so it needs no `vale sync`.
 - Node.js with `npx` for `write-contract`. It runs `@redocly/cli` and downloads it on first use.
 
 `ingest-sources` needs one Python package for PDF conversion. Install it, where `<skill dir>` is the folder of the installed `ingest-sources` skill:
@@ -91,6 +91,16 @@ python3 -m venv <skill dir>/.venv && <skill dir>/.venv/bin/python -m pip install
 ```
 
 Without the package, `ingest-sources` stops and prints this command with the real `<skill dir>`. After `claude plugin update`, or an `npx skills update` that changes the skill, the new copy of the skill has no `.venv`, so run the command again.
+
+### Skills from other sources
+
+Three steps call a skill that tl-relay does not ship. Each step runs when the session lists the skill, and skips when it does not.
+
+| Skill | Source | Step | Without it |
+|---|---|---|---|
+| `unslop` | Any skill with that name | The prose pass in `technical-writing`, `write-hla`, `write-lld` and `write-contract` | The step reports `unslop: not installed` and the page can still be done |
+| `temporal-workflow-design-critic` | [temporalio/skill-temporal-design](https://github.com/temporalio/skill-temporal-design) | The Temporal persona in `tl-design` step 9 | The review skips that persona and notes the skip |
+| `temporal:temporal-developer` | [temporalio/claude-temporal-plugin](https://github.com/temporalio/claude-temporal-plugin) | The Temporal code review in `tl-implement` step 5 | The run asks you once whether to proceed without that review |
 
 ### First session
 

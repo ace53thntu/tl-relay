@@ -126,7 +126,7 @@ A shape change edits the contract first. Then rerun `render_lld.py`, with `--ret
 
 - Never edit between `contract:begin` and `contract:end`. The next render overwrites the edit, and check3 fails first.
 - Design from the screens and the criteria, not from the database schema.
-- **REQUIRED SUB-SKILL:** `write-lld` for the LLD prose, `technical-writing` for all prose, then `unslop`, then the Vale gate in `technical-writing`. Zero errors.
+- **REQUIRED SUB-SKILL:** `write-lld` for the LLD prose, `technical-writing` for all prose, then `unslop` when the session lists it (see `technical-writing`), then the Vale gate in `technical-writing`. Zero errors.
 
 ## Common mistakes
 
