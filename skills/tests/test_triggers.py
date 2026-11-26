@@ -7,6 +7,7 @@ import time
 import uuid
 import tempfile
 import unittest
+from unittest import mock
 
 import triggers
 
@@ -207,7 +208,7 @@ class KillPaths(unittest.TestCase):
     def test_the_agent_group_is_written_to_the_pgid_file(self):
         path = pathlib.Path(self.root.name) / "agent.pgid"
         proc = self.start("silent", pgid_file=path)
-        self.addCleanup(proc.kill)
+        self.addCleanup(self.interrupt, proc)
         deadline = time.time() + 10
         while not (path.exists() and path.read_text().strip()) and time.time() < deadline:
             time.sleep(0.05)
@@ -229,7 +230,7 @@ class KillPaths(unittest.TestCase):
     def test_the_pgid_file_is_empty_after_an_interrupted_run(self):
         path = pathlib.Path(self.root.name) / "agent.pgid"
         proc = self.start("silent", pgid_file=path)
-        self.addCleanup(proc.kill)
+        self.addCleanup(self.interrupt, proc)
         deadline = time.time() + 10
         while not (path.exists() and path.read_text().strip()) and time.time() < deadline:
             time.sleep(0.05)
@@ -238,6 +239,53 @@ class KillPaths(unittest.TestCase):
         proc.communicate(timeout=30)
         self.assertEqual(proc.returncode, 130)
         self.assertEqual(path.read_text(), "")
+
+    def interrupt(self, proc):
+        if proc.poll() is None:
+            proc.send_signal(signal.SIGINT)
+            try:
+                proc.communicate(timeout=30)
+            except subprocess.TimeoutExpired:
+                subprocess.run(["pkill", "-9", "-f", self.marker])
+                proc.kill()
+                proc.communicate(timeout=30)
+
+    def test_the_watchdog_runs_before_the_pgid_file_is_written(self):
+        path = pathlib.Path(self.root.name) / "agent.pgid"
+        os.mkfifo(str(path))
+        shadow = pathlib.Path(self.root.name) / "bin"
+        shadow.mkdir()
+        mark = pathlib.Path(self.root.name) / "dog.started"
+        (shadow / "sleep").write_text('#!/bin/bash\n[ "$1" = 77 ] && : >"%s"\n'
+                                      'exec -a "$TL_RELAY_STUB_MARKER" /bin/sleep "$@"\n' % mark)
+        (shadow / "sleep").chmod(0o755)
+        with mock.patch.dict(os.environ, {"PATH": "%s:%s" % (shadow, os.environ["PATH"])}):
+            proc = self.start("silent", timeout=77, pgid_file=path)
+        self.addCleanup(self.interrupt, proc)
+        deadline = time.time() + 10
+        while not mark.exists() and time.time() < deadline:
+            time.sleep(0.05)
+        started = mark.exists()
+        fd = os.open(str(path), os.O_RDONLY | os.O_NONBLOCK)
+        text = b""
+        deadline = time.time() + 10
+        while not text.endswith(b"\n") and time.time() < deadline:
+            try:
+                text += os.read(fd, 64)
+            except BlockingIOError:
+                pass
+            time.sleep(0.05)
+        os.close(fd)
+        path.unlink()
+        self.assertTrue(started)
+        self.assertTrue(text.endswith(b"\n"), text)
+        pgid = int(text)
+        self.assertEqual(os.getpgid(pgid), pgid)
+        proc.send_signal(signal.SIGINT)
+        proc.communicate(timeout=30)
+        self.assertEqual(proc.returncode, 130)
+        self.assertEqual(path.read_text(), "")
+        self.assert_clean()
 
     def test_a_closed_pipe_leaves_no_temp_dir(self):
         (self.prompts / "two.txt").write_text("expect: debug-issue\nwhy does this fail\n")
