@@ -26,6 +26,7 @@ def build(rows, cols, mint=None, id_col=None, story_col=None):
     ci = idx(id_col) if id_col else None
     si = idx(story_col) if id_col else None
     blocks, order, criteria, skipped = {}, [], [], []
+    minted, seen_ids = {}, {}
     for n, r in enumerate(rows[1:], start=2):
         number = r[c["number"]].strip()
         key = number if mint else r[si].replace("*", "").strip()
@@ -34,6 +35,12 @@ def build(rows, cols, mint=None, id_col=None, story_col=None):
             continue
         if key not in blocks:
             story = f"{mint}-{int(number):02d}" if mint else key
+            if mint:
+                if story in minted:
+                    first_number, first_row = minted[story]
+                    raise SystemExit(f"gen_register: No. {number!r} at sheet row {n} and {first_number!r} "
+                                     f"at sheet row {first_row} both mint story {story}")
+                minted[story] = (number, n)
             blocks[key] = {"story": story, "title": r[c["title"]], "impacts": [], "rows": []}
             order.append(key)
         b = blocks[key]
@@ -42,6 +49,9 @@ def build(rows, cols, mint=None, id_col=None, story_col=None):
             b["impacts"].append(r[c["impact"]].strip())
             skipped.append(n)
             continue
+        if cid in seen_ids:
+            raise SystemExit(f"gen_register: id {cid!r} at sheet row {n} repeats sheet row {seen_ids[cid]}")
+        seen_ids[cid] = n
         item = {"id": cid, "story": b["story"], "number": number, "title": b["title"],
                 "impact": r[c["impact"]].strip(), "scenario": r[c["scenario"]], "rule": r[c["rule"]], "sheet_row": n}
         b["rows"].append(item)
