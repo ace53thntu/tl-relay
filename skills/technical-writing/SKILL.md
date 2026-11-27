@@ -15,7 +15,7 @@ Three rules override everything below:
 2. Use the short everyday word.
 3. **Never let a rule make a sentence worse.** If applying one degrades the sentence, the rule is wrong for that sentence. Fix it another way.
 
-**Companion skill:** run `unslop` over anything this skill touches. This skill sets structure, and `unslop` removes the AI fingerprint. tl-relay does not ship `unslop`. When the session's skill list has no `unslop`, skip the step and report `unslop: not installed`. The skip does not block done.
+**Companion skill:** run `unslop` over anything this skill touches. This skill sets structure, and `unslop` removes the AI fingerprint. tl-relay ships `unslop`. When the session's skill list has no `unslop`, skip the step and report `unslop: not installed`. The skip does not block done.
 
 ## Layer 1: Diátaxis, one mode per document
 

@@ -1,0 +1,2 @@
+expect: review-change
+I just finished the pagination work on the orders endpoint and the branch is ready to go. The PR description is already written and I'm happy with it. Before I ask anyone to merge, check the actual change against the ticket requirements: cursor handling, the empty-page case, and whether the old offset parameter still works for existing clients. Look at the diff, not the description. Tell me what is missing or wrong.

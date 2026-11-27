@@ -68,7 +68,7 @@ npx skills add ace53thntu/tl-relay -a codex     # Codex only
 npx skills add ace53thntu/tl-relay --list       # list the skills without installing
 ```
 
-To install one skill, add `--skill <name>` and add `--skill using-tl-relay`. The skills read their path rules from `using-tl-relay`. That suits the skills that stand alone: `brainstorm`, `debug-issue`, `test-first`, `verify-done`, `review-change`, `technical-writing`, `explore-codebase` and `write-plan`. A few of them hand off to the next skill in a chain, so install the chain together: `brainstorm`, `write-plan`, `run-plan`, `route-subagents` and `review-change`, or `debug-issue`, `test-first` and `verify-done`.
+To install one skill, add `--skill <name>` and add `--skill using-tl-relay`. The skills read their path rules from `using-tl-relay`. That suits the skills that stand alone: `brainstorm`, `debug-issue`, `test-first`, `verify-done`, `review-change`, `technical-writing`, `unslop`, `explore-codebase` and `write-plan`. A few of them hand off to the next skill in a chain, so install the chain together: `brainstorm`, `write-plan`, `run-plan`, `route-subagents` and `review-change`, or `debug-issue`, `test-first` and `verify-done`.
 
 ### Bundles
 
@@ -76,7 +76,7 @@ The design and build workflows each need a set of skills. Before it runs, each w
 
 | Bundle | Skills |
 |---|---|
-| Design | `using-tl-relay`, `tl-design`, `ingest-sources`, `write-design`, `write-hla`, `write-lld`, `write-contract`, `write-task-breakdown`, `technical-writing`, `explore-codebase`, `lens-qa-conformance`, `lens-qa-engineer`, `lens-security-engineer`, `lens-shared`, `lens-software-engineer`, `lens-solution-architect` |
+| Design | `using-tl-relay`, `tl-design`, `ingest-sources`, `write-design`, `write-hla`, `write-lld`, `write-contract`, `write-task-breakdown`, `technical-writing`, `unslop`, `explore-codebase`, `lens-qa-conformance`, `lens-qa-engineer`, `lens-security-engineer`, `lens-shared`, `lens-software-engineer`, `lens-solution-architect` |
 | Build | `using-tl-relay`, `tl-implement`, `tl-design`, `write-plan`, `run-plan`, `route-subagents`, `review-change`, `verify-done`, `test-first`, `debug-issue`, `lens-qa-conformance`, `lens-shared` |
 
 The Build bundle carries `tl-design` for its Ask rule and its retro step. To run `tl-design` itself, install the Design bundle.
@@ -85,7 +85,7 @@ Design bundle:
 
 ```sh
 npx skills add ace53thntu/tl-relay --skill using-tl-relay --skill tl-design --skill ingest-sources --skill write-design \
-  --skill write-hla --skill write-lld --skill write-contract --skill write-task-breakdown --skill technical-writing \
+  --skill write-hla --skill write-lld --skill write-contract --skill write-task-breakdown --skill technical-writing --skill unslop \
   --skill explore-codebase --skill lens-qa-conformance --skill lens-qa-engineer --skill lens-security-engineer --skill lens-shared \
   --skill lens-software-engineer --skill lens-solution-architect
 ```
@@ -118,11 +118,10 @@ Without the package, `ingest-sources` stops and prints this command with the rea
 
 ### Skills from other sources
 
-Three steps call a skill that tl-relay does not ship. Each step runs when the session lists the skill, and skips when it does not.
+Two steps call a skill that tl-relay does not ship. Each step runs when the session lists the skill, and skips when it does not.
 
 | Skill | Source | Step | Without it |
 |---|---|---|---|
-| `unslop` | Any skill with that name | The prose pass in `technical-writing`, `write-design`, `write-hla`, `write-lld`, `write-contract`, `ingest-sources` and `tl-design` | The step reports `unslop: not installed` and the page can still be done |
 | `temporal-workflow-design-critic` | [temporalio/skill-temporal-design](https://github.com/temporalio/skill-temporal-design) | The Temporal persona in `tl-design` step 9 | The review skips that persona and notes the skip |
 | `temporal:temporal-developer` or `temporal-developer` | [temporalio/claude-temporal-plugin](https://github.com/temporalio/claude-temporal-plugin) | The Temporal code review in `tl-implement` step 5 | The run asks you once whether to proceed without that review |
 
@@ -179,6 +178,7 @@ With `npx skills`, no hook loads `using-tl-relay`. The skill runs only when the 
 | Design pages | `write-contract` | Writes an OpenAPI 3.1 contract and checks it against the design |
 | Design pages | `write-task-breakdown` | Generates and checks the task breakdown of a signed design |
 | Design pages | `technical-writing` | Sets the writing rules and runs the Vale gate |
+| Design pages | `unslop` | Rewrites prose that reads as machine-written so it reads as a person wrote it |
 | Lenses | `lens-solution-architect` | Reviews boundaries, contracts, data ownership and NFRs |
 | Lenses | `lens-software-engineer` | Reviews whether an engineer could build from the pages |
 | Lenses | `lens-security-engineer` | Reviews authentication, sensitive data, secrets and abuse cases |

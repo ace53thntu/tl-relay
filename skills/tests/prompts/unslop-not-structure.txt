@@ -1,0 +1,2 @@
+expect: technical-writing
+Our onboarding page for the billing service is a mess. It teaches how to set up a local environment, then drops a 40-row table of every config key, then goes back to a walkthrough. Several sentences run past 40 words and half are passive ("the ledger is reconciled by the worker"). I want this restructured so the tutorial and the reference are separate pages, headings name the component, and sentences are short with a named actor. I'm not worried about tone, just structure and sentence length. Where do I start?
