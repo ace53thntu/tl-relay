@@ -7,7 +7,7 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from registerio import load_jsonl, register_field, unique_ids  # noqa: E402
+from registerio import load_jsonl, register_field, require_columns, unique_ids  # noqa: E402
 
 NAMES = "ABCDEFGH"
 
@@ -59,8 +59,14 @@ def main(argv=None):
     a = p.parse_args(argv)
     path = a.pairs
     try:
-        with open(path, encoding="utf-8", newline="") as fh:
-            pairs = list(csv.DictReader(fh, delimiter="\t"))
+        with open(path, encoding="utf-8-sig", newline="") as fh:
+            reader = csv.DictReader(fh, delimiter="\t", quoting=csv.QUOTE_NONE)
+            require_columns(reader.fieldnames, ("new_id", "old_id"))
+            pairs = list(reader)
+        for n, row in enumerate(pairs, 1):
+            for name in ("new_id", "old_id"):
+                if row[name] is None:
+                    raise ValueError(f"row {n}: missing field {name}")
         path = a.unclaimed
         with open(path, encoding="utf-8") as fh:
             unclaimed = [line.strip() for line in fh if line.strip()]

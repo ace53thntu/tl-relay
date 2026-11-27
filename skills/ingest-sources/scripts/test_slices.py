@@ -69,6 +69,49 @@ class SlicesMainTest(unittest.TestCase):
                             "--unclaimed", self.unc, "--count", "3", "--out", self.out])
         return code, out.getvalue(), err.getvalue()
 
+    def write_pairs(self, text):
+        with open(self.pairs, "w", encoding="utf-8") as fh:
+            fh.write(text)
+
+    def test_main_rejects_pairs_without_old_id(self):
+        self.write_pairs("new_id\tkind\nS-01-AC1\t\n")
+        code, _, err = self.run_main()
+        self.assertEqual((code, err), (1, f"slices: cannot read {self.pairs}: missing column old_id\n"))
+
+    def test_main_rejects_pairs_without_old_id_even_with_nothing_unclaimed(self):
+        self.write_pairs("new_id\tkind\nS-01-AC1\t\n")
+        open(self.unc, "w", encoding="utf-8").close()
+        code, _, err = self.run_main()
+        self.assertEqual((code, err), (1, f"slices: cannot read {self.pairs}: missing column old_id\n"))
+
+    def test_main_rejects_pairs_without_new_id(self):
+        self.write_pairs("old_id\tkind\nUS-01-AC1a\t\n")
+        code, _, err = self.run_main()
+        self.assertEqual((code, err), (1, f"slices: cannot read {self.pairs}: missing column new_id\n"))
+
+    def test_main_rejects_an_empty_pairs_tsv(self):
+        self.write_pairs("")
+        code, _, err = self.run_main()
+        self.assertEqual((code, err), (1, f"slices: cannot read {self.pairs}: missing column new_id\n"))
+
+    def test_main_accepts_a_bom_prefixed_pairs_tsv(self):
+        with open(self.pairs, "w", encoding="utf-8-sig") as fh:
+            fh.write("new_id\told_id\tkind\trule_changed\tratio\n")
+            for p in PAIRS:
+                fh.write(f"{p['new_id']}\t{p['old_id']}\t\t\t\n")
+        code, _, err = self.run_main()
+        self.assertEqual((code, err), (0, ""))
+
+    def test_main_reads_a_leading_quote_literally(self):
+        self.write_pairs('new_id\told_id\nS-01-AC1\t"US-01-AC1a\nNOPE\tUS-01-AC2a\n')
+        code, _, err = self.run_main()
+        self.assertEqual((code, err), (1, f"slices: cannot read {self.pairs}: row 2: new_id 'NOPE' is not in new.jsonl\n"))
+
+    def test_main_rejects_a_short_pairs_row(self):
+        self.write_pairs("new_id\told_id\tkind\nS-01-AC1\n")
+        code, _, err = self.run_main()
+        self.assertEqual((code, err), (1, f"slices: cannot read {self.pairs}: row 1: missing field old_id\n"))
+
     def test_main_rejects_a_missing_register(self):
         os.remove(self.new)
         code, _, err = self.run_main()

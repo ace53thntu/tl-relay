@@ -46,3 +46,9 @@ def unique_ids(ids):
         if value in first:
             raise ValueError(f"row {n}: id '{value}' repeats row {first[value]}")
         first[value] = n
+
+
+def require_columns(fieldnames, names):
+    for name in names:
+        if not fieldnames or name not in fieldnames:
+            raise ValueError(f"missing column {name}")
