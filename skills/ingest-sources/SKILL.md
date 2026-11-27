@@ -77,6 +77,8 @@ For a first snapshot, also pass `--page "$K/designs/$H/specs/user-stories.md"` w
 `--page-description`, `--source-rel` and `--generated-at`. Then add the index entry with the same description.
 For a revision, the caller writes the page after G-ingest, as step 4.8 says.
 
+A nonzero exit from `gen_register.py` goes to the operator as a question.
+
 ## 4. Drift record for a revision
 
 1. Generate `old.jsonl` from the baseline and `new.jsonl` from the revision, as in step 3.

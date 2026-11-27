@@ -86,6 +86,12 @@ class PortableWritersTest(unittest.TestCase):
         self.assertLess(text.index("3. Slice."), text.index("A nonzero exit from `pair.py`"))
         self.assertLess(text.index("A nonzero exit from `pair.py`"), text.index("4. Run the readers."))
 
+    def test_gen_register_failures_go_to_the_operator(self):
+        text = " ".join((SKILLS / "ingest-sources/SKILL.md").read_text().split())
+        self.assertIn("A nonzero exit from `gen_register.py` goes to the operator as a question.", text)
+        self.assertLess(text.index("## 3. Generate the register"), text.index("A nonzero exit from `gen_register.py`"))
+        self.assertLess(text.index("A nonzero exit from `gen_register.py`"), text.index("## 4. Drift record for a revision"))
+
     def test_write_design_sibling_stop_precedes_writing(self):
         text = (SKILLS / "write-design/SKILL.md").read_text()
         stop = text.index("--skill tl-design")
