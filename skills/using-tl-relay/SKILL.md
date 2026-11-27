@@ -30,6 +30,7 @@ Talking yourself past the bar is the failure the red flags below describe.
 | `tl-design` | Someone asks to start or continue a feature's design from its sources, asks where a design stands, or asks to sign a design gate. |
 | `tl-implement` | Building or resuming a signed design's breakdown row as a pull request. |
 | `verify-done` | A claim of complete, fixed or passing lacks a check you ran and read in this message, after the last change. |
+| `unslop` | A draft for a human reader reads as machine-written, or a writer skill reaches its prose pass. |
 
 ## Workflow
 
