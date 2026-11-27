@@ -243,7 +243,9 @@ class AssembleTest(unittest.TestCase):
             with open(os.path.join(d, "pairs.tsv"), "w", encoding="utf-8") as fh:
                 fh.write('new_id\told_id\nS-01-AC1\t"US-01-AC1a\nS-01-AC2\tNOPE\n')
             code, _, err = run_main(["--ws", d, "--pending"])
-            self.assertIn("id NOPE missing\n", err)
+            p = os.path.join(d, "old.jsonl")
+            self.assertEqual((code, err), (1, f'{p}: id "US-01-AC1a missing\n{p}: id NOPE missing\n'
+                                              f"{p}: unexpected id US-01-AC1a\n{p}: unexpected id US-01-AC2a\n"))
 
     def test_pending_rejects_a_short_pairs_row(self):
         with tempfile.TemporaryDirectory() as d:
@@ -251,7 +253,23 @@ class AssembleTest(unittest.TestCase):
             with open(os.path.join(d, "pairs.tsv"), "w", encoding="utf-8") as fh:
                 fh.write("new_id\told_id\tkind\nS-01-AC1\tUS-01-AC1a\t\nS-01-AC2\n")
             err = self.pending_err(d)
-            self.assertEqual(err, f"assemble: cannot read {os.path.join(d, 'pairs.tsv')}: row 2: missing field old_id\n")
+            self.assertEqual(err, f"assemble: cannot read {os.path.join(d, 'pairs.tsv')}: line 3: has 1 fields, header has 3\n")
+
+    def test_pending_rejects_a_row_with_an_extra_field(self):
+        with tempfile.TemporaryDirectory() as d:
+            make_ws(d)
+            with open(os.path.join(d, "pairs.tsv"), "w", encoding="utf-8") as fh:
+                fh.write("new_id\told_id\nS-01-AC1\tUS-01-AC1a\nS-01-AC2\tUS-01-AC2a\tx\n")
+            err = self.pending_err(d)
+            self.assertEqual(err, f"assemble: cannot read {os.path.join(d, 'pairs.tsv')}: line 3: has 3 fields, header has 2\n")
+
+    def test_pending_counts_a_blank_line_in_the_line_number(self):
+        with tempfile.TemporaryDirectory() as d:
+            make_ws(d)
+            with open(os.path.join(d, "pairs.tsv"), "w", encoding="utf-8") as fh:
+                fh.write("new_id\told_id\tkind\n\nS-01-AC1\n")
+            err = self.pending_err(d)
+            self.assertEqual(err, f"assemble: cannot read {os.path.join(d, 'pairs.tsv')}: line 3: has 1 fields, header has 3\n")
 
     def test_pending_rejects_a_truncated_register_line(self):
         with tempfile.TemporaryDirectory() as d:

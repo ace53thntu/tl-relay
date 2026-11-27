@@ -143,10 +143,13 @@ def main(argv=None):
             with open(os.path.join(a.ws, failed), encoding="utf-8-sig", newline="") as fh:
                 reader = csv.DictReader(fh, delimiter="\t", quoting=csv.QUOTE_NONE)
                 require_columns(reader.fieldnames, ("old_id",))
-                rows = list(reader)
-            for n, r in enumerate(rows, 1):
-                if r["old_id"] is None:
-                    raise ValueError(f"row {n}: missing field old_id")
+                k = len(reader.fieldnames)
+                rows = []
+                for r in reader:
+                    m = k - sum(1 for f in reader.fieldnames if r[f] is None) + len(r.get(None, []))
+                    if m != k:
+                        raise ValueError(f"line {reader.line_num}: has {m} fields, header has {k}")
+                    rows.append(r)
             want_old |= {r["old_id"] for r in rows if r["old_id"]}
             errors = register_errors(a.ws, want_new, want_old, new_ids, old_ids)
     except (OSError, ValueError, KeyError, TypeError, csv.Error) as e:

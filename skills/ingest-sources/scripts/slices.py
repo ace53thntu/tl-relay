@@ -62,11 +62,14 @@ def main(argv=None):
         with open(path, encoding="utf-8-sig", newline="") as fh:
             reader = csv.DictReader(fh, delimiter="\t", quoting=csv.QUOTE_NONE)
             require_columns(reader.fieldnames, ("new_id", "old_id"))
-            pairs = list(reader)
-        for n, row in enumerate(pairs, 1):
-            for name in ("new_id", "old_id"):
-                if row[name] is None:
-                    raise ValueError(f"row {n}: missing field {name}")
+            k = len(reader.fieldnames)
+            numbered = []
+            for row in reader:
+                m = k - sum(1 for f in reader.fieldnames if row[f] is None) + len(row.get(None, []))
+                if m != k:
+                    raise ValueError(f"line {reader.line_num}: has {m} fields, header has {k}")
+                numbered.append((reader.line_num, row))
+        pairs = [row for _, row in numbered]
         path = a.unclaimed
         with open(path, encoding="utf-8") as fh:
             unclaimed = [line.strip() for line in fh if line.strip()]
@@ -80,9 +83,9 @@ def main(argv=None):
             registers.append(rows)
         path = a.pairs
         new_ids = {row["id"] for row in registers[0]}
-        for n, row in enumerate(pairs, 1):
+        for n, row in numbered:
             if row.get("old_id") and row.get("new_id") not in new_ids:
-                raise ValueError(f"row {n}: new_id '{row.get('new_id')}' is not in new.jsonl")
+                raise ValueError(f"line {n}: new_id '{row.get('new_id')}' is not in new.jsonl")
         path = a.unclaimed
         old_ids = {row["id"] for row in registers[1]}
         for n, oid in enumerate(unclaimed, 1):
