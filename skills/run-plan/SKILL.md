@@ -254,7 +254,7 @@ Compaction can wipe them from memory at any point. Open that file before each ro
 | An open `scope` finding, at any severity | No. A `scope` finding means the task is not done. |
 | A Critical or Important finding neither fixed nor flagged `pre-existing` | No. Do not start the next task; at the cap the plan halts. |
 
-Write the completion line in the same message as the task's other bookkeeping. Then tick its todo and start the next task.
+Write the completion line in the same message as the task's other bookkeeping. In that message, `TaskStop` the task's implementer, any fixer it had, and every background shell still running from the task. Then tick its todo and start the next task.
 
 A `pre-existing` finding gets exactly one ledger line, `Task <N>: pre-existing: <one-liner>`.
 You write it while adjudicating the round that first reports the finding.
@@ -314,4 +314,5 @@ The routing section governs every model choice.
 | "Small fix; skip the re-review." | Regressions arrive through fixes nobody reviewed. Close each round with a `review-change` round. |
 | "All this reviewing just costs time." | Remove it and the loop turns out changes nobody verified. Review is what halts the loop and corrects its course, outside the design-doc lane. |
 | "The ledger is bookkeeping overhead." | Skip it and compaction erases your progress; the recorded result was finished tasks sent out twice. |
+| "The idle implementer costs nothing, and it may help later." | Nothing resumes it once its task is complete: the final fix wave dispatches a fresh fixer. It stays in the operator's task panel until stopped. |
 | "The implementer's own reviewer is a free second check." | It doubles the review spend on one diff, and its verdict does not count. Only the task review gates; report the spawn as a defect. |
