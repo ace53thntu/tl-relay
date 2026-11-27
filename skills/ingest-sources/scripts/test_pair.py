@@ -9,6 +9,8 @@ import unittest
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import pair as pr
 
+WS = "must not carry surrounding whitespace"
+
 OLD = [{"id": "US-01-AC1a", "story": "US-01", "scenario": "Given a visitor\nWhen they open the app", "rule": "Only SSO."},
        {"id": "US-01-AC2a", "story": "US-01", "scenario": "Given a signed in user When the role is missing",
         "rule": "Show pending role screen."},
@@ -77,6 +79,29 @@ class MainReadErrorTest(unittest.TestCase):
         code, err, _, new, _ = run_main(OLD, new_rows)
         self.assertEqual(code, 1)
         self.assertEqual(err, f"pair: cannot read {new}: row 2: 'id' must be a non-empty string\n")
+
+    def test_main_rejects_a_leading_space_in_a_new_id(self):
+        new_rows = [NEW[0], dict(NEW[1], id=" S-02-AC1"), NEW[2]]
+        code, err, _, new, _ = run_main(OLD, new_rows)
+        self.assertEqual(code, 1)
+        self.assertEqual(err, f"pair: cannot read {new}: row 2: 'id' {WS}\n")
+
+    def test_main_rejects_a_trailing_space_in_an_old_id(self):
+        old_rows = OLD[:2] + [dict(OLD[2], id="US-16-AC1a ")]
+        code, err, old, _, _ = run_main(old_rows, NEW)
+        self.assertEqual(code, 1)
+        self.assertEqual(err, f"pair: cannot read {old}: row 3: 'id' {WS}\n")
+
+    def test_main_rejects_a_trailing_tab_in_a_new_id(self):
+        new_rows = [NEW[0], dict(NEW[1], id="S-02-AC1\t"), NEW[2]]
+        code, err, _, new, _ = run_main(OLD, new_rows)
+        self.assertEqual(code, 1)
+        self.assertEqual(err, f"pair: cannot read {new}: row 2: 'id' {WS}\n")
+
+    def test_main_accepts_a_space_inside_an_id(self):
+        new_rows = [NEW[0], dict(NEW[1], id="S 02-AC1"), NEW[2]]
+        code, _, _, _, _ = run_main(OLD, new_rows)
+        self.assertEqual(code, 0)
 
     def test_main_rejects_a_null_scenario(self):
         old_rows = OLD[:2] + [dict(OLD[2], scenario=None)]

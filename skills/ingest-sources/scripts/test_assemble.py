@@ -10,6 +10,8 @@ import unittest
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import assemble as asm
 
+WS = "must not carry surrounding whitespace"
+
 HEADER = "| New criterion | Old criterion | Continuity |\n| --- | --- | --- |\n"
 SLICE_A = HEADER + "| `S-01-AC1` | `US-01-AC1a` | identical |\n| `S-01-AC2` | `US-01-AC2a` | changed |\n"
 SLICE_B = HEADER + "| `S-02-AC1` | — | new |\n| — | `US-16-AC1a` | withdrawn |\n| — | `US-16-AC1b` | withdrawn |\n"
@@ -297,6 +299,31 @@ class AssembleTest(unittest.TestCase):
 
     def test_missing_new_id_names_the_row(self):
         self.assert_field_error("new.jsonl", "S-02-AC1", "id", self.DELETE, "id", 3, True)
+
+    def assert_whitespace_error(self, register, row_id, key, value, row, argvs):
+        with tempfile.TemporaryDirectory() as d:
+            make_ws(d)
+            self.rewrite_field(d, register, row_id, key, value)
+            want = f"assemble: cannot read {os.path.join(d, register)}: row {row}: '{key}' {WS}\n"
+            for argv in argvs(d):
+                with self.subTest(argv=argv):
+                    code, _, err = run_main(argv)
+                    self.assertEqual(code, 1)
+                    self.assertEqual(err, want)
+
+    def test_leading_space_in_a_new_id_is_a_read_error(self):
+        self.assert_whitespace_error("new.jsonl", "S-02-AC1", "id", " S-02-AC1", 3,
+                                     lambda d: [["--ws", d, "--pending"]])
+
+    def test_trailing_space_in_an_old_id_is_a_read_error(self):
+        self.assert_whitespace_error("old.jsonl", "US-01-AC2a", "id", "US-01-AC2a ", 2,
+                                     lambda d: [["--ws", d, "--pending"]])
+
+    def test_trailing_space_in_an_old_story_is_a_read_error(self):
+        self.assert_whitespace_error("old.jsonl", "US-16-AC1b", "story", "US-16 ", 4,
+                                     lambda d: [["--ws", d, "--pending"],
+                                                ["--ws", d, "--out", os.path.join(d, "o"),
+                                                 "--ids-out", os.path.join(d, "i")]])
 
     def test_non_object_row_is_a_read_error(self):
         with tempfile.TemporaryDirectory() as d:
