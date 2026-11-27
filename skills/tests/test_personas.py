@@ -18,10 +18,10 @@ EXPECTED = {
     "qa-conformance": ("opus", ["lens-qa-conformance"]),
     "security-engineer": ("opus", ["lens-security-engineer"]),
     "temporal-reviewer": ("opus", ["temporal-workflow-design-critic"]),
-    "temporal-code-reviewer": ("opus", ["temporal:temporal-developer"]),
+    "temporal-code-reviewer": ("opus", ["temporal:temporal-developer", "temporal-developer"]),
 }
 NON_REVIEWER_LENSES = {"lens-qa-conformance"}
-EXTERNAL_SKILLS = {"temporal-workflow-design-critic", "temporal:temporal-developer"}
+EXTERNAL_SKILLS = {"temporal-workflow-design-critic", "temporal:temporal-developer", "temporal-developer"}
 
 
 class PersonaTests(unittest.TestCase):
