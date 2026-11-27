@@ -122,7 +122,7 @@ Three steps call a skill that tl-relay does not ship. Each step runs when the se
 
 | Skill | Source | Step | Without it |
 |---|---|---|---|
-| `unslop` | Any skill with that name | The prose pass in `technical-writing`, `write-hla`, `write-lld` and `write-contract` | The step reports `unslop: not installed` and the page can still be done |
+| `unslop` | Any skill with that name | The prose pass in `technical-writing`, `write-design`, `write-hla`, `write-lld`, `write-contract`, `ingest-sources` and `tl-design` | The step reports `unslop: not installed` and the page can still be done |
 | `temporal-workflow-design-critic` | [temporalio/skill-temporal-design](https://github.com/temporalio/skill-temporal-design) | The Temporal persona in `tl-design` step 9 | The review skips that persona and notes the skip |
 | `temporal:temporal-developer` or `temporal-developer` | [temporalio/claude-temporal-plugin](https://github.com/temporalio/claude-temporal-plugin) | The Temporal code review in `tl-implement` step 5 | The run asks you once whether to proceed without that review |
 

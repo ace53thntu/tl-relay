@@ -149,7 +149,7 @@ For a revision, the caller writes the page after G-ingest, as step 4.8 says.
 - `content_sha256` decides identity. `sha256` records the exact bytes that arrived.
 - Never move a baseline or rewrite the register before G-ingest.
 - A claim that a story vanished cites the search that found no carrier.
-- **REQUIRED SUB-SKILL:** `technical-writing` for the drift record, then `unslop`, then the Vale gate in `technical-writing`. Zero errors.
+- **REQUIRED SUB-SKILL:** `technical-writing` for the drift record, then `unslop` when the session lists it (see `technical-writing`), then the Vale gate in `technical-writing`. Zero errors.
 
 ## Common mistakes
 

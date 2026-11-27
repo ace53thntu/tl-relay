@@ -140,5 +140,14 @@ class PortableWritersTest(unittest.TestCase):
         self.assertNotIn("this skill regenerates", text)
 
 
+    def test_unslop_runs_only_when_listed(self):
+        for name in ("write-design", "ingest-sources", "tl-design", "write-hla", "write-lld", "write-contract"):
+            text = (SKILLS / name / "SKILL.md").read_text()
+            lines = [l for l in text.splitlines() if "REQUIRED SUB-SKILL" in l and "`unslop`" in l]
+            self.assertTrue(lines, name)
+            for line in lines:
+                self.assertIn("`unslop` when the session lists it", line, name)
+
+
 if __name__ == "__main__":
     unittest.main()
