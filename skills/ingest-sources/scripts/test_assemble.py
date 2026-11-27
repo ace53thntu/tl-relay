@@ -300,30 +300,40 @@ class AssembleTest(unittest.TestCase):
     def test_missing_new_id_names_the_row(self):
         self.assert_field_error("new.jsonl", "S-02-AC1", "id", self.DELETE, "id", 3, True)
 
-    def assert_whitespace_error(self, register, row_id, key, value, row, argvs):
+    def test_leading_space_in_a_new_id_is_a_read_error(self):
         with tempfile.TemporaryDirectory() as d:
             make_ws(d)
-            self.rewrite_field(d, register, row_id, key, value)
-            want = f"assemble: cannot read {os.path.join(d, register)}: row {row}: '{key}' {WS}\n"
-            for argv in argvs(d):
+            self.rewrite_field(d, "new.jsonl", "S-02-AC1", "id", " S-02-AC1")
+            want = f"assemble: cannot read {os.path.join(d, 'new.jsonl')}: row 3: 'id' {WS}\n"
+            for argv in [["--ws", d, "--pending"]]:
                 with self.subTest(argv=argv):
                     code, _, err = run_main(argv)
                     self.assertEqual(code, 1)
                     self.assertEqual(err, want)
 
-    def test_leading_space_in_a_new_id_is_a_read_error(self):
-        self.assert_whitespace_error("new.jsonl", "S-02-AC1", "id", " S-02-AC1", 3,
-                                     lambda d: [["--ws", d, "--pending"]])
-
     def test_trailing_space_in_an_old_id_is_a_read_error(self):
-        self.assert_whitespace_error("old.jsonl", "US-01-AC2a", "id", "US-01-AC2a ", 2,
-                                     lambda d: [["--ws", d, "--pending"]])
+        with tempfile.TemporaryDirectory() as d:
+            make_ws(d)
+            self.rewrite_field(d, "old.jsonl", "US-01-AC2a", "id", "US-01-AC2a ")
+            want = f"assemble: cannot read {os.path.join(d, 'old.jsonl')}: row 2: 'id' {WS}\n"
+            for argv in [["--ws", d, "--pending"]]:
+                with self.subTest(argv=argv):
+                    code, _, err = run_main(argv)
+                    self.assertEqual(code, 1)
+                    self.assertEqual(err, want)
 
     def test_trailing_space_in_an_old_story_is_a_read_error(self):
-        self.assert_whitespace_error("old.jsonl", "US-16-AC1b", "story", "US-16 ", 4,
-                                     lambda d: [["--ws", d, "--pending"],
-                                                ["--ws", d, "--out", os.path.join(d, "o"),
-                                                 "--ids-out", os.path.join(d, "i")]])
+        with tempfile.TemporaryDirectory() as d:
+            make_ws(d)
+            self.rewrite_field(d, "old.jsonl", "US-16-AC1b", "story", "US-16 ")
+            want = f"assemble: cannot read {os.path.join(d, 'old.jsonl')}: row 4: 'story' {WS}\n"
+            argvs = [["--ws", d, "--pending"],
+                     ["--ws", d, "--out", os.path.join(d, "o"), "--ids-out", os.path.join(d, "i")]]
+            for argv in argvs:
+                with self.subTest(argv=argv):
+                    code, _, err = run_main(argv)
+                    self.assertEqual(code, 1)
+                    self.assertEqual(err, want)
 
     def test_non_object_row_is_a_read_error(self):
         with tempfile.TemporaryDirectory() as d:
