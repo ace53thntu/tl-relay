@@ -159,6 +159,23 @@ class PortableTlDesignTest(unittest.TestCase):
         self.assertIn("ingest_ws:", template)
         self.assertIn("ingest_sha256:", template)
 
+    def test_ingest_errors_reach_the_operator(self):
+        text = " ".join(self.text.split())
+        d1 = "Every `design-writer` dispatch for `ingest-sources`, the first snapshot's included, adds one rule to its prompt."
+        d2 = "A sentence of `ingest-sources` that sends an error to the operator outranks the Ask rule: stop there and return that error as a question."
+        s1 = "When such a dispatch returns that question, ask it through `AskUserQuestion` before any other step, not as a plain report."
+        s2 = "Never add it to the open points, and present no `G-ingest` until the operator answers."
+        p1 = "A nonzero exit from that rerun goes to the operator as a question."
+        p2 = "Nothing is cleared until the operator answers."
+        paragraph = " ".join((d1, d2, s1, s2))
+        self.assertIn(paragraph, text)
+        self.assertIn(" ".join((p1, p2)), text)
+        self.assertLess(text.index("With `G-ingest` signed, it finishes part 4."), text.index(paragraph))
+        self.assertLess(text.index(paragraph), text.index("## Steps"))
+        self.assertLess(text.index("Then rerun the `gen_register.py` command"), text.index(p1))
+        self.assertLess(text.index(p2), text.index("Last, clear `ingest_ws`"))
+        self.assertIn("If it returns without `slices.json` or `writer.json`, report its reason and stop.", text)
+
 
 if __name__ == "__main__":
     unittest.main()

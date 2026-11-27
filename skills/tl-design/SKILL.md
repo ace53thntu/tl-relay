@@ -131,11 +131,18 @@ A new revision of a `stories` source runs in four parts:
    Part 3 is done once the drift record's `audits/<date>-stories-adjudication.json` carries that `inputs_sha256`.
 4. Present `G-ingest`. After it, follow the gate rules, with `ingest_sha256` as the `set-baseline` digest.
    Then rerun the `gen_register.py` command in `$WS/writer.json` with the `--page` flags of `ingest-sources` step 3.
+   A nonzero exit from that rerun goes to the operator as a question.
+   Nothing is cleared until the operator answers.
    Last, clear `ingest_ws`, `ingest_sha256` and every step 1 entry in `workflow_runs`.
 
 A resume at step 1 reads `ingest_ws`. It resumes an unfinished recorded drift run with the args in `$WS/drift-args.json`.
 With no such run, it continues from the first part that is not done.
 With `G-ingest` signed, it finishes part 4.
+
+Every `design-writer` dispatch for `ingest-sources`, the first snapshot's included, adds one rule to its prompt.
+A sentence of `ingest-sources` that sends an error to the operator outranks the Ask rule: stop there and return that error as a question.
+When such a dispatch returns that question, ask it through `AskUserQuestion` before any other step, not as a plain report.
+Never add it to the open points, and present no `G-ingest` until the operator answers.
 
 ## Steps
 
