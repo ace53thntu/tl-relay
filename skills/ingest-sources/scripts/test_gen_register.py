@@ -135,5 +135,27 @@ class RealWorkbookTest(unittest.TestCase):
         self.assertEqual((len(criteria), len(skipped)), (214, 3))
 
 
+class InvisibleCharTest(unittest.TestCase):
+    def test_id_col_refuses_a_tab_inside_a_criterion(self):
+        rows = [r[:] for r in ID_ROWS]
+        rows[2][4] = "US-01-AC2\ta"
+        with self.assertRaises(SystemExit) as cm:
+            g.build(rows, COLS, id_col="Criterion", story_col="Old ID")
+        self.assertEqual(cm.exception.code, "gen_register: id at sheet row 3 holds U+0009")
+
+    def test_id_col_refuses_a_bom_in_a_story(self):
+        rows = [r[:] for r in ID_ROWS]
+        rows[3][1] = "\ufeffUS-05"
+        with self.assertRaises(SystemExit) as cm:
+            g.build(rows, COLS, id_col="Criterion", story_col="Old ID")
+        self.assertEqual(cm.exception.code, "gen_register: story at sheet row 4 holds U+FEFF")
+
+    def test_id_col_accepts_non_ascii_letters(self):
+        rows = [r[:] for r in ID_ROWS]
+        rows[1][4] = "US-01-Tiếng-Việt"
+        _, criteria, _ = g.build(rows, COLS, id_col="Criterion", story_col="Old ID")
+        self.assertEqual(criteria[0]["id"], "US-01-Tiếng-Việt")
+
+
 if __name__ == "__main__":
     unittest.main()

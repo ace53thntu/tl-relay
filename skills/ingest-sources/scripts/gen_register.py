@@ -6,7 +6,7 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from registerio import write_jsonl  # noqa: E402
+from registerio import bad_char, write_jsonl  # noqa: E402
 from xlsx2md import cell_md, read_sheet  # noqa: E402
 
 IMPACT_RANK = {"low": 0, "medium": 1, "high": 2}
@@ -33,6 +33,8 @@ def build(rows, cols, mint=None, id_col=None, story_col=None):
         if not key:
             skipped.append(n)
             continue
+        if id_col and (ch := bad_char(key)):
+            raise SystemExit(f"gen_register: story at sheet row {n} holds U+{ord(ch):04X}")
         if key not in blocks:
             story = f"{mint}-{int(number):02d}" if mint else key
             if mint:
@@ -49,6 +51,8 @@ def build(rows, cols, mint=None, id_col=None, story_col=None):
             b["impacts"].append(r[c["impact"]].strip())
             skipped.append(n)
             continue
+        if ch := bad_char(cid):
+            raise SystemExit(f"gen_register: id at sheet row {n} holds U+{ord(ch):04X}")
         if cid in seen_ids:
             raise SystemExit(f"gen_register: id {cid!r} at sheet row {n} repeats sheet row {seen_ids[cid]}")
         seen_ids[cid] = n
