@@ -1,5 +1,6 @@
 """Read and write the JSON Lines registers the drift scripts share."""
 import json
+import unicodedata
 
 
 def load_jsonl(path):
@@ -13,12 +14,22 @@ def write_jsonl(path, items):
             fh.write(json.dumps(item, ensure_ascii=False) + "\n")
 
 
+def bad_char(value):
+    for ch in value:
+        if unicodedata.category(ch) in ("Cc", "Cf", "Zl", "Zp"):
+            return ch
+    return None
+
+
 def register_field(row, n, key):
     value = row.get(key) if isinstance(row, dict) else None
     if not isinstance(value, str) or value == "":
         raise ValueError(f"row {n}: '{key}' must be a non-empty string")
     if value != value.strip():
         raise ValueError(f"row {n}: '{key}' must not carry surrounding whitespace")
+    ch = bad_char(value)
+    if ch is not None:
+        raise ValueError(f"row {n}: '{key}' holds U+{ord(ch):04X}")
     return value
 
 
