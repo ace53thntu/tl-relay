@@ -388,7 +388,7 @@ The `agents` value sets how a persona or writer is dispatched.
 - `write-design` sets where an LLD's blocks sit. In a set with several modules, Scenarios moves to a child page. A module with routes keeps section 4 on its API page. No gate restores a block to the parent.
   A route page's title is `API 4.N: <METHOD path> - <summary>`. Any other section 4 element page is titled `<Kind> 4.N: <name> - <summary>`, such as
   `Workflow 4.1: pickupBookingThWorkflow - Run one booking attempt`. Neither title carries the module name.
-- **REQUIRED SUB-SKILL:** `technical-writing` for prose, then `unslop`, then the Vale gate in `technical-writing`. Zero errors.
+- **REQUIRED SUB-SKILL:** `technical-writing` for prose, then `unslop` when the session lists it (see `technical-writing`), then the Vale gate in `technical-writing`. Zero errors.
 - **Technical wording, not narrative.** Headings are technical labels (`API changes`, not `Routes this
   design adds`). Body text uses technical terms, not colloquial phrases. Names use the operation and the code's own terms. See `technical-writing`, House rules.
 

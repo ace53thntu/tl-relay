@@ -186,7 +186,7 @@ A set written to an earlier version of these skills has a decisions page, `<top 
   - An answer becomes an Overview deep dive, a module rule, or an `Assumption:` line, and the controller deletes the entry.
   - `Assumption: … Confirms:` lines stay inline.
 - Run `python3 <skill dir>/../tl-design/scripts/doc_budget.py <path>...` on every page written, with the budgets `write-hla` and `write-lld` set.
-- **REQUIRED SUB-SKILL:** `technical-writing` for prose, then `unslop`, then the Vale gate in `technical-writing`. Zero errors.
+- **REQUIRED SUB-SKILL:** `technical-writing` for prose, then `unslop` when the session lists it (see `technical-writing`), then the Vale gate in `technical-writing`. Zero errors.
 
 ## Common mistakes
 
