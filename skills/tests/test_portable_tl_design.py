@@ -176,6 +176,26 @@ class PortableTlDesignTest(unittest.TestCase):
         self.assertLess(text.index(p2), text.index("Last, clear `ingest_ws`"))
         self.assertIn("If it returns without `slices.json` or `writer.json`, report its reason and stop.", text)
 
+    def test_first_snapshot_resume_holds_g_ingest(self):
+        text = " ".join(self.text.split())
+        f1 = "At step 1, a source already recorded with `baseline: true` counts as ingested unless it is the only recorded source of its kind and `ingest_sha256` holds its file `sha256`. Skip its snapshot."
+        l107 = "A source with no baseline of its kind takes one `design-writer` dispatch for `ingest-sources` steps 1 to 3. The session then presents `G-ingest`."
+        f2 = "After the gate rules for a first snapshot, clear `ingest_sha256`."
+        f3 = "When `ingest_sha256` holds the only recorded source of its kind, a resume with `G-ingest` unsigned repeats that dispatch, with the snapshot skipped."
+        f4 = "With `G-ingest` signed, that resume finishes the gate rules, then clears `ingest_sha256`."
+        f5 = "Another file waits while `ingest_sha256` holds the only recorded source of its kind."
+        f6 = "A new revision, or a source with no baseline of its kind, enters step 1 fresh when `ingest_sha256` does not hold its file `sha256`."
+        f7 = "Then record the file's `sha256` as `ingest_sha256` in `workflow-state.md`."
+        block = " ".join((f1, l107, f2, f3, f4, f5, f6))
+        self.assertIn(block, text)
+        self.assertIn(f7, text)
+        self.assertLess(text.index("## Start and resume"), text.index(block))
+        self.assertLess(text.index(block), text.index(f7))
+        self.assertLess(text.index(f7), text.index("## Steps"))
+        self.assertNotIn("counts as ingested. Skip its snapshot.", text)
+        self.assertNotIn("Then record the revision's file", text)
+        self.assertIn("A dispatch skips the snapshot when the revision in `ingest_sha256` is already recorded.", text)
+
 
 if __name__ == "__main__":
     unittest.main()
