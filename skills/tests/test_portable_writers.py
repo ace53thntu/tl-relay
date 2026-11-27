@@ -70,6 +70,12 @@ class PortableWritersTest(unittest.TestCase):
             self.assertIn(sentence, text)
         self.assertNotIn("check that `$WS/slice-<name>.md` and `$WS/findings-<name>.md` exist", text)
 
+    def test_ingest_sources_names_snapshot_check(self):
+        text = " ".join((SKILLS / "ingest-sources/SKILL.md").read_text().split())
+        dup = "If `duplicate_of` is not null, report that the file is not a new revision and stop."
+        c1 = "With `--check`, the same command prints the same JSON with `path` and `baseline` null, and copies and records nothing."
+        self.assertIn(" ".join((dup, c1)), text)
+
     def test_digest_names_the_three_drift_inputs(self):
         text = " ".join((SKILLS / "ingest-sources/SKILL.md").read_text().split())
         self.assertIn("It prints `inputs_sha256`, the digest of `slices.json`, `new.jsonl` and `old.jsonl`, and `pending`", text)

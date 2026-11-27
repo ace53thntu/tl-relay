@@ -166,14 +166,16 @@ class PortableTlDesignTest(unittest.TestCase):
         s1 = "When such a dispatch returns that question, ask it through `AskUserQuestion` before any other step, not as a plain report."
         s2 = "Never add it to the open points, and present no `G-ingest` until the operator answers."
         p1 = "A nonzero exit from that rerun goes to the operator as a question."
-        p2 = "Nothing is cleared until the operator answers."
+        p2 = "After each answer, rerun that `gen_register.py` command."
+        p3 = "Nothing is cleared until a rerun exits 0."
         paragraph = " ".join((d1, d2, s1, s2))
         self.assertIn(paragraph, text)
-        self.assertIn(" ".join((p1, p2)), text)
+        self.assertIn(" ".join((p1, p2, p3)), text)
         self.assertLess(text.index("With `G-ingest` signed, it finishes part 4."), text.index(paragraph))
         self.assertLess(text.index(paragraph), text.index("## Steps"))
         self.assertLess(text.index("Then rerun the `gen_register.py` command"), text.index(p1))
-        self.assertLess(text.index(p2), text.index("Last, clear `ingest_ws`"))
+        self.assertLess(text.index(p3), text.index("Last, clear `ingest_ws`"))
+        self.assertNotIn("Nothing is cleared until the operator answers.", text)
         self.assertIn("If it returns without `slices.json` or `writer.json`, report its reason and stop.", text)
 
     def test_first_snapshot_resume_holds_g_ingest(self):
@@ -182,7 +184,11 @@ class PortableTlDesignTest(unittest.TestCase):
         l107 = "A source with no baseline of its kind takes one `design-writer` dispatch for `ingest-sources` steps 1 to 3. The session then presents `G-ingest`."
         f2 = "After the gate rules for a first snapshot, clear `ingest_sha256`."
         f3 = "When `ingest_sha256` holds the only recorded source of its kind, a resume with `G-ingest` unsigned repeats that dispatch, with the snapshot skipped."
-        f4 = "With `G-ingest` signed, that resume finishes the gate rules, then clears `ingest_sha256`."
+        f4 = "A resume that finds `G-ingest` signed and `ingest_sha256` set, with no `ingest_ws`, finishes the gate rules, then clears `ingest_sha256` and every step 1 entry in `workflow_runs`."
+        t1 = 'Before step 1 compares a new file with `ingest_sha256`, run `python3 <skill dir>/../ingest-sources/scripts/snapshot.py --check --knowledge-root "$DROOT" --handle <handle>` on it.'
+        t1b = "Pass the kind, label and date its snapshot would take. A nonzero exit goes to the operator as a question."
+        t2 = "While `G-ingest` is unsigned and `duplicate_of` names the source in `ingest_sha256`, the session repeats that source's dispatch, with the snapshot skipped."
+        t2b = "Otherwise, when `duplicate_of` is not null, tell the operator the file is not a new revision. In that case, change no state and resume from the state as it is."
         f5 = "Another file, a new revision included, waits while `ingest_sha256` holds the only recorded source of its kind."
         f6 = "A new revision enters step 1 fresh when `ingest_sha256` does not hold its file `sha256`."
         f8 = "A source with no baseline of its kind enters step 1 fresh when `ingest_sha256` is empty."
@@ -190,8 +196,9 @@ class PortableTlDesignTest(unittest.TestCase):
         f10 = "Otherwise the file waits while `ingest_ws` is set or `ingest_sha256` names a recorded source, and enters step 1 fresh when neither holds."
         f11 = "When the operator rejects a first snapshot at `G-ingest`, clear `ingest_sha256`."
         f7 = "Then record the file's `sha256` as `ingest_sha256` in `workflow-state.md`."
-        block = " ".join((f1, l107, f2, f11, f3, f4, f5, f6, f8, f9, f10))
+        block = " ".join((f1, l107, f2, f11, f3, f4, f5, t1, t1b, t2, t2b, f6, f8, f9, f10))
         self.assertIn(block, text)
+        self.assertNotIn("Change no state, and resume", text)
         self.assertIn(f7, text)
         self.assertLess(text.index("## Start and resume"), text.index(block))
         self.assertLess(text.index(block), text.index(f7))
