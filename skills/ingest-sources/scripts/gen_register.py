@@ -44,7 +44,7 @@ def build(rows, cols, mint=None, id_col=None, story_col=None):
             blocks[key] = {"story": story, "title": r[c["title"]], "impacts": [], "rows": []}
             order.append(key)
         b = blocks[key]
-        cid = f"{b['story']}-AC{len(b['rows']) + 1}" if mint else r[ci].strip()
+        cid = f"{b['story']}-AC{len(b['rows']) + 1}" if mint else r[ci].replace("*", "").strip()
         if not cid:
             b["impacts"].append(r[c["impact"]].strip())
             skipped.append(n)

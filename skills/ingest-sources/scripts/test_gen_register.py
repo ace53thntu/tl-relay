@@ -77,6 +77,15 @@ class RepeatTest(unittest.TestCase):
     def test_id_column_rejects_a_repeated_id(self):
         self.assert_rejects(self.ID_ERR, self.DUP_ID, id_col="Criterion", story_col="Old ID")
 
+    def test_id_column_drops_bold_marks_from_an_id(self):
+        rows = ID_ROWS + [["4", "US-01", "A", "Low", "**US-01-AC3a**", "x3", "y3"]]
+        _, criteria, _ = g.build(rows, COLS, id_col="Criterion", story_col="Old ID")
+        self.assertEqual([c["id"] for c in criteria], ["US-01-AC1a", "US-01-AC2a", "US-01-AC3a"])
+
+    def test_id_column_catches_a_bold_repeat(self):
+        rows = ID_ROWS + [["4", "US-09", "C", "Low", "**US-01-AC1a**", "x3", "y3"]]
+        self.assert_rejects(self.ID_ERR, rows, id_col="Criterion", story_col="Old ID")
+
     def test_id_column_reports_the_first_repeat_only(self):
         rows = ID_ROWS + [["4", "US-01", "A", "Low", "US-01-AC2a", "x3", "y3"],
                           ["5", "US-01", "A", "Low", "US-01-AC1a", "x4", "y4"]]
