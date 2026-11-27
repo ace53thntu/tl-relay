@@ -69,6 +69,31 @@ class SlicesMainTest(unittest.TestCase):
                             "--unclaimed", self.unc, "--count", "3", "--out", self.out])
         return code, out.getvalue(), err.getvalue()
 
+    def write_pairs(self, text):
+        with open(self.pairs, "w", encoding="utf-8") as fh:
+            fh.write(text)
+
+    def test_main_rejects_pairs_without_old_id(self):
+        self.write_pairs("new_id\tkind\nS-01-AC1\t\n")
+        code, _, err = self.run_main()
+        self.assertEqual((code, err), (1, f"slices: cannot read {self.pairs}: missing column old_id\n"))
+
+    def test_main_rejects_pairs_without_old_id_even_with_nothing_unclaimed(self):
+        self.write_pairs("new_id\tkind\nS-01-AC1\t\n")
+        open(self.unc, "w").close()
+        code, _, err = self.run_main()
+        self.assertEqual((code, err), (1, f"slices: cannot read {self.pairs}: missing column old_id\n"))
+
+    def test_main_rejects_pairs_without_new_id(self):
+        self.write_pairs("old_id\tkind\nUS-01-AC1a\t\n")
+        code, _, err = self.run_main()
+        self.assertEqual((code, err), (1, f"slices: cannot read {self.pairs}: missing column new_id\n"))
+
+    def test_main_rejects_an_empty_pairs_tsv(self):
+        self.write_pairs("")
+        code, _, err = self.run_main()
+        self.assertEqual((code, err), (1, f"slices: cannot read {self.pairs}: missing column new_id\n"))
+
     def test_main_rejects_a_missing_register(self):
         os.remove(self.new)
         code, _, err = self.run_main()

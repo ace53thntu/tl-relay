@@ -7,7 +7,7 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from registerio import load_jsonl, register_field, unique_ids  # noqa: E402
+from registerio import load_jsonl, register_field, require_columns, unique_ids  # noqa: E402
 
 NAMES = "ABCDEFGH"
 
@@ -60,7 +60,9 @@ def main(argv=None):
     path = a.pairs
     try:
         with open(path, encoding="utf-8", newline="") as fh:
-            pairs = list(csv.DictReader(fh, delimiter="\t"))
+            reader = csv.DictReader(fh, delimiter="\t")
+            require_columns(reader.fieldnames, ("new_id", "old_id"))
+            pairs = list(reader)
         path = a.unclaimed
         with open(path, encoding="utf-8") as fh:
             unclaimed = [line.strip() for line in fh if line.strip()]
