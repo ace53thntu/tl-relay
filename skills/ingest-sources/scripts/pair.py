@@ -8,7 +8,7 @@ import re
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from registerio import load_jsonl, register_field, register_text  # noqa: E402
+from registerio import load_jsonl, register_field, register_text, unique_ids  # noqa: E402
 
 LINK = re.compile(r"\[([^\]]*)\]\([^)]*\)")
 
@@ -72,6 +72,7 @@ def main(argv=None):
                 register_field(row, n, "id")
                 register_text(row, n, "scenario")
                 register_text(row, n, "rule")
+            unique_ids([row["id"] for row in rows])
             registers.append(rows)
     except (OSError, ValueError) as e:
         print(f"pair: cannot read {path}: {e}", file=sys.stderr)
