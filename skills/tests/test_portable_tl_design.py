@@ -99,6 +99,13 @@ class PortableTlDesignTest(unittest.TestCase):
         for needle in ("`plugin`", "`bare`", "`none`", "tl-relay:", "Running without agents or Workflows"):
             self.assertIn(needle, self.text)
 
+    def test_state_command_sets_no_shell_variable(self):
+        self.assertNotIn("S=<skill dir>", self.text)
+        self.assertNotIn('"$S"', self.text)
+        self.assertIn('python3 "<skill dir>/scripts/state.py" --knowledge-root', self.text)
+        self.assertIn("Set no shell variable in a command, because Claude Code asks before every command that sets one.",
+                      " ".join(self.text.split()))
+
     def test_sibling_check(self):
         section = " ".join(self.text.split("## Sibling skills")[1].split("\n## ")[0].split())
         self.assertIn("in the session's skill list", section)

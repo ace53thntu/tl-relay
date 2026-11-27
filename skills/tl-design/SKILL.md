@@ -68,9 +68,11 @@ audit lists each item as moved, not dropped.
 | `D/workflow-state.md` | Step, stage, round, signed gates, open decisions, Workflow run ids, revise log | The session only, created from `templates/workflow-state.md` |
 
 ```bash
-S=<skill dir>/scripts/state.py
-python3 "$S" --knowledge-root "$DROOT" --handle <handle> show
+python3 "<skill dir>/scripts/state.py" --knowledge-root "$DROOT" --handle <handle> show
 ```
+
+Write `<skill dir>` and each value in place in the Bash call. Set no shell variable in a command, because Claude Code asks
+before every command that sets one.
 
 | `state.py` command | Does |
 | --- | --- |
