@@ -12,7 +12,27 @@ from xlsx2md import cell_md, read_sheet  # noqa: E402
 IMPACT_RANK = {"low": 0, "medium": 1, "high": 2}
 
 
+def check_mint(mint):
+    if not mint:
+        raise SystemExit("gen_register: --mint must not be empty")
+    if mint != mint.strip():
+        raise SystemExit(f"gen_register: --mint {mint!r} must not carry surrounding whitespace")
+    if ch := bad_char(mint):
+        raise SystemExit(f"gen_register: --mint holds U+{ord(ch):04X}")
+
+
+def mint_number(cell, n):
+    value = cell[2:-2] if len(cell) >= 4 and cell.startswith("**") and cell.endswith("**") else cell
+    if ch := bad_char(value):
+        raise SystemExit(f"gen_register: No. at sheet row {n} holds U+{ord(ch):04X}")
+    if not (value.isascii() and value.isdigit() and int(value) >= 1):
+        raise SystemExit(f"gen_register: No. {cell!r} at sheet row {n} is not a whole number of 1 or more")
+    return value
+
+
 def build(rows, cols, mint=None, id_col=None, story_col=None):
+    if mint is not None:
+        check_mint(mint)
     if bool(mint) == bool(id_col):
         raise SystemExit("gen_register: pass exactly one of --mint or --id-col")
     header = rows[0]
@@ -33,6 +53,8 @@ def build(rows, cols, mint=None, id_col=None, story_col=None):
         if not key:
             skipped.append(n)
             continue
+        if mint:
+            key = number = mint_number(key, n)
         if id_col and (ch := bad_char(key)):
             raise SystemExit(f"gen_register: story at sheet row {n} holds U+{ord(ch):04X}")
         if key not in blocks:
@@ -100,6 +122,8 @@ def main(argv=None):
     p.add_argument("--source-rel")
     p.add_argument("--generated-at")
     a = p.parse_args(argv)
+    if a.mint is not None:
+        check_mint(a.mint)
     name, rows = read_sheet(a.xlsx, a.sheet)
     cols = {"number": a.number_col, "title": a.title_col, "impact": a.impact_col,
             "scenario": a.scenario_col, "rule": a.rule_col}

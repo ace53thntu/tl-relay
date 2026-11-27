@@ -157,5 +157,50 @@ class InvisibleCharTest(unittest.TestCase):
         self.assertEqual(criteria[0]["id"], "US-01-Tiếng-Việt")
 
 
+class MintCheckTest(unittest.TestCase):
+    H5 = MINT_ROWS[0]
+
+    def rows(self, *numbers):
+        return [self.H5] + [[num, "T", "Low", "s", "r"] for num in numbers]
+
+    def assert_rejects(self, text, rows, mint="S"):
+        with self.assertRaises(SystemExit) as cm:
+            g.build(rows, COLS, mint=mint)
+        self.assertEqual(cm.exception.code, text)
+
+    def test_mint_reads_a_bold_number(self):
+        _, criteria, _ = g.build(self.rows("**1**"), COLS, mint="S")
+        self.assertEqual(criteria[0]["id"], "S-01-AC1")
+        self.assertEqual(criteria[0]["number"], "1")
+
+    def test_mint_reads_bold_and_plain_as_one_story(self):
+        blocks, criteria, _ = g.build(self.rows("1", "**1**"), COLS, mint="S")
+        self.assertEqual([b["story"] for b in blocks], ["S-01"])
+        self.assertEqual([c["id"] for c in criteria], ["S-01-AC1", "S-01-AC2"])
+
+    def test_mint_refuses_a_number_that_is_not_whole(self):
+        for cell in ("1a", "1.0", "-1", "0", "**1", "****", "\u0661"):
+            with self.subTest(cell=cell):
+                self.assert_rejects(f"gen_register: No. {cell!r} at sheet row 2 is not a whole number of 1 or more",
+                                    self.rows(cell))
+
+    def test_mint_refuses_a_bom_in_a_number(self):
+        self.assert_rejects("gen_register: No. at sheet row 2 holds U+FEFF", self.rows("\ufeff1"))
+
+    def test_mint_refuses_surrounding_whitespace_in_the_prefix(self):
+        self.assert_rejects("gen_register: --mint ' S' must not carry surrounding whitespace", self.rows("1"), mint=" S")
+
+    def test_mint_refuses_an_empty_prefix(self):
+        self.assert_rejects("gen_register: --mint must not be empty", self.rows("1"), mint="")
+
+    def test_mint_refuses_a_zero_width_space_in_the_prefix(self):
+        self.assert_rejects("gen_register: --mint holds U+200B", self.rows("1"), mint="S\u200b")
+
+    def test_main_checks_the_prefix_before_reading_the_workbook(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            with self.assertRaises(SystemExit) as cm:
+                g.main([os.path.join(tmp, "missing.xlsx"), "--mint", " S", "--jsonl", os.path.join(tmp, "out.jsonl")])
+        self.assertEqual(cm.exception.code, "gen_register: --mint ' S' must not carry surrounding whitespace")
+
 if __name__ == "__main__":
     unittest.main()
