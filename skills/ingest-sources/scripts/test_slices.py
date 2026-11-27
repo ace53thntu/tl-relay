@@ -105,12 +105,27 @@ class SlicesMainTest(unittest.TestCase):
     def test_main_reads_a_leading_quote_literally(self):
         self.write_pairs('new_id\told_id\nS-01-AC1\t"US-01-AC1a\nNOPE\tUS-01-AC2a\n')
         code, _, err = self.run_main()
-        self.assertEqual((code, err), (1, f"slices: cannot read {self.pairs}: row 2: new_id 'NOPE' is not in new.jsonl\n"))
+        self.assertEqual((code, err), (1, f"slices: cannot read {self.pairs}: line 3: new_id 'NOPE' is not in new.jsonl\n"))
 
     def test_main_rejects_a_short_pairs_row(self):
         self.write_pairs("new_id\told_id\tkind\nS-01-AC1\n")
         code, _, err = self.run_main()
-        self.assertEqual((code, err), (1, f"slices: cannot read {self.pairs}: row 1: missing field old_id\n"))
+        self.assertEqual((code, err), (1, f"slices: cannot read {self.pairs}: line 2: has 1 fields, header has 3\n"))
+
+    def test_main_rejects_a_row_cut_inside_old_id(self):
+        self.write_pairs("new_id\told_id\tkind\trule_changed\tratio\nS-01-AC1\tUS-0\n")
+        code, _, err = self.run_main()
+        self.assertEqual((code, err), (1, f"slices: cannot read {self.pairs}: line 2: has 2 fields, header has 5\n"))
+
+    def test_main_rejects_a_row_with_an_extra_field(self):
+        self.write_pairs("new_id\told_id\nS-01-AC1\tUS-01-AC1a\tx\n")
+        code, _, err = self.run_main()
+        self.assertEqual((code, err), (1, f"slices: cannot read {self.pairs}: line 2: has 3 fields, header has 2\n"))
+
+    def test_main_counts_a_blank_line_in_the_line_number(self):
+        self.write_pairs("new_id\told_id\tkind\n\nS-01-AC1\n")
+        code, _, err = self.run_main()
+        self.assertEqual((code, err), (1, f"slices: cannot read {self.pairs}: line 3: has 1 fields, header has 3\n"))
 
     def test_main_rejects_a_missing_register(self):
         os.remove(self.new)
@@ -218,7 +233,7 @@ class SlicesMainTest(unittest.TestCase):
         self.write_jsonl(self.new, [n for n in NEW if n["id"] != "S-09-AC1"])
         code, _, err = self.run_main()
         self.assertEqual(code, 1)
-        self.assertEqual(err, f"slices: cannot read {self.pairs}: row 25: new_id 'S-09-AC1' is not in new.jsonl\n")
+        self.assertEqual(err, f"slices: cannot read {self.pairs}: line 26: new_id 'S-09-AC1' is not in new.jsonl\n")
         self.assertFalse(os.path.exists(self.out))
 
     def test_main_rejects_an_unclaimed_id_missing_from_old_jsonl(self):
