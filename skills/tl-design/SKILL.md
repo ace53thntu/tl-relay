@@ -108,9 +108,10 @@ A source with no baseline of its kind takes one `design-writer` dispatch for `in
 After the gate rules for a first snapshot, clear `ingest_sha256`.
 When `ingest_sha256` holds the only recorded source of its kind, a resume with `G-ingest` unsigned repeats that dispatch, with the snapshot skipped.
 With `G-ingest` signed, that resume finishes the gate rules, then clears `ingest_sha256`.
-Another file waits while `ingest_sha256` holds the only recorded source of its kind.
+Another file, a new revision included, waits while `ingest_sha256` holds the only recorded source of its kind.
 A new revision enters step 1 fresh when `ingest_sha256` does not hold its file `sha256`.
-A source with no baseline of its kind enters step 1 fresh when `ingest_sha256` is empty, and otherwise waits.
+A source with no baseline of its kind enters step 1 fresh when `ingest_sha256` is empty.
+When `ingest_sha256` holds its file `sha256`, the session repeats its dispatch. Otherwise the file waits.
 On a fresh entry, remove `G-ingest` from `signed:`, and run `set-stage --stage ingest --status draft`.
 Also clear `ingest_ws` and every step 1 entry in `workflow_runs`.
 Then record the file's `sha256` as `ingest_sha256` in `workflow-state.md`.
