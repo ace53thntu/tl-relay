@@ -113,7 +113,7 @@ Another file, a new revision included, waits while `ingest_sha256` holds the onl
 Before step 1 compares a new file with `ingest_sha256`, run `ingest-sources/scripts/snapshot.py --check --knowledge-root "$DROOT" --handle <handle>` on it.
 Pass the kind, label and date its snapshot would take. A nonzero exit goes to the operator as a question.
 While `G-ingest` is unsigned and `duplicate_of` names the source in `ingest_sha256`, the session repeats that source's dispatch, with the snapshot skipped.
-Otherwise, when `duplicate_of` is not null, tell the operator the file is not a new revision, change no state, and resume from the state as it is.
+Otherwise, when `duplicate_of` is not null, tell the operator the file is not a new revision. Change no state, and resume from the state as it is.
 A new revision enters step 1 fresh when `ingest_sha256` does not hold its file `sha256`.
 A source with no baseline of its kind enters step 1 fresh when `ingest_sha256` is empty.
 When `ingest_sha256` holds its file `sha256`, the session repeats its dispatch.
