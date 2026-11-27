@@ -184,6 +184,10 @@ class MintCheckTest(unittest.TestCase):
                 self.assert_rejects(f"gen_register: No. {cell!r} at sheet row 2 is not a whole number of 1 or more",
                                     self.rows(cell))
 
+    def test_mint_reads_a_very_long_number_without_a_traceback(self):
+        _, criteria, _ = g.build(self.rows("1" * 5000), COLS, mint="S")
+        self.assertEqual(criteria[0]["id"], "S-" + "1" * 5000 + "-AC1")
+
     def test_mint_refuses_a_bom_in_a_number(self):
         self.assert_rejects("gen_register: No. at sheet row 2 holds U+FEFF", self.rows("\ufeff1"))
 
@@ -201,6 +205,7 @@ class MintCheckTest(unittest.TestCase):
             with self.assertRaises(SystemExit) as cm:
                 g.main([os.path.join(tmp, "missing.xlsx"), "--mint", " S", "--jsonl", os.path.join(tmp, "out.jsonl")])
         self.assertEqual(cm.exception.code, "gen_register: --mint ' S' must not carry surrounding whitespace")
+
 
 if __name__ == "__main__":
     unittest.main()

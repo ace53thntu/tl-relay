@@ -25,7 +25,7 @@ def mint_number(cell, n):
     value = cell[2:-2] if len(cell) >= 4 and cell.startswith("**") and cell.endswith("**") else cell
     if ch := bad_char(value):
         raise SystemExit(f"gen_register: No. at sheet row {n} holds U+{ord(ch):04X}")
-    if not (value.isascii() and value.isdigit() and int(value) >= 1):
+    if not (value.isascii() and value.isdigit() and value.lstrip("0") != ""):
         raise SystemExit(f"gen_register: No. {cell!r} at sheet row {n} is not a whole number of 1 or more")
     return value
 
@@ -58,7 +58,7 @@ def build(rows, cols, mint=None, id_col=None, story_col=None):
         if id_col and (ch := bad_char(key)):
             raise SystemExit(f"gen_register: story at sheet row {n} holds U+{ord(ch):04X}")
         if key not in blocks:
-            story = f"{mint}-{int(number):02d}" if mint else key
+            story = f"{mint}-{number.lstrip('0').zfill(2)}" if mint else key
             if mint:
                 if story in minted:
                     first_number, first_row = minted[story]
