@@ -25,3 +25,11 @@ def register_text(row, n, key):
     if not isinstance(value, str):
         raise ValueError(f"row {n}: '{key}' must be a string")
     return value
+
+
+def unique_ids(ids):
+    first = {}
+    for n, value in enumerate(ids, 1):
+        if value in first:
+            raise ValueError(f"row {n}: id '{value}' repeats row {first[value]}")
+        first[value] = n

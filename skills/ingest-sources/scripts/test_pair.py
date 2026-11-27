@@ -90,6 +90,47 @@ class MainReadErrorTest(unittest.TestCase):
         self.assertEqual(code, 0)
         self.assertEqual(len(tsv.splitlines()), 4)
 
+    def test_main_rejects_a_repeated_old_id(self):
+        old_rows = OLD[:2] + [dict(OLD[2], id="US-01-AC1a")]
+        code, err, old, _, tsv = run_main(old_rows, NEW)
+        self.assertEqual(code, 1)
+        self.assertEqual(err, f"pair: cannot read {old}: row 3: id 'US-01-AC1a' repeats row 1\n")
+        self.assertEqual(tsv, "")
+
+    def test_main_rejects_a_repeated_new_id(self):
+        new_rows = [NEW[0], dict(NEW[1], id="S-01-AC1"), NEW[2]]
+        code, err, _, new, tsv = run_main(OLD, new_rows)
+        self.assertEqual(code, 1)
+        self.assertEqual(err, f"pair: cannot read {new}: row 2: id 'S-01-AC1' repeats row 1\n")
+        self.assertEqual(tsv, "")
+
+    def test_main_reports_the_first_repeat_only(self):
+        new_rows = [NEW[0], dict(NEW[1], id="S-01-AC1"), dict(NEW[2], id="S-01-AC1")]
+        code, err, _, new, tsv = run_main(OLD, new_rows)
+        self.assertEqual(code, 1)
+        self.assertEqual(err, f"pair: cannot read {new}: row 2: id 'S-01-AC1' repeats row 1\n")
+        self.assertEqual(tsv, "")
+
+    def test_main_skips_blank_lines_when_numbering_a_repeat(self):
+        raw_new = json.dumps(NEW[0]) + "\n\n" + json.dumps(dict(NEW[1], id="S-01-AC1")) + "\n"
+        code, err, _, new, tsv = run_main(OLD, NEW, raw_new=raw_new)
+        self.assertEqual(code, 1)
+        self.assertEqual(err, f"pair: cannot read {new}: row 2: id 'S-01-AC1' repeats row 1\n")
+        self.assertEqual(tsv, "")
+
+    def test_main_reports_a_field_error_before_a_repeat(self):
+        new_rows = [NEW[0], dict(NEW[1], id="S-01-AC1"), dict(NEW[2], id=None)]
+        code, err, _, new, tsv = run_main(OLD, new_rows)
+        self.assertEqual(code, 1)
+        self.assertEqual(err, f"pair: cannot read {new}: row 3: 'id' must be a non-empty string\n")
+        self.assertEqual(tsv, "")
+
+    def test_main_accepts_an_id_in_both_registers(self):
+        new_rows = [dict(NEW[0], id="US-01-AC1a"), NEW[1], NEW[2]]
+        code, _, _, _, tsv = run_main(OLD, new_rows)
+        self.assertEqual(code, 0)
+        self.assertEqual(len(tsv.splitlines()), 4)
+
 
 if __name__ == "__main__":
     unittest.main()

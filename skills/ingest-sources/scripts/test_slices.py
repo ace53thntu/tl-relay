@@ -113,6 +113,38 @@ class SlicesMainTest(unittest.TestCase):
         self.assertEqual(len(err.splitlines()), 1)
         self.assertTrue(err.startswith(f"slices: cannot read {self.pairs}: "))
 
+    def test_main_rejects_a_repeated_new_id(self):
+        rows = [dict(n) for n in NEW]
+        rows[5]["id"] = rows[4]["id"]
+        self.write_jsonl(self.new, rows)
+        code, _, err = self.run_main()
+        self.assertEqual(code, 1)
+        self.assertEqual(err, f"slices: cannot read {self.new}: row 6: id 'S-02-AC2' repeats row 5\n")
+        self.assertFalse(os.path.exists(self.out))
+
+    def test_main_rejects_a_repeated_old_id(self):
+        rows = [dict(o) for o in OLD]
+        rows[2]["id"] = "US-01-AC9z"
+        self.write_jsonl(self.old, rows)
+        code, _, err = self.run_main()
+        self.assertEqual(code, 1)
+        self.assertEqual(err, f"slices: cannot read {self.old}: row 3: id 'US-01-AC9z' repeats row 2\n")
+        self.assertFalse(os.path.exists(self.out))
+
+    def test_main_reports_the_first_repeat_only(self):
+        rows = [dict(n) for n in NEW]
+        rows[4]["id"] = rows[5]["id"] = rows[3]["id"]
+        self.write_jsonl(self.new, rows)
+        code, _, err = self.run_main()
+        self.assertEqual(code, 1)
+        self.assertEqual(err, f"slices: cannot read {self.new}: row 5: id 'S-02-AC1' repeats row 4\n")
+        self.assertFalse(os.path.exists(self.out))
+
+    def test_main_accepts_an_id_in_both_registers(self):
+        self.write_jsonl(self.old, OLD + [{"id": "S-01-AC1", "story": "US-50"}])
+        code, _, _ = self.run_main()
+        self.assertEqual(code, 0)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -7,7 +7,7 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from registerio import load_jsonl, register_field  # noqa: E402
+from registerio import load_jsonl, register_field, unique_ids  # noqa: E402
 
 NAMES = "ABCDEFGH"
 
@@ -70,6 +70,7 @@ def main(argv=None):
             for n, row in enumerate(rows, 1):
                 register_field(row, n, "id")
                 register_field(row, n, "story")
+            unique_ids([row["id"] for row in rows])
             registers.append(rows)
     except (OSError, ValueError, csv.Error) as e:
         print(f"slices: cannot read {path}: {e}", file=sys.stderr)
