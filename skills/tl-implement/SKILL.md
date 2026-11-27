@@ -18,7 +18,7 @@ gate. The operator reads one document, the head, and approves or vetoes items.
 | implementer | Sonnet | One plan task per subagent, test first | Decides a key-class item |
 | code reviewer | Opus, high effort | `/code-review` per `review-change` | Fixes code |
 | `qa-conformance` | `opus` | One row per rule: code location, test name, verdict | Reviews style or finds general bugs |
-| `temporal-code-reviewer` | `opus` | Reviews Temporal code in the diff against the rule set | Runs when the diff has no Temporal code, or when `temporal:temporal-developer` is unavailable |
+| `temporal-code-reviewer` | `opus` | Reviews Temporal code in the diff against the rule set | Runs when the diff has no Temporal code, or when the session lists neither `temporal:temporal-developer` nor `temporal-developer` |
 
 ## Configuration
 
@@ -135,7 +135,8 @@ Invoke `run-plan` on the plan, in the run's worktree. Pass the ledger header not
 ### Step 5, conformance
 
 Dispatch `qa-conformance` with `Agent`, by the [agents rule](#running-without-agents-or-workflows). Dispatch `temporal-code-reviewer` too when the diff touches Temporal code
-and the external skill `temporal:temporal-developer` is available. When the diff touches Temporal code and the skill is not available, the run
+and the session's skill list shows `temporal:temporal-developer` or `temporal-developer`. Either name counts as the external Temporal skill.
+When the diff touches Temporal code and the list shows neither name, the run
 asks the operator before the gate whether to proceed without the Temporal review or stop. It asks once per run and records the answer in `run-state.md` field `temporal_review:`, one of `proceed` or `stop`; blank means not asked.
 Later step 5 rounds read `temporal_review:` and do not ask again. A `stop` answer ends the run with a `BLOCKED` head that names `temporal_review` as the reason. A diff with no Temporal code needs no note.
 Temporal code is a file that imports a Temporal SDK package, or a module a worker registers as activities.
@@ -240,7 +241,7 @@ The `agents` value sets how `qa-conformance` and `temporal-code-reviewer` are di
   >
   > Never edit code or pages.
 
-  `temporal-code-reviewer` runs on `opus` and binds `temporal:temporal-developer`. Its role text:
+  `temporal-code-reviewer` runs on `opus` and binds the Temporal skill by the name the session lists, `temporal:temporal-developer` or `temporal-developer`. Its role text:
 
   > You review the Temporal code in the diff against the rule set the prompt names, using the bound skill. The rules cover determinism, activity options, retries, idempotency and versioning. Read the changed files and the code they call. Read the base commit the prompt names with `git show <base>:<path>` or `git diff <base>..HEAD`. Never check out another commit.
   >
