@@ -213,6 +213,14 @@ class AssembleTest(unittest.TestCase):
         self.assertEqual(code, 1)
         return err
 
+    def test_pending_rejects_pairs_without_old_id(self):
+        with tempfile.TemporaryDirectory() as d:
+            make_ws(d)
+            with open(os.path.join(d, "pairs.tsv"), "w", encoding="utf-8") as fh:
+                fh.write("new_id\tkind\nS-01-AC1\t\n")
+            err = self.pending_err(d)
+            self.assertEqual(err, f"assemble: cannot read {os.path.join(d, 'pairs.tsv')}: missing column old_id\n")
+
     def test_pending_rejects_a_truncated_register_line(self):
         with tempfile.TemporaryDirectory() as d:
             make_ws(d)

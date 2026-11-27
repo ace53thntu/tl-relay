@@ -9,7 +9,7 @@ import re
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from registerio import load_jsonl, register_field  # noqa: E402
+from registerio import load_jsonl, register_field, require_columns  # noqa: E402
 
 VERDICTS = ("changed", "identical", "new", "reworded", "withdrawn")
 ROW = re.compile(r"^\|\s*`?([^|`]*?)`?\s*\|\s*`?([^|`]*?)`?\s*\|\s*(\w+)\s*\|")
@@ -141,7 +141,9 @@ def main(argv=None):
             want_old = {i for s in slicing for i in s["rule_on"]}
             failed = "pairs.tsv"
             with open(os.path.join(a.ws, failed), encoding="utf-8", newline="") as fh:
-                want_old |= {r["old_id"] for r in csv.DictReader(fh, delimiter="\t") if r.get("old_id")}
+                reader = csv.DictReader(fh, delimiter="\t")
+                require_columns(reader.fieldnames, ("old_id",))
+                want_old |= {r["old_id"] for r in reader if r.get("old_id")}
             errors = register_errors(a.ws, want_new, want_old, new_ids, old_ids)
     except (OSError, ValueError, KeyError, TypeError, csv.Error) as e:
         path = e.filename if isinstance(e, OSError) and e.filename else os.path.join(a.ws, failed)
