@@ -127,6 +127,11 @@ class SlicesMainTest(unittest.TestCase):
         code, _, err = self.run_main()
         self.assertEqual((code, err), (1, f"slices: cannot read {self.pairs}: line 3: has 1 fields, header has 3\n"))
 
+    def test_main_accepts_a_full_row_under_a_repeated_header_column(self):
+        self.write_pairs("new_id\told_id\tnew_id\nS-01-AC1\tUS-01-AC1a\tS-01-AC1\n")
+        code, _, err = self.run_main()
+        self.assertEqual((code, err), (0, ""))
+
     def test_main_rejects_a_missing_register(self):
         os.remove(self.new)
         code, _, err = self.run_main()

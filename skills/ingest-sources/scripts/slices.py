@@ -65,7 +65,7 @@ def main(argv=None):
             k = len(reader.fieldnames)
             numbered = []
             for row in reader:
-                m = sum(1 for key, v in row.items() if key is not None and v is not None) + len(row.get(None, ()))
+                m = k - sum(1 for f in reader.fieldnames if row[f] is None) + len(row.get(None, []))
                 if m != k:
                     raise ValueError(f"line {reader.line_num}: has {m} fields, header has {k}")
                 numbered.append((reader.line_num, row))
