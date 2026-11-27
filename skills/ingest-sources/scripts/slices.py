@@ -72,6 +72,16 @@ def main(argv=None):
                 register_field(row, n, "story")
             unique_ids([row["id"] for row in rows])
             registers.append(rows)
+        path = a.pairs
+        new_ids = {row["id"] for row in registers[0]}
+        for n, row in enumerate(pairs, 1):
+            if row.get("old_id") and row.get("new_id") not in new_ids:
+                raise ValueError(f"row {n}: new_id '{row.get('new_id')}' is not in new.jsonl")
+        path = a.unclaimed
+        old_ids = {row["id"] for row in registers[1]}
+        for n, oid in enumerate(unclaimed, 1):
+            if oid not in old_ids:
+                raise ValueError(f"row {n}: id '{oid}' is not in old.jsonl")
     except (OSError, ValueError, csv.Error) as e:
         print(f"slices: cannot read {path}: {e}", file=sys.stderr)
         return 1

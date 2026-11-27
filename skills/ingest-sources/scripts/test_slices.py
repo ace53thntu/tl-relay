@@ -171,6 +171,26 @@ class SlicesMainTest(unittest.TestCase):
         code, _, _ = self.run_main()
         self.assertEqual(code, 0)
 
+    def test_main_rejects_a_paired_new_id_missing_from_new_jsonl(self):
+        self.write_jsonl(self.new, [n for n in NEW if n["id"] != "S-09-AC1"])
+        code, _, err = self.run_main()
+        self.assertEqual(code, 1)
+        self.assertEqual(err, f"slices: cannot read {self.pairs}: row 25: new_id 'S-09-AC1' is not in new.jsonl\n")
+        self.assertFalse(os.path.exists(self.out))
+
+    def test_main_rejects_an_unclaimed_id_missing_from_old_jsonl(self):
+        with open(self.unc, "w", encoding="utf-8") as fh:
+            fh.write("US-01-AC9z\n\nUS-55-AC1a\n")
+        code, _, err = self.run_main()
+        self.assertEqual(code, 1)
+        self.assertEqual(err, f"slices: cannot read {self.unc}: row 2: id 'US-55-AC1a' is not in old.jsonl\n")
+        self.assertFalse(os.path.exists(self.out))
+
+    def test_main_ignores_an_unpaired_new_id_missing_from_new_jsonl(self):
+        self.write_jsonl(self.new, [n for n in NEW if n["id"] != "S-10-AC3"])
+        code, _, _ = self.run_main()
+        self.assertEqual(code, 0)
+
 
 if __name__ == "__main__":
     unittest.main()
