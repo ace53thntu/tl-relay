@@ -1,6 +1,8 @@
 import os
 import sys
+import tempfile
 import unittest
+from unittest import mock
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import gen_register as g
@@ -50,6 +52,59 @@ class IdColumnTest(unittest.TestCase):
         self.assertEqual([c["id"] for c in criteria], ["US-01-AC1a", "US-01-AC2a"])
         self.assertEqual(skipped, [4])
         self.assertIn("This story carries no acceptance criteria in this revision.", g.render_page(blocks))
+
+
+class RepeatTest(unittest.TestCase):
+    H5 = MINT_ROWS[0]
+    DUP_STORY = [H5, ["1", "T1", "Low", "a", "r"], ["2", "T2", "Low", "b", "r"], ["01", "T1b", "Low", "c", "r"]]
+    DUP_ID = ID_ROWS + [["4", "US-09", "C", "Low", "US-01-AC1a", "x3", "y3"]]
+    STORY_ERR = "gen_register: No. '01' at sheet row 4 and '1' at sheet row 2 both mint story S-01"
+    ID_ERR = "gen_register: id 'US-01-AC1a' at sheet row 5 repeats sheet row 2"
+
+    def assert_rejects(self, text, rows, **kw):
+        with self.assertRaises(SystemExit) as cm:
+            g.build(rows, COLS, **kw)
+        self.assertEqual(cm.exception.code, text)
+
+    def test_mint_rejects_two_numbers_that_mint_one_story(self):
+        self.assert_rejects(self.STORY_ERR, self.DUP_STORY, mint="S")
+
+    def test_mint_keeps_one_story_across_non_adjacent_rows(self):
+        rows = [self.H5, ["1", "T1", "Low", "a", "r"], ["2", "T2", "Low", "b", "r"], ["1", "T1", "Low", "c", "r"]]
+        _, criteria, _ = g.build(rows, COLS, mint="S")
+        self.assertEqual([c["id"] for c in criteria], ["S-01-AC1", "S-02-AC1", "S-01-AC2"])
+
+    def test_id_column_rejects_a_repeated_id(self):
+        self.assert_rejects(self.ID_ERR, self.DUP_ID, id_col="Criterion", story_col="Old ID")
+
+    def test_id_column_reports_the_first_repeat_only(self):
+        rows = ID_ROWS + [["4", "US-01", "A", "Low", "US-01-AC2a", "x3", "y3"],
+                          ["5", "US-01", "A", "Low", "US-01-AC1a", "x4", "y4"]]
+        self.assert_rejects("gen_register: id 'US-01-AC2a' at sheet row 5 repeats sheet row 3", rows,
+                            id_col="Criterion", story_col="Old ID")
+
+    def test_id_column_reports_the_second_of_three(self):
+        rows = ID_ROWS + [["4", "US-01", "A", "Low", "US-01-AC1a", "x3", "y3"],
+                          ["5", "US-01", "A", "Low", "US-01-AC1a", "x4", "y4"]]
+        self.assert_rejects(self.ID_ERR, rows, id_col="Criterion", story_col="Old ID")
+
+    def assert_main_writes_nothing(self, text, rows, mode):
+        with tempfile.TemporaryDirectory() as tmp:
+            jsonl, page = os.path.join(tmp, "r.jsonl"), os.path.join(tmp, "r.md")
+            argv = ["x.xlsx", *mode, "--jsonl", jsonl, "--page", page, "--page-title", "T",
+                    "--page-description", "D", "--source-rel", "s.xlsx", "--generated-at", "2026-11-27"]
+            with mock.patch.object(g, "read_sheet", return_value=("Sheet1", rows)):
+                with self.assertRaises(SystemExit) as cm:
+                    g.main(argv)
+            self.assertEqual(cm.exception.code, text)
+            self.assertFalse(os.path.exists(jsonl))
+            self.assertFalse(os.path.exists(page))
+
+    def test_main_writes_nothing_on_a_repeated_story(self):
+        self.assert_main_writes_nothing(self.STORY_ERR, self.DUP_STORY, ["--mint", "S"])
+
+    def test_main_writes_nothing_on_a_repeated_id(self):
+        self.assert_main_writes_nothing(self.ID_ERR, self.DUP_ID, ["--id-col", "Criterion", "--story-col", "Old ID"])
 
 
 @unittest.skipUnless(os.environ.get("INGEST_LIVE_DIR"), "set INGEST_LIVE_DIR to read the story workbooks")
