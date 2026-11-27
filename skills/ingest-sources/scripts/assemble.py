@@ -140,10 +140,14 @@ def main(argv=None):
             want_new = {i for s in slicing for i in s["new_ids"]}
             want_old = {i for s in slicing for i in s["rule_on"]}
             failed = "pairs.tsv"
-            with open(os.path.join(a.ws, failed), encoding="utf-8", newline="") as fh:
-                reader = csv.DictReader(fh, delimiter="\t")
+            with open(os.path.join(a.ws, failed), encoding="utf-8-sig", newline="") as fh:
+                reader = csv.DictReader(fh, delimiter="\t", quoting=csv.QUOTE_NONE)
                 require_columns(reader.fieldnames, ("old_id",))
-                want_old |= {r["old_id"] for r in reader if r.get("old_id")}
+                rows = list(reader)
+            for n, r in enumerate(rows, 1):
+                if r["old_id"] is None:
+                    raise ValueError(f"row {n}: missing field old_id")
+            want_old |= {r["old_id"] for r in rows if r["old_id"]}
             errors = register_errors(a.ws, want_new, want_old, new_ids, old_ids)
     except (OSError, ValueError, KeyError, TypeError, csv.Error) as e:
         path = e.filename if isinstance(e, OSError) and e.filename else os.path.join(a.ws, failed)

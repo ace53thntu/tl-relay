@@ -221,6 +221,38 @@ class AssembleTest(unittest.TestCase):
             err = self.pending_err(d)
             self.assertEqual(err, f"assemble: cannot read {os.path.join(d, 'pairs.tsv')}: missing column old_id\n")
 
+    def test_pending_rejects_an_empty_pairs_tsv(self):
+        with tempfile.TemporaryDirectory() as d:
+            make_ws(d)
+            open(os.path.join(d, "pairs.tsv"), "w", encoding="utf-8").close()
+            err = self.pending_err(d)
+            self.assertEqual(err, f"assemble: cannot read {os.path.join(d, 'pairs.tsv')}: missing column old_id\n")
+
+    def test_pending_accepts_a_bom_prefixed_pairs_tsv(self):
+        with tempfile.TemporaryDirectory() as d:
+            make_ws(d)
+            with open(os.path.join(d, "pairs.tsv"), "w", encoding="utf-8-sig") as fh:
+                fh.write("old_id\tnew_id\tkind\trule_changed\tratio\n")
+                fh.write("US-01-AC1a\tS-01-AC1\t\t\t\nUS-01-AC2a\tS-01-AC2\t\t\t\n\tS-02-AC1\t\t\t\n")
+            code, _, err = run_main(["--ws", d, "--pending"])
+            self.assertEqual((code, err), (0, ""))
+
+    def test_pending_reads_a_leading_quote_literally(self):
+        with tempfile.TemporaryDirectory() as d:
+            make_ws(d)
+            with open(os.path.join(d, "pairs.tsv"), "w", encoding="utf-8") as fh:
+                fh.write('new_id\told_id\nS-01-AC1\t"US-01-AC1a\nS-01-AC2\tNOPE\n')
+            code, _, err = run_main(["--ws", d, "--pending"])
+            self.assertIn("id NOPE missing\n", err)
+
+    def test_pending_rejects_a_short_pairs_row(self):
+        with tempfile.TemporaryDirectory() as d:
+            make_ws(d)
+            with open(os.path.join(d, "pairs.tsv"), "w", encoding="utf-8") as fh:
+                fh.write("new_id\told_id\tkind\nS-01-AC1\tUS-01-AC1a\t\nS-01-AC2\n")
+            err = self.pending_err(d)
+            self.assertEqual(err, f"assemble: cannot read {os.path.join(d, 'pairs.tsv')}: row 2: missing field old_id\n")
+
     def test_pending_rejects_a_truncated_register_line(self):
         with tempfile.TemporaryDirectory() as d:
             make_ws(d)
