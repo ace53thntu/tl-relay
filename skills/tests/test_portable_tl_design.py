@@ -184,9 +184,10 @@ class PortableTlDesignTest(unittest.TestCase):
         f3 = "When `ingest_sha256` holds the only recorded source of its kind, a resume with `G-ingest` unsigned repeats that dispatch, with the snapshot skipped."
         f4 = "With `G-ingest` signed, that resume finishes the gate rules, then clears `ingest_sha256`."
         f5 = "Another file waits while `ingest_sha256` holds the only recorded source of its kind."
-        f6 = "A new revision, or a source with no baseline of its kind, enters step 1 fresh when `ingest_sha256` does not hold its file `sha256`."
+        f6 = "A new revision enters step 1 fresh when `ingest_sha256` does not hold its file `sha256`."
+        f8 = "A source with no baseline of its kind enters step 1 fresh when `ingest_sha256` is empty, and otherwise waits."
         f7 = "Then record the file's `sha256` as `ingest_sha256` in `workflow-state.md`."
-        block = " ".join((f1, l107, f2, f3, f4, f5, f6))
+        block = " ".join((f1, l107, f2, f3, f4, f5, f6, f8))
         self.assertIn(block, text)
         self.assertIn(f7, text)
         self.assertLess(text.index("## Start and resume"), text.index(block))
