@@ -188,7 +188,7 @@ class PortableTlDesignTest(unittest.TestCase):
         t1 = 'Before step 1 compares a new file with `ingest_sha256`, run `ingest-sources/scripts/snapshot.py --check --knowledge-root "$DROOT" --handle <handle>` on it.'
         t1b = "Pass the kind, label and date its snapshot would take. A nonzero exit goes to the operator as a question."
         t2 = "While `G-ingest` is unsigned and `duplicate_of` names the source in `ingest_sha256`, the session repeats that source's dispatch, with the snapshot skipped."
-        t2b = "Otherwise, tell the operator the file is not a new revision, change no state, and resume from the state as it is."
+        t2b = "Otherwise, when `duplicate_of` is not null, tell the operator the file is not a new revision, change no state, and resume from the state as it is."
         f5 = "Another file, a new revision included, waits while `ingest_sha256` holds the only recorded source of its kind."
         f6 = "A new revision enters step 1 fresh when `ingest_sha256` does not hold its file `sha256`."
         f8 = "A source with no baseline of its kind enters step 1 fresh when `ingest_sha256` is empty."
