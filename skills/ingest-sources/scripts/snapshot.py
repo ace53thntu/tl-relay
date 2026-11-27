@@ -14,7 +14,7 @@ sys.path.insert(0, HERE)
 import digest as dg  # noqa: E402
 
 
-def snapshot(knowledge_root, handle, kind, src, received, state):
+def snapshot(knowledge_root, handle, kind, src, received, state, check=False):
     digest = dg.file_sha256(src)
     content = dg.content_sha256(src)
     for s in state["sources"]:
@@ -28,7 +28,9 @@ def snapshot(knowledge_root, handle, kind, src, received, state):
     if os.path.exists(dest):
         if dg.file_sha256(dest) != digest:
             raise st.StateError(f"{rel} already exists with different content")
-    else:
+    if check:
+        return {"duplicate_of": None, "sha256": digest, "content_sha256": content, "path": None}
+    if not os.path.exists(dest):
         os.makedirs(os.path.dirname(dest), exist_ok=True)
         shutil.copy2(src, dest)
     return {"duplicate_of": None, "sha256": digest, "content_sha256": content, "path": rel}
@@ -41,6 +43,7 @@ def main(argv=None):
     p.add_argument("--kind", required=True, choices=sorted(st.KINDS))
     p.add_argument("--label", required=True)
     p.add_argument("--received", required=True)
+    p.add_argument("--check", action="store_true")
     p.add_argument("source")
     a = p.parse_args(argv)
     try:
@@ -50,9 +53,9 @@ def main(argv=None):
             raise st.StateError(f"label must be one line with no DEL, C1 control other than U+0085, U+FFFE or U+FFFF, got {a.label!r}")
         path = st.index_path(a.knowledge_root, a.handle)
         state = st.load(path)
-        out = snapshot(a.knowledge_root, a.handle, a.kind, a.source, a.received, state)
+        out = snapshot(a.knowledge_root, a.handle, a.kind, a.source, a.received, state, check=a.check)
         out["baseline"] = None
-        if out["duplicate_of"] is None:
+        if out["duplicate_of"] is None and not a.check:
             out["baseline"] = st.add_source(state, a.kind, a.label, a.received, out["sha256"],
                                             out["path"], out["content_sha256"])
             st.save(path, state)

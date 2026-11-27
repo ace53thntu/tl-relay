@@ -52,6 +52,7 @@ python3 "<skill dir>/scripts/snapshot.py" --knowledge-root "$K" --handle "$H" --
 ```
 
 If `duplicate_of` is not null, report that the file is not a new revision and stop.
+With `--check`, the same command prints the same JSON with `path` and `baseline` null, and copies and records nothing.
 
 ## 2. Convert
 

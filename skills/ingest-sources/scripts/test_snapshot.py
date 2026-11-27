@@ -26,14 +26,56 @@ class SnapshotTest(unittest.TestCase):
     def tearDown(self):
         self.tmp.cleanup()
 
-    def run_cli(self, path, received="2026-08-31", label="v1"):
+    def run_cli(self, path, received="2026-08-31", label="v1", extra=()):
         out = io.StringIO()
         err = io.StringIO()
         with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
             code = sn.main(["--knowledge-root", self.root, "--handle", "demo", "--kind", "stories",
-                            "--label", label, "--received", received, path])
+                            "--label", label, "--received", received, *extra, path])
         self.last_stderr = err.getvalue()
         return code, (json.loads(out.getvalue()) if code == 0 else None)
+
+    def test_check_on_a_new_file_copies_and_records_nothing(self):
+        code, out = self.run_cli(self.src, extra=("--check",))
+        self.assertEqual(code, 0)
+        self.assertEqual(out, {"duplicate_of": None, "sha256": hashlib.sha256(b"first").hexdigest(),
+                               "content_sha256": hashlib.sha256(b"first").hexdigest(),
+                               "path": None, "baseline": None})
+        self.assertEqual(st.load(st.index_path(self.root, "demo"))["sources"], [])
+        self.assertFalse(os.path.exists(os.path.join(self.root, "raw")))
+
+    def test_check_reports_a_duplicate_without_recording(self):
+        self.run_cli(self.src)
+        other = os.path.join(self.tmp.name, "renamed.xlsx")
+        with open(other, "wb") as fh:
+            fh.write(b"first")
+        code, out = self.run_cli(other, received="2026-09-12", extra=("--check",))
+        self.assertEqual(code, 0)
+        self.assertEqual(out["duplicate_of"], "raw/projects/demo/2026-08-31/stories/stories v1.xlsx")
+        self.assertIsNone(out["path"])
+        self.assertIsNone(out["baseline"])
+        self.assertEqual(len(st.load(st.index_path(self.root, "demo"))["sources"]), 1)
+        self.assertFalse(os.path.exists(os.path.join(self.root, "raw/projects/demo/2026-09-12")))
+
+    def test_check_still_validates_its_arguments(self):
+        code, _ = self.run_cli(self.src, received="2026-8-31", extra=("--check",))
+        self.assertEqual(code, 1)
+
+    def test_check_refuses_a_name_a_real_run_refuses(self):
+        bad = os.path.join(self.tmp.name, "stories\nv1.xlsx")
+        with open(bad, "wb") as fh:
+            fh.write(b"first")
+        code, _ = self.run_cli(bad, extra=("--check",))
+        self.assertEqual(code, 1)
+        self.assertEqual(st.load(st.index_path(self.root, "demo"))["sources"], [])
+
+    def test_check_refuses_a_different_file_at_the_archive_path(self):
+        dest = os.path.join(self.root, "raw/projects/demo/2026-08-31/stories/stories v1.xlsx")
+        os.makedirs(os.path.dirname(dest))
+        with open(dest, "wb") as fh:
+            fh.write(b"other")
+        code, _ = self.run_cli(self.src, extra=("--check",))
+        self.assertEqual(code, 1)
 
     def test_copies_by_date_and_kind_and_records_the_baseline(self):
         code, out = self.run_cli(self.src)
