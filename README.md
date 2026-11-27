@@ -124,7 +124,7 @@ Three steps call a skill that tl-relay does not ship. Each step runs when the se
 |---|---|---|---|
 | `unslop` | Any skill with that name | The prose pass in `technical-writing`, `write-hla`, `write-lld` and `write-contract` | The step reports `unslop: not installed` and the page can still be done |
 | `temporal-workflow-design-critic` | [temporalio/skill-temporal-design](https://github.com/temporalio/skill-temporal-design) | The Temporal persona in `tl-design` step 9 | The review skips that persona and notes the skip |
-| `temporal:temporal-developer` | [temporalio/claude-temporal-plugin](https://github.com/temporalio/claude-temporal-plugin) | The Temporal code review in `tl-implement` step 5 | The run asks you once whether to proceed without that review |
+| `temporal:temporal-developer` or `temporal-developer` | [temporalio/claude-temporal-plugin](https://github.com/temporalio/claude-temporal-plugin) | The Temporal code review in `tl-implement` step 5 | The run asks you once whether to proceed without that review |
 
 Install the two Temporal skills in Claude Code when your designs run Temporal workflows. Temporal ships `temporal-developer` in a Claude Code plugin, which the session lists as `temporal:temporal-developer`:
 
@@ -138,6 +138,15 @@ Install the design critic for your user account:
 ```sh
 npx skills add temporalio/skill-temporal-design -g -a claude-code
 ```
+
+In Cursor or Codex, install both skills with `npx skills`. There `temporal-developer` has no `temporal:` prefix, and `tl-implement` counts either name:
+
+```sh
+npx skills add temporalio/claude-temporal-plugin --skill temporal-developer -a cursor
+npx skills add temporalio/skill-temporal-design -a cursor
+```
+
+Replace `-a cursor` with `-a codex` for Codex.
 
 ### First session
 
