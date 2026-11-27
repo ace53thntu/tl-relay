@@ -186,9 +186,11 @@ class PortableTlDesignTest(unittest.TestCase):
         f5 = "Another file, a new revision included, waits while `ingest_sha256` holds the only recorded source of its kind."
         f6 = "A new revision enters step 1 fresh when `ingest_sha256` does not hold its file `sha256`."
         f8 = "A source with no baseline of its kind enters step 1 fresh when `ingest_sha256` is empty."
-        f9 = "When `ingest_sha256` holds its file `sha256`, the session repeats its dispatch. Otherwise the file waits."
+        f9 = "When `ingest_sha256` holds its file `sha256`, the session repeats its dispatch."
+        f10 = "Otherwise the file waits while `ingest_ws` is set or `ingest_sha256` names a recorded source, and enters step 1 fresh when neither holds."
+        f11 = "When the operator rejects a first snapshot at `G-ingest`, clear `ingest_sha256`."
         f7 = "Then record the file's `sha256` as `ingest_sha256` in `workflow-state.md`."
-        block = " ".join((f1, l107, f2, f3, f4, f5, f6, f8, f9))
+        block = " ".join((f1, l107, f2, f11, f3, f4, f5, f6, f8, f9, f10))
         self.assertIn(block, text)
         self.assertIn(f7, text)
         self.assertLess(text.index("## Start and resume"), text.index(block))
