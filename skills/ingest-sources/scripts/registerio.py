@@ -17,6 +17,8 @@ def register_field(row, n, key):
     value = row.get(key) if isinstance(row, dict) else None
     if not isinstance(value, str) or value == "":
         raise ValueError(f"row {n}: '{key}' must be a non-empty string")
+    if value != value.strip():
+        raise ValueError(f"row {n}: '{key}' must not carry surrounding whitespace")
     return value
 
 

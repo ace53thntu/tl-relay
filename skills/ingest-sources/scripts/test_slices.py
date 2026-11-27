@@ -9,6 +9,8 @@ import unittest
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import slices as sl
 
+WS = "must not carry surrounding whitespace"
+
 NEW = [{"id": f"S-{s:02d}-AC{i}", "story": f"S-{s:02d}"} for s in range(1, 11) for i in range(1, 4)]
 PAIRED = {"S-01-AC1": "US-01-AC1a", "S-09-AC1": "US-09-AC1a"}
 PAIRS = [{"new_id": n["id"], "old_id": PAIRED.get(n["id"], "")} for n in NEW]
@@ -97,6 +99,30 @@ class SlicesMainTest(unittest.TestCase):
         code, _, err = self.run_main()
         self.assertEqual(code, 1)
         self.assertEqual(err, f"slices: cannot read {self.new}: row 1: 'id' must be a non-empty string\n")
+
+    def test_main_rejects_a_trailing_space_in_a_new_id(self):
+        rows = [dict(n) for n in NEW]
+        rows[0]["id"] = "S-01-AC1 "
+        self.write_jsonl(self.new, rows)
+        code, _, err = self.run_main()
+        self.assertEqual(code, 1)
+        self.assertEqual(err, f"slices: cannot read {self.new}: row 1: 'id' {WS}\n")
+
+    def test_main_rejects_a_leading_space_in_an_old_id(self):
+        rows = [dict(o) for o in OLD]
+        rows[1]["id"] = " US-01-AC9z"
+        self.write_jsonl(self.old, rows)
+        code, _, err = self.run_main()
+        self.assertEqual(code, 1)
+        self.assertEqual(err, f"slices: cannot read {self.old}: row 2: 'id' {WS}\n")
+
+    def test_main_rejects_a_leading_space_in_an_old_story(self):
+        rows = [dict(o) for o in OLD]
+        rows[2]["story"] = " US-09"
+        self.write_jsonl(self.old, rows)
+        code, _, err = self.run_main()
+        self.assertEqual(code, 1)
+        self.assertEqual(err, f"slices: cannot read {self.old}: row 3: 'story' {WS}\n")
 
     def test_main_rejects_a_missing_unclaimed_file(self):
         os.remove(self.unc)
