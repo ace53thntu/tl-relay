@@ -81,6 +81,15 @@ class PortableTlImplementTest(unittest.TestCase):
         for needle in ("asks the operator before the gate whether to proceed without the Temporal review or stop",):
             self.assertIn(needle, self.text)
 
+    def test_temporal_skill_counts_with_or_without_prefix(self):
+        flat = " ".join(self.text.split())
+        self.assertIn("shows `temporal:temporal-developer` or `temporal-developer`. "
+                      "Either name counts as the external Temporal skill.", flat)
+        self.assertIn("the list shows neither name", flat)
+        self.assertIn("by the name the session lists, `temporal:temporal-developer` or `temporal-developer`", flat)
+        self.assertNotIn("`temporal:temporal-developer` is unavailable", flat)
+        self.assertNotIn("the external skill `temporal:temporal-developer` is available", flat)
+
     def test_skip_notes_in_run_state(self):
         self.assertIn("note that in `run-state.md`", self.text)
         self.assertIn("reads them from the `run-state.md` fields", self.text)
