@@ -185,7 +185,7 @@ class PortableTlDesignTest(unittest.TestCase):
         f2 = "After the gate rules for a first snapshot, clear `ingest_sha256`."
         f3 = "When `ingest_sha256` holds the only recorded source of its kind, a resume with `G-ingest` unsigned repeats that dispatch, with the snapshot skipped."
         f4 = "A resume that finds `G-ingest` signed and `ingest_sha256` set, with no `ingest_ws`, finishes the gate rules, then clears `ingest_sha256` and every step 1 entry in `workflow_runs`."
-        t1 = 'Before step 1 compares a new file with `ingest_sha256`, run `ingest-sources/scripts/snapshot.py --check --knowledge-root "$DROOT" --handle <handle>` on it.'
+        t1 = 'Before step 1 compares a new file with `ingest_sha256`, run `python3 <skill dir>/../ingest-sources/scripts/snapshot.py --check --knowledge-root "$DROOT" --handle <handle>` on it.'
         t1b = "Pass the kind, label and date its snapshot would take. A nonzero exit goes to the operator as a question."
         t2 = "While `G-ingest` is unsigned and `duplicate_of` names the source in `ingest_sha256`, the session repeats that source's dispatch, with the snapshot skipped."
         t2b = "Otherwise, when `duplicate_of` is not null, tell the operator the file is not a new revision. In that case, change no state and resume from the state as it is."
@@ -198,6 +198,7 @@ class PortableTlDesignTest(unittest.TestCase):
         f7 = "Then record the file's `sha256` as `ingest_sha256` in `workflow-state.md`."
         block = " ".join((f1, l107, f2, f11, f3, f4, f5, t1, t1b, t2, t2b, f6, f8, f9, f10))
         self.assertIn(block, text)
+        self.assertNotIn("Change no state, and resume", text)
         self.assertIn(f7, text)
         self.assertLess(text.index("## Start and resume"), text.index(block))
         self.assertLess(text.index(block), text.index(f7))

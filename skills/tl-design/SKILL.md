@@ -110,7 +110,7 @@ When the operator rejects a first snapshot at `G-ingest`, clear `ingest_sha256`.
 When `ingest_sha256` holds the only recorded source of its kind, a resume with `G-ingest` unsigned repeats that dispatch, with the snapshot skipped.
 A resume that finds `G-ingest` signed and `ingest_sha256` set, with no `ingest_ws`, finishes the gate rules, then clears `ingest_sha256` and every step 1 entry in `workflow_runs`.
 Another file, a new revision included, waits while `ingest_sha256` holds the only recorded source of its kind.
-Before step 1 compares a new file with `ingest_sha256`, run `ingest-sources/scripts/snapshot.py --check --knowledge-root "$DROOT" --handle <handle>` on it.
+Before step 1 compares a new file with `ingest_sha256`, run `python3 <skill dir>/../ingest-sources/scripts/snapshot.py --check --knowledge-root "$DROOT" --handle <handle>` on it.
 Pass the kind, label and date its snapshot would take. A nonzero exit goes to the operator as a question.
 While `G-ingest` is unsigned and `duplicate_of` names the source in `ingest_sha256`, the session repeats that source's dispatch, with the snapshot skipped.
 Otherwise, when `duplicate_of` is not null, tell the operator the file is not a new revision. In that case, change no state and resume from the state as it is.
