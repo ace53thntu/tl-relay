@@ -108,8 +108,12 @@ A source with no baseline of its kind takes one `design-writer` dispatch for `in
 After the gate rules for a first snapshot, clear `ingest_sha256`.
 When the operator rejects a first snapshot at `G-ingest`, clear `ingest_sha256`.
 When `ingest_sha256` holds the only recorded source of its kind, a resume with `G-ingest` unsigned repeats that dispatch, with the snapshot skipped.
-With `G-ingest` signed, that resume finishes the gate rules, then clears `ingest_sha256`.
+A resume that finds `G-ingest` signed and `ingest_sha256` set, with no `ingest_ws`, finishes the gate rules, then clears `ingest_sha256` and every step 1 entry in `workflow_runs`.
 Another file, a new revision included, waits while `ingest_sha256` holds the only recorded source of its kind.
+Before step 1 compares a new file with `ingest_sha256`, run `ingest-sources/scripts/snapshot.py --check --knowledge-root "$DROOT" --handle <handle>` on it.
+Pass the kind, label and date its snapshot would take. A nonzero exit goes to the operator as a question.
+While `G-ingest` is unsigned and `duplicate_of` names the source in `ingest_sha256`, the session repeats that source's dispatch, with the snapshot skipped.
+Otherwise, tell the operator the file is not a new revision, change no state, and resume from the state as it is.
 A new revision enters step 1 fresh when `ingest_sha256` does not hold its file `sha256`.
 A source with no baseline of its kind enters step 1 fresh when `ingest_sha256` is empty.
 When `ingest_sha256` holds its file `sha256`, the session repeats its dispatch.
@@ -140,7 +144,8 @@ A new revision of a `stories` source runs in four parts:
 4. Present `G-ingest`. After it, follow the gate rules, with `ingest_sha256` as the `set-baseline` digest.
    Then rerun the `gen_register.py` command in `$WS/writer.json` with the `--page` flags of `ingest-sources` step 3.
    A nonzero exit from that rerun goes to the operator as a question.
-   Nothing is cleared until the operator answers.
+   After each answer, rerun that `gen_register.py` command.
+   Nothing is cleared until a rerun exits 0.
    Last, clear `ingest_ws`, `ingest_sha256` and every step 1 entry in `workflow_runs`.
 
 A resume at step 1 reads `ingest_ws`. It resumes an unfinished recorded drift run with the args in `$WS/drift-args.json`.
