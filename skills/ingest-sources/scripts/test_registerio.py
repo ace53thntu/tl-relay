@@ -12,6 +12,10 @@ class BadCharTest(unittest.TestCase):
             self.assertEqual(bad_char("S-01" + ch + "AC1"), ch, repr(ch))
         self.assertEqual(bad_char("\ufeffS-01-AC1"), "\ufeff")
 
+    def test_bad_char_finds_surrogates_lookalike_spaces_and_markup(self):
+        for ch in ("\ud800", "\udcff", "\u00a0", "\u3000", "\u2009", "|", '"', "`"):
+            self.assertEqual(bad_char("S-01" + ch + "AC1"), ch, repr(ch))
+
     def test_bad_char_passes_letters_from_any_script(self):
         for value in ("S-01-AC1", "US-01 AC1", "Tiếng-Việt-01", "ภาษาไทย-01", "US-01-AC1*"):
             self.assertIsNone(bad_char(value), value)

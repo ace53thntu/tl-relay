@@ -104,6 +104,12 @@ class MainReadErrorTest(unittest.TestCase):
         self.assertEqual(code, 1)
         self.assertEqual(err, f"pair: cannot read {new}: row 2: 'id' holds U+000A\n")
 
+    def test_main_rejects_an_nbsp_inside_a_new_id(self):
+        new_rows = [NEW[0], dict(NEW[1], id="S-02\u00a0AC1"), NEW[2]]
+        code, err, _, new, _ = run_main(OLD, new_rows)
+        self.assertEqual(code, 1)
+        self.assertEqual(err, f"pair: cannot read {new}: row 2: 'id' holds U+00A0\n")
+
     def test_main_accepts_a_space_inside_an_id(self):
         new_rows = [NEW[0], dict(NEW[1], id="S 02-AC1"), NEW[2]]
         code, _, _, _, _ = run_main(OLD, new_rows)

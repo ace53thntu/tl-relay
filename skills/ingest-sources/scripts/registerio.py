@@ -16,7 +16,8 @@ def write_jsonl(path, items):
 
 def bad_char(value):
     for ch in value:
-        if unicodedata.category(ch) in ("Cc", "Cf", "Zl", "Zp"):
+        category = unicodedata.category(ch)
+        if category in ("Cc", "Cf", "Cs", "Zl", "Zp") or (category == "Zs" and ch != " ") or ch in '|"`':
             return ch
     return None
 
