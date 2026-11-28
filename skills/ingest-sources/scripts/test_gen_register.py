@@ -86,6 +86,12 @@ class IdColumnTest(unittest.TestCase):
         self.assertEqual([b["story"] for b in blocks], ["US-01", "US-05"])
         self.assertEqual(skipped, [4, 5, 6, 7])
 
+    def test_skips_star_and_whitespace_cells_as_blank(self):
+        _, criteria, _ = self.build(["4", "US-01", "A", "Low", "* *", "x3", "y3"],
+                                    ["5", "US-01", "A", "Low", "* *", "x4", "y4"],
+                                    ["6", "US-01", "A", "Low", "*\t*", "x5", "y5"])
+        self.assertEqual([c["id"] for c in criteria], ["US-01-AC1a", "US-01-AC2a"])
+
 
 class RepeatTest(unittest.TestCase):
     H5 = MINT_ROWS[0]

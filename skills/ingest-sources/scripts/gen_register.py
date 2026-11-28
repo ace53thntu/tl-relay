@@ -27,7 +27,7 @@ def unbold(cell):
 
 def id_cell(cell):
     value = unbold(cell.strip()).strip()
-    return value if value.strip("*") else ""
+    return value if value.replace("*", "").strip() else ""
 
 
 def mint_number(cell, n):

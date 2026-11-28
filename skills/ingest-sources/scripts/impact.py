@@ -26,7 +26,7 @@ def sections(text):
 
 
 def pattern(ids):
-    alternatives = "|".join(re.escape(i) for i in sorted(ids, key=len, reverse=True))
+    alternatives = "|".join(re.escape(i) + (r"(?!\*)" if i.endswith("*") else "") for i in sorted(ids, key=len, reverse=True))
     return re.compile(r"(?<![\w-])(" + alternatives + r")(?![\w-])")
 
 
