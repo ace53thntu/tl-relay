@@ -53,6 +53,48 @@ class IdColumnTest(unittest.TestCase):
         self.assertEqual(skipped, [4])
         self.assertIn("This story carries no acceptance criteria in this revision.", g.render_page(blocks))
 
+    def build(self, *extra):
+        return g.build(ID_ROWS + list(extra), COLS, id_col="Criterion", story_col="Old ID")
+
+    def test_keeps_a_trailing_star_in_a_criterion(self):
+        _, criteria, _ = self.build(["4", "US-01", "A", "Low", "US-01-AC1*", "x3", "y3"])
+        self.assertEqual(criteria[-1]["id"], "US-01-AC1*")
+
+    def test_keeps_a_star_inside_a_story(self):
+        blocks, criteria, _ = self.build(["4", "US*01", "C", "Low", "US-09-AC1", "x3", "y3"])
+        self.assertEqual([b["story"] for b in blocks], ["US-01", "US-05", "US*01"])
+        self.assertEqual(criteria[-1]["story"], "US*01")
+
+    def test_keeps_bold_marks_that_do_not_wrap_the_whole_cell(self):
+        _, criteria, _ = self.build(["4", "US-01", "A", "Low", "**US-01**-AC1", "x3", "y3"])
+        self.assertEqual(criteria[-1]["id"], "**US-01**-AC1")
+
+    def test_a_starred_and_a_plain_id_are_two_ids(self):
+        _, criteria, _ = self.build(["4", "US-01", "A", "Low", "US-01-AC1", "x3", "y3"],
+                                    ["5", "US-01", "A", "Low", "US-01-AC1*", "x4", "y4"])
+        self.assertEqual([c["id"] for c in criteria[-2:]], ["US-01-AC1", "US-01-AC1*"])
+
+    def test_strips_spaces_inside_a_bold_wrapper(self):
+        blocks, criteria, _ = self.build(["4", "** US-07 **", "D", "Low", " ** US-07-AC1 ** ", "x3", "y3"])
+        self.assertEqual((blocks[-1]["story"], criteria[-1]["id"]), ("US-07", "US-07-AC1"))
+
+    def test_skips_star_only_cells_as_blank(self):
+        blocks, criteria, skipped = self.build(["4", "US-01", "A", "Low", "*", "x3", "y3"],
+                                               ["5", "US-01", "A", "Low", "*", "x4", "y4"],
+                                               ["6", "***", "E", "Low", "US-08-AC1", "x5", "y5"])
+        self.assertEqual([c["id"] for c in criteria], ["US-01-AC1a", "US-01-AC2a"])
+        self.assertEqual([b["story"] for b in blocks], ["US-01", "US-05"])
+        self.assertEqual(skipped, [4, 5, 6, 7])
+
+    def test_skips_star_and_whitespace_cells_as_blank(self):
+        blocks, criteria, skipped = self.build(["4", "US-01", "A", "Low", "* *", "x3", "y3"],
+                                               ["5", "US-01", "A", "Low", "* *", "x4", "y4"],
+                                               ["6", "US-01", "A", "Low", "*\t*", "x5", "y5"],
+                                               ["7", "* *", "F", "Low", "US-09-AC1", "x6", "y6"])
+        self.assertEqual([c["id"] for c in criteria], ["US-01-AC1a", "US-01-AC2a"])
+        self.assertEqual([b["story"] for b in blocks], ["US-01", "US-05"])
+        self.assertEqual(skipped, [4, 5, 6, 7, 8])
+
 
 class RepeatTest(unittest.TestCase):
     H5 = MINT_ROWS[0]

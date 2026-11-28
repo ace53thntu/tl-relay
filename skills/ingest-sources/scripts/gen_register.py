@@ -21,8 +21,17 @@ def check_mint(mint):
         raise SystemExit(f"gen_register: --mint holds U+{ord(ch):04X}")
 
 
+def unbold(cell):
+    return cell[2:-2] if len(cell) >= 4 and cell.startswith("**") and cell.endswith("**") else cell
+
+
+def id_cell(cell):
+    value = unbold(cell.strip()).strip()
+    return value if value.replace("*", "").strip() else ""
+
+
 def mint_number(cell, n):
-    value = cell[2:-2] if len(cell) >= 4 and cell.startswith("**") and cell.endswith("**") else cell
+    value = unbold(cell)
     if ch := bad_char(value):
         raise SystemExit(f"gen_register: No. at sheet row {n} holds U+{ord(ch):04X}")
     if not (value.isascii() and value.isdigit() and value.lstrip("0") != ""):
@@ -49,7 +58,7 @@ def build(rows, cols, mint=None, id_col=None, story_col=None):
     minted, seen_ids = {}, {}
     for n, r in enumerate(rows[1:], start=2):
         number = r[c["number"]].strip()
-        key = number if mint else r[si].replace("*", "").strip()
+        key = number if mint else id_cell(r[si])
         if not key:
             skipped.append(n)
             continue
@@ -68,7 +77,7 @@ def build(rows, cols, mint=None, id_col=None, story_col=None):
             blocks[key] = {"story": story, "title": r[c["title"]], "impacts": [], "rows": []}
             order.append(key)
         b = blocks[key]
-        cid = f"{b['story']}-AC{len(b['rows']) + 1}" if mint else r[ci].replace("*", "").strip()
+        cid = f"{b['story']}-AC{len(b['rows']) + 1}" if mint else id_cell(r[ci])
         if not cid:
             b["impacts"].append(r[c["impact"]].strip())
             skipped.append(n)
