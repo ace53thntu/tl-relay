@@ -92,6 +92,18 @@ def register_errors(ws, want_new, want_old, new_ids, old_ids):
     return errors
 
 
+def pairs_errors(path, numbered, new_ids, old_ids):
+    errors = []
+    known = {"old_id": set(old_ids), "new_id": set(new_ids)}
+    registers = {"old_id": "old.jsonl", "new_id": "new.jsonl"}
+    for line, row in numbered:
+        for column in ("old_id", "new_id"):
+            value = row[column]
+            if value and value not in known[column]:
+                errors.append(f"{path}: line {line}: {column} '{value}' is not in {registers[column]}")
+    return errors
+
+
 def stamped(path, digest):
     try:
         with open(path, encoding="utf-8") as fh:
@@ -142,16 +154,17 @@ def main(argv=None):
             failed = "pairs.tsv"
             with open(os.path.join(a.ws, failed), encoding="utf-8-sig", newline="") as fh:
                 reader = csv.DictReader(fh, delimiter="\t", quoting=csv.QUOTE_NONE)
-                require_columns(reader.fieldnames, ("old_id",))
+                require_columns(reader.fieldnames, ("old_id", "new_id"))
                 k = len(reader.fieldnames)
-                rows = []
+                numbered = []
                 for r in reader:
                     m = k - sum(1 for f in reader.fieldnames if r[f] is None) + len(r.get(None, []))
                     if m != k:
                         raise ValueError(f"line {reader.line_num}: has {m} fields, header has {k}")
-                    rows.append(r)
-            want_old |= {r["old_id"] for r in rows if r["old_id"]}
-            errors = register_errors(a.ws, want_new, want_old, new_ids, old_ids)
+                    numbered.append((reader.line_num, r))
+            want_old |= {r["old_id"] for _, r in numbered if r["old_id"] in old_story}
+            errors = pairs_errors(os.path.join(a.ws, failed), numbered, new_ids, old_ids)
+            errors += register_errors(a.ws, want_new, want_old, new_ids, old_ids)
     except (OSError, ValueError, KeyError, TypeError, csv.Error) as e:
         path = e.filename if isinstance(e, OSError) and e.filename else os.path.join(a.ws, failed)
         print(f"assemble: cannot read {path}: {e}", file=sys.stderr)

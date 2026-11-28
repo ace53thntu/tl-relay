@@ -255,9 +255,10 @@ class AssembleTest(unittest.TestCase):
             with open(os.path.join(d, "pairs.tsv"), "w", encoding="utf-8") as fh:
                 fh.write('new_id\told_id\nS-01-AC1\t"US-01-AC1a\nS-01-AC2\tNOPE\n')
             code, _, err = run_main(["--ws", d, "--pending"])
-            p = os.path.join(d, "old.jsonl")
-            self.assertEqual((code, err), (1, f'{p}: id "US-01-AC1a missing\n{p}: id NOPE missing\n'
-                                              f"{p}: unexpected id US-01-AC1a\n{p}: unexpected id US-01-AC2a\n"))
+            p, o = os.path.join(d, "pairs.tsv"), os.path.join(d, "old.jsonl")
+            self.assertEqual((code, err), (1, f"{p}: line 2: old_id '\"US-01-AC1a' is not in old.jsonl\n"
+                                              f"{p}: line 3: old_id 'NOPE' is not in old.jsonl\n"
+                                              f"{o}: unexpected id US-01-AC1a\n{o}: unexpected id US-01-AC2a\n"))
 
     def test_pending_rejects_a_short_pairs_row(self):
         with tempfile.TemporaryDirectory() as d:
@@ -442,13 +443,16 @@ class AssembleTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             make_ws(d)
             self.drop(d, "new.jsonl", "S-02-AC1")
-            self.assertEqual(self.pending_err(d), f"{os.path.join(d, 'new.jsonl')}: id S-02-AC1 missing\n")
+            p, n = os.path.join(d, "pairs.tsv"), os.path.join(d, "new.jsonl")
+            self.assertEqual(self.pending_err(d),
+                             f"{p}: line 4: new_id 'S-02-AC1' is not in new.jsonl\n{n}: id S-02-AC1 missing\n")
 
     def test_pending_names_a_lost_paired_old_row(self):
         with tempfile.TemporaryDirectory() as d:
             make_ws(d)
             self.drop(d, "old.jsonl", "US-01-AC1a")
-            self.assertEqual(self.pending_err(d), f"{os.path.join(d, 'old.jsonl')}: id US-01-AC1a missing\n")
+            p = os.path.join(d, "pairs.tsv")
+            self.assertEqual(self.pending_err(d), f"{p}: line 2: old_id 'US-01-AC1a' is not in old.jsonl\n")
 
     def test_pending_names_a_lost_unclaimed_old_row(self):
         with tempfile.TemporaryDirectory() as d:
@@ -462,9 +466,52 @@ class AssembleTest(unittest.TestCase):
             self.drop(d, "new.jsonl", "S-02-AC1")
             self.append(d, "new.jsonl", json.dumps({"id": "S-09-AC1", "story": "S"}) + "\n")
             self.append(d, "old.jsonl", json.dumps({"id": "US-99-AC1", "story": "S"}) + "\n")
-            n, o = os.path.join(d, "new.jsonl"), os.path.join(d, "old.jsonl")
+            n, o, p = os.path.join(d, "new.jsonl"), os.path.join(d, "old.jsonl"), os.path.join(d, "pairs.tsv")
             self.assertEqual(self.pending_err(d).splitlines(),
-                             [f"{n}: id S-02-AC1 missing", f"{n}: unexpected id S-09-AC1", f"{o}: unexpected id US-99-AC1"])
+                             [f"{p}: line 4: new_id 'S-02-AC1' is not in new.jsonl",
+                              f"{n}: id S-02-AC1 missing", f"{n}: unexpected id S-09-AC1", f"{o}: unexpected id US-99-AC1"])
+
+    def test_pending_names_an_unknown_new_id_on_an_unpaired_row(self):
+        with tempfile.TemporaryDirectory() as d:
+            make_ws(d)
+            path = os.path.join(d, "pairs.tsv")
+            with open(path, encoding="utf-8") as fh:
+                text = fh.read()
+            with open(path, "w", encoding="utf-8") as fh:
+                fh.write(text.replace("S-02-AC1\t\t", "S-09-AC1\t\t"))
+            self.assertEqual(self.pending_err(d), f"{path}: line 4: new_id 'S-09-AC1' is not in new.jsonl\n")
+
+    def test_pending_names_an_unknown_new_id_on_a_paired_row(self):
+        with tempfile.TemporaryDirectory() as d:
+            make_ws(d)
+            path = os.path.join(d, "pairs.tsv")
+            with open(path, encoding="utf-8") as fh:
+                text = fh.read()
+            with open(path, "w", encoding="utf-8") as fh:
+                fh.write(text.replace("S-01-AC2\tUS-01-AC2a", "S-09-AC1\tUS-01-AC2a"))
+            self.assertEqual(self.pending_err(d), f"{path}: line 3: new_id 'S-09-AC1' is not in new.jsonl\n")
+
+    def test_pending_names_both_ids_of_one_line(self):
+        with tempfile.TemporaryDirectory() as d:
+            make_ws(d)
+            path = os.path.join(d, "pairs.tsv")
+            with open(path, encoding="utf-8") as fh:
+                text = fh.read()
+            with open(path, "w", encoding="utf-8") as fh:
+                fh.write(text.replace("S-01-AC2\tUS-01-AC2a", "S-09-AC1\tUS-99-AC1"))
+            o = os.path.join(d, "old.jsonl")
+            self.assertEqual(self.pending_err(d).splitlines(),
+                             [f"{path}: line 3: old_id 'US-99-AC1' is not in old.jsonl",
+                              f"{path}: line 3: new_id 'S-09-AC1' is not in new.jsonl",
+                              f"{o}: unexpected id US-01-AC2a"])
+
+    def test_pending_rejects_pairs_without_new_id(self):
+        with tempfile.TemporaryDirectory() as d:
+            make_ws(d)
+            with open(os.path.join(d, "pairs.tsv"), "w", encoding="utf-8") as fh:
+                fh.write("old_id\tkind\nUS-01-AC1a\t\n")
+            err = self.pending_err(d)
+            self.assertEqual(err, f"assemble: cannot read {os.path.join(d, 'pairs.tsv')}: missing column new_id\n")
 
     def test_pending_without_pairs_tsv_fails_with_its_path(self):
         for damage in ("remove", "garbage", "oversized"):
