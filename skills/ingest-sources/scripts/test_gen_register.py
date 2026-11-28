@@ -95,6 +95,22 @@ class IdColumnTest(unittest.TestCase):
         self.assertEqual([b["story"] for b in blocks], ["US-01", "US-05"])
         self.assertEqual(skipped, [4, 5, 6, 7, 8])
 
+    def test_skips_dash_only_cells_as_blank(self):
+        blocks, criteria, skipped = self.build(["4", "US-01", "A", "Low", "-", "x3", "y3"],
+                                               ["5", "US-01", "A", "Low", "\u2014", "x4", "y4"],
+                                               ["6", "US-01", "A", "Low", " **-** ", "x5", "y5"],
+                                               ["7", "-", "G", "Low", "US-10-AC1", "x6", "y6"],
+                                               ["8", "\u2014", "H", "Low", "US-11-AC1", "x7", "y7"])
+        self.assertEqual([c["id"] for c in criteria], ["US-01-AC1a", "US-01-AC2a"])
+        self.assertEqual([b["story"] for b in blocks], ["US-01", "US-05"])
+        self.assertEqual(skipped, [4, 5, 6, 7, 8, 9])
+
+    def test_keeps_ids_that_only_contain_a_dash(self):
+        _, criteria, _ = self.build(["4", "US-01", "A", "Low", "-1", "x3", "y3"],
+                                    ["5", "US-01", "A", "Low", "\u2013", "x4", "y4"],
+                                    ["6", "US-01", "A", "Low", "--", "x5", "y5"])
+        self.assertEqual([c["id"] for c in criteria[-3:]], ["-1", "\u2013", "--"])
+
 
 class RepeatTest(unittest.TestCase):
     H5 = MINT_ROWS[0]

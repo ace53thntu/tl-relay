@@ -10,6 +10,7 @@ from registerio import bad_char, write_jsonl  # noqa: E402
 from xlsx2md import cell_md, read_sheet  # noqa: E402
 
 IMPACT_RANK = {"low": 0, "medium": 1, "high": 2}
+BLANK_PLACEHOLDERS = ("-", "\u2014")
 
 
 def check_mint(mint):
@@ -27,7 +28,7 @@ def unbold(cell):
 
 def id_cell(cell):
     value = unbold(cell.strip()).strip()
-    return value if value.replace("*", "").strip() else ""
+    return value if value.replace("*", "").strip() and value not in BLANK_PLACEHOLDERS else ""
 
 
 def mint_number(cell, n):
