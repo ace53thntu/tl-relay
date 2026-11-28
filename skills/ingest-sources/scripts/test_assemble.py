@@ -568,6 +568,7 @@ class AssembleTest(unittest.TestCase):
             make_ws(d)
             self.append(d, "new.jsonl", json.dumps({"id": "S-09-AC1", "story": "S"}) + "\n")
             self.rewrite_pairs(d, "S-01-AC2\tUS-01-AC2a", "S-09-AC1\tUS-01-AC2a")
+            self.rewrite_rule_on(d, "B", ["US-01-AC2a", "US-16-AC1a", "US-16-AC1b"])
             self.assertEqual(self.pending_err(d), f"{os.path.join(d, 'new.jsonl')}: unexpected id S-09-AC1\n")
 
     def test_pending_rejects_pairs_without_new_id(self):
