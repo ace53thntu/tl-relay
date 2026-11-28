@@ -505,6 +505,71 @@ class AssembleTest(unittest.TestCase):
                               f"{path}: line 3: new_id 'S-09-AC1' is not in new.jsonl",
                               f"{o}: unexpected id US-01-AC2a"])
 
+    def rewrite_pairs(self, d, old, new):
+        path = os.path.join(d, "pairs.tsv")
+        with open(path, encoding="utf-8") as fh:
+            text = fh.read()
+        with open(path, "w", encoding="utf-8") as fh:
+            fh.write(text.replace(old, new))
+
+    def rewrite_rule_on(self, d, name, ids):
+        path = os.path.join(d, "slices.json")
+        with open(path, encoding="utf-8") as fh:
+            slicing = json.load(fh)
+        for s in slicing:
+            if s["name"] == name:
+                s["rule_on"] = ids
+        with open(path, "w", encoding="utf-8") as fh:
+            json.dump(slicing, fh)
+
+    def test_pending_refuses_a_paired_id_also_in_rule_on(self):
+        with tempfile.TemporaryDirectory() as d:
+            make_ws(d)
+            self.rewrite_pairs(d, "S-02-AC1\t\t", "S-02-AC1\tUS-16-AC1a\t")
+            sj = os.path.join(d, "slices.json")
+            self.assertEqual(self.pending_err(d),
+                             f"{sj}: old_id 'US-16-AC1a' has 2 owners: slice B via pairs.tsv line 4, slice B via rule_on\n")
+
+    def test_pending_refuses_an_id_in_two_rule_ons(self):
+        with tempfile.TemporaryDirectory() as d:
+            make_ws(d)
+            self.rewrite_rule_on(d, "A", ["US-16-AC1a"])
+            sj = os.path.join(d, "slices.json")
+            self.assertEqual(self.pending_err(d),
+                             f"{sj}: old_id 'US-16-AC1a' has 2 owners: slice A via rule_on, slice B via rule_on\n")
+
+    def test_pending_refuses_an_id_listed_twice_in_one_rule_on(self):
+        with tempfile.TemporaryDirectory() as d:
+            make_ws(d)
+            self.rewrite_rule_on(d, "B", ["US-16-AC1a", "US-16-AC1a", "US-16-AC1b"])
+            sj = os.path.join(d, "slices.json")
+            self.assertEqual(self.pending_err(d),
+                             f"{sj}: old_id 'US-16-AC1a' has 2 owners: slice B via rule_on, slice B via rule_on\n")
+
+    def test_pending_refuses_an_id_paired_on_two_lines(self):
+        with tempfile.TemporaryDirectory() as d:
+            make_ws(d)
+            self.rewrite_pairs(d, "S-02-AC1\t\t", "S-02-AC1\tUS-01-AC1a\t")
+            sj = os.path.join(d, "slices.json")
+            self.assertEqual(self.pending_err(d),
+                             f"{sj}: old_id 'US-01-AC1a' has 2 owners: slice A via pairs.tsv line 2, slice B via pairs.tsv line 4\n")
+
+    def test_pending_lists_owner_lines_by_old_id(self):
+        with tempfile.TemporaryDirectory() as d:
+            make_ws(d)
+            self.rewrite_rule_on(d, "A", ["US-16-AC1b", "US-01-AC1a"])
+            sj = os.path.join(d, "slices.json")
+            self.assertEqual(self.pending_err(d).splitlines(),
+                             [f"{sj}: old_id 'US-01-AC1a' has 2 owners: slice A via pairs.tsv line 2, slice A via rule_on",
+                              f"{sj}: old_id 'US-16-AC1b' has 2 owners: slice A via rule_on, slice B via rule_on"])
+
+    def test_pending_adds_no_owner_for_a_new_id_in_no_slice(self):
+        with tempfile.TemporaryDirectory() as d:
+            make_ws(d)
+            self.append(d, "new.jsonl", json.dumps({"id": "S-09-AC1", "story": "S"}) + "\n")
+            self.rewrite_pairs(d, "S-01-AC2\tUS-01-AC2a", "S-09-AC1\tUS-01-AC2a")
+            self.assertEqual(self.pending_err(d), f"{os.path.join(d, 'new.jsonl')}: unexpected id S-09-AC1\n")
+
     def test_pending_rejects_pairs_without_new_id(self):
         with tempfile.TemporaryDirectory() as d:
             make_ws(d)
