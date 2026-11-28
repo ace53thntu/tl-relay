@@ -1,3 +1,5 @@
+import contextlib
+import io
 import os
 import sys
 import tempfile
@@ -83,6 +85,32 @@ class ImpactTest(unittest.TestCase):
                     fh.write(STORY)
             pages = sorted(h[0] for h in im.scan(d, ["US-16"]))
         self.assertEqual(pages, [os.path.join("lld", "publish", "x.md"), os.path.join("lld", "runs", "api", "index.md")])
+
+    def run_main(self, ids_text, page_text=None):
+        with tempfile.TemporaryDirectory() as d:
+            root = os.path.join(d, "root")
+            os.makedirs(root)
+            if page_text is not None:
+                with open(os.path.join(root, "story.md"), "w", encoding="utf-8") as fh:
+                    fh.write(page_text)
+            ids = os.path.join(d, "ids.txt")
+            with open(ids, "w", encoding="utf-8") as fh:
+                fh.write(ids_text)
+            out = os.path.join(d, "impact.tsv")
+            with contextlib.redirect_stdout(io.StringIO()):
+                code = im.main(["--root", root, "--ids-file", ids, "--out", out])
+            with open(out, encoding="utf-8") as fh:
+                return code, fh.read()
+
+    def test_main_ignores_a_stars_only_id_line(self):
+        code, tsv = self.run_main("*\nUS-16\n", STORY + "\nThe gateway drops it.\n")
+        self.assertEqual(code, 0)
+        self.assertEqual(tsv, "page\tsection\tids\nstory.md\tUS-16 — reminder\tUS-16\n")
+
+    def test_main_refuses_an_ids_file_of_only_stars(self):
+        with self.assertRaises(SystemExit) as cm:
+            self.run_main("*\n**\n")
+        self.assertEqual(cm.exception.code, "impact: the ids file is empty")
 
 
 if __name__ == "__main__":

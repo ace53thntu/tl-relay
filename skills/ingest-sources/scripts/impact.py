@@ -72,7 +72,7 @@ def main(argv=None):
     p.add_argument("--out", required=True)
     a = p.parse_args(argv)
     with open(a.ids_file, encoding="utf-8") as fh:
-        ids = [line.strip() for line in fh if line.strip()]
+        ids = [line.strip() for line in fh if line.strip().rstrip("*")]
     if not ids:
         raise SystemExit("impact: the ids file is empty")
     hits = scan(a.root, ids)
