@@ -183,8 +183,10 @@ class AssembleTest(unittest.TestCase):
             with open(path, encoding="utf-8") as fh:
                 text = fh.read()
             with open(path, "w", encoding="utf-8") as fh:
-                fh.write(text.replace("S-01-AC2\tUS-01-AC2a", "S-01-AC2\t"))
-            self.assertEqual(asm.pending(d)["pending"], ["A", "B"])
+                fh.write(text.replace("S-01-AC1\tUS-01-AC1a", "S-01-AC1\tUS-01-AC2a").replace("S-01-AC2\tUS-01-AC2a", "S-01-AC2\tUS-01-AC1a"))
+            code, out, _ = run_main(["--ws", d, "--pending"])
+            self.assertEqual(code, 0)
+            self.assertEqual(json.loads(out)["pending"], ["A", "B"])
 
     def test_missing_input_fails_in_both_modes(self):
         for name in ("new.jsonl", "old.jsonl", "pairs.tsv"):
