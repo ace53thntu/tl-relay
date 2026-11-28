@@ -87,7 +87,7 @@ class AssembleTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             digest = make_ws(d, stamps=("good", None))
             h = hashlib.sha256()
-            for name in ("slices.json", "new.jsonl", "old.jsonl"):
+            for name in ("slices.json", "new.jsonl", "old.jsonl", "pairs.tsv"):
                 with open(os.path.join(d, name), "rb") as fh:
                     data = fh.read()
                 h.update(name.encode() + b"\n" + str(len(data)).encode() + b"\n" + data)
@@ -176,8 +176,20 @@ class AssembleTest(unittest.TestCase):
                 fh.write(b" ")
             self.assertNotEqual(asm.inputs_digest(d), before)
 
-    def test_missing_jsonl_fails_in_both_modes(self):
-        for name in ("new.jsonl", "old.jsonl"):
+    def test_a_pairs_tsv_change_makes_every_slice_pending(self):
+        with tempfile.TemporaryDirectory() as d:
+            make_ws(d)
+            path = os.path.join(d, "pairs.tsv")
+            with open(path, encoding="utf-8") as fh:
+                text = fh.read()
+            with open(path, "w", encoding="utf-8") as fh:
+                fh.write(text.replace("S-01-AC1\tUS-01-AC1a", "S-01-AC1\tUS-01-AC2a").replace("S-01-AC2\tUS-01-AC2a", "S-01-AC2\tUS-01-AC1a"))
+            code, out, _ = run_main(["--ws", d, "--pending"])
+            self.assertEqual(code, 0)
+            self.assertEqual(json.loads(out)["pending"], ["A", "B"])
+
+    def test_missing_input_fails_in_both_modes(self):
+        for name in ("new.jsonl", "old.jsonl", "pairs.tsv"):
             with tempfile.TemporaryDirectory() as d:
                 make_ws(d)
                 os.remove(os.path.join(d, name))

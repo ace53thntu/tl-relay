@@ -76,9 +76,9 @@ class PortableWritersTest(unittest.TestCase):
         c1 = "With `--check`, the same command prints the same JSON with `path` and `baseline` null, and copies and records nothing."
         self.assertIn(" ".join((dup, c1)), text)
 
-    def test_digest_names_the_three_drift_inputs(self):
+    def test_digest_names_the_four_drift_inputs(self):
         text = " ".join((SKILLS / "ingest-sources/SKILL.md").read_text().split())
-        self.assertIn("It prints `inputs_sha256`, the digest of `slices.json`, `new.jsonl` and `old.jsonl`, and `pending`", text)
+        self.assertIn("It prints `inputs_sha256`, the digest of `slices.json`, `new.jsonl`, `old.jsonl` and `pairs.tsv`, and `pending`", text)
         self.assertIn("`digest` is `inputs_sha256`.", text)
 
     def test_pending_checks_the_registers(self):

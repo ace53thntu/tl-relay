@@ -99,8 +99,8 @@ A nonzero exit from `gen_register.py` goes to the operator as a question.
    A nonzero exit from `pair.py` or `slices.py` goes to the operator as a question.
 
 4. Run the readers. First run `python3 "<skill dir>/scripts/assemble.py" --ws "$WS" --pending`. It prints `inputs_sha256`, the digest of
-   `slices.json`, `new.jsonl` and `old.jsonl`, and `pending`, the slices that lack a slice file or a findings file stamped
-   with that digest. It first checks that `new.jsonl` and `old.jsonl` parse and hold the ids that `slices.json` and
+   `slices.json`, `new.jsonl`, `old.jsonl` and `pairs.tsv`, and `pending`, the slices that lack a slice file or a findings
+   file stamped with that digest. It first checks that `new.jsonl` and `old.jsonl` parse and hold the ids that `slices.json` and
    `pairs.tsv` name. A nonzero exit from `--pending` goes to the operator as a question, and no reader runs. Call the
    workflow below, where `slices` holds the pending entries of `slices.json` and `digest` is `inputs_sha256`.
 

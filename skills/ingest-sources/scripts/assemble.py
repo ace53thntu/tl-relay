@@ -15,7 +15,7 @@ VERDICTS = ("changed", "identical", "new", "reworded", "withdrawn")
 ROW = re.compile(r"^\|\s*`?([^|`]*?)`?\s*\|\s*`?([^|`]*?)`?\s*\|\s*(\w+)\s*\|")
 EMPTY = {"", "—", "-"}
 STAMP = "<!-- drift inputs sha256 {} -->"
-INPUTS = ("slices.json", "new.jsonl", "old.jsonl")
+INPUTS = ("slices.json", "new.jsonl", "old.jsonl", "pairs.tsv")
 
 
 def read_slices(paths):
