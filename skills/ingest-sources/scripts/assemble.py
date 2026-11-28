@@ -104,6 +104,29 @@ def pairs_errors(path, numbered, new_ids, old_ids):
     return errors
 
 
+def owner_errors(path, numbered, slicing, new_ids, old_ids):
+    first_slice = {}
+    for s in slicing:
+        for i in s["new_ids"]:
+            first_slice.setdefault(i, s["name"])
+    known_old, known_new = set(old_ids), set(new_ids)
+    paired, ruled = {}, {}
+    for line, row in numbered:
+        old, new = row["old_id"], row["new_id"]
+        if old in known_old and new in known_new and new in first_slice:
+            paired.setdefault(old, []).append(f"slice {first_slice[new]} via pairs.tsv line {line}")
+    for s in slicing:
+        for i in s["rule_on"]:
+            if i in known_old:
+                ruled.setdefault(i, []).append(f"slice {s['name']} via rule_on")
+    errors = []
+    for old in sorted(set(paired) | set(ruled)):
+        sources = paired.get(old, []) + ruled.get(old, [])
+        if len(sources) >= 2:
+            errors.append(f"{path}: old_id '{old}' has {len(sources)} owners: {', '.join(sources)}")
+    return errors
+
+
 def stamped(path, digest):
     try:
         with open(path, encoding="utf-8") as fh:
@@ -164,6 +187,7 @@ def main(argv=None):
                     numbered.append((reader.line_num, r))
             want_old |= {r["old_id"] for _, r in numbered if r["old_id"] in old_story}
             errors = pairs_errors(os.path.join(a.ws, failed), numbered, new_ids, old_ids)
+            errors += owner_errors(os.path.join(a.ws, "slices.json"), numbered, slicing, new_ids, old_ids)
             errors += register_errors(a.ws, want_new, want_old, new_ids, old_ids)
     except (OSError, ValueError, KeyError, TypeError, csv.Error) as e:
         path = e.filename if isinstance(e, OSError) and e.filename else os.path.join(a.ws, failed)
