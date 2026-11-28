@@ -192,6 +192,31 @@ class InvisibleCharTest(unittest.TestCase):
             g.build(rows, COLS, id_col="Criterion", story_col="Old ID")
         self.assertEqual(cm.exception.code, "gen_register: story at sheet row 4 holds U+FEFF")
 
+    def test_id_col_refuses_a_pipe_inside_a_criterion(self):
+        rows = [r[:] for r in ID_ROWS]
+        rows[2][4] = "US-01-AC2|a"
+        with self.assertRaises(SystemExit) as cm:
+            g.build(rows, COLS, id_col="Criterion", story_col="Old ID")
+        self.assertEqual(cm.exception.code, "gen_register: id at sheet row 3 holds U+007C")
+
+    def test_mint_refuses_a_pipe(self):
+        with self.assertRaises(SystemExit) as cm:
+            g.build(MINT_ROWS, COLS, mint="S|X")
+        self.assertEqual(cm.exception.code, "gen_register: --mint holds U+007C")
+
+    def test_mint_refuses_a_lone_surrogate_from_argv(self):
+        with self.assertRaises(SystemExit) as cm:
+            g.build(MINT_ROWS, COLS, mint=b"S\xff".decode("utf-8", "surrogateescape"))
+        self.assertEqual(cm.exception.code, "gen_register: --mint holds U+DCFF")
+
+    def test_main_refuses_a_surrogate_mint_before_writing(self):
+        with tempfile.TemporaryDirectory() as d:
+            jsonl = os.path.join(d, "new.jsonl")
+            with self.assertRaises(SystemExit) as cm:
+                g.main([os.path.join(d, "missing.xlsx"), "--mint", b"S\xff".decode("utf-8", "surrogateescape"), "--jsonl", jsonl])
+            self.assertEqual(cm.exception.code, "gen_register: --mint holds U+DCFF")
+            self.assertFalse(os.path.exists(jsonl))
+
     def test_id_col_accepts_non_ascii_letters(self):
         rows = [r[:] for r in ID_ROWS]
         rows[1][4] = "US-01-Tiếng-Việt"
