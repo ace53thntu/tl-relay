@@ -44,6 +44,11 @@ class ImpactTest(unittest.TestCase):
         self.assertEqual(pat.findall("see **US-01-AC1** here"), ["US-01-AC1"])
         self.assertEqual(pat.findall("see US-01-AC1* here"), ["US-01-AC1*"])
 
+    def test_a_bold_starred_id_still_matches_the_starred_id(self):
+        self.assertEqual(im.pattern(["US-01-AC1*", "US-01-AC1"]).findall("see **US-01-AC1*** here"), ["US-01-AC1*"])
+        self.assertEqual(im.pattern(["US-01-AC1*"]).findall("see **US-01-AC1*** here"), ["US-01-AC1*"])
+        self.assertEqual(im.pattern(["US-01-AC1*", "US-01-AC1"]).findall("see **US-01-AC1**."), ["US-01-AC1"])
+
     def test_skips_publish_and_runs_dirs(self):
         with tempfile.TemporaryDirectory() as d:
             for rel in ("publish/x.md", "runs/r1/run-state.md"):
