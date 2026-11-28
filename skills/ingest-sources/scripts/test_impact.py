@@ -4,6 +4,7 @@ import os
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import impact as im
@@ -97,20 +98,27 @@ class ImpactTest(unittest.TestCase):
             with open(ids, "w", encoding="utf-8") as fh:
                 fh.write(ids_text)
             out = os.path.join(d, "impact.tsv")
-            with contextlib.redirect_stdout(io.StringIO()):
+            buf = io.StringIO()
+            with contextlib.redirect_stdout(buf):
                 code = im.main(["--root", root, "--ids-file", ids, "--out", out])
             with open(out, encoding="utf-8") as fh:
-                return code, fh.read()
+                return code, fh.read(), buf.getvalue()
 
     def test_main_ignores_a_stars_only_id_line(self):
-        code, tsv = self.run_main("*\nUS-16\n", STORY + "\nThe gateway drops it.\n")
+        code, tsv, _ = self.run_main("*\nUS-16\n", STORY + "\nThe gateway drops it.\n")
         self.assertEqual(code, 0)
         self.assertEqual(tsv, "page\tsection\tids\nstory.md\tUS-16 — reminder\tUS-16\n")
 
-    def test_main_refuses_an_ids_file_of_only_stars(self):
-        with self.assertRaises(SystemExit) as cm:
-            self.run_main("*\n**\n")
-        self.assertEqual(cm.exception.code, "impact: the ids file is empty")
+    def assert_header_only(self, ids_text):
+        with mock.patch.object(im, "scan", side_effect=AssertionError("scan called")):
+            code, tsv, out = self.run_main(ids_text, STORY)
+        self.assertEqual((code, tsv, out), (0, "page\tsection\tids\n", '{"sections": 0, "pages": 0}\n'))
+
+    def test_main_writes_a_header_only_tsv_for_an_empty_ids_file(self):
+        self.assert_header_only("")
+
+    def test_main_writes_a_header_only_tsv_for_an_ids_file_of_only_stars(self):
+        self.assert_header_only("*\n**\n")
 
 
 if __name__ == "__main__":

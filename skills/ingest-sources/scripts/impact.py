@@ -73,9 +73,7 @@ def main(argv=None):
     a = p.parse_args(argv)
     with open(a.ids_file, encoding="utf-8") as fh:
         ids = [line.strip() for line in fh if line.strip().rstrip("*")]
-    if not ids:
-        raise SystemExit("impact: the ids file is empty")
-    hits = scan(a.root, ids)
+    hits = scan(a.root, ids) if ids else []
     with open(a.out, "w", encoding="utf-8") as fh:
         fh.write("page\tsection\tids\n")
         fh.write("".join(f"{page}\t{section}\t{','.join(found)}\n" for page, section, found in hits))
