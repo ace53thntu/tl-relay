@@ -183,7 +183,7 @@ class AssembleTest(unittest.TestCase):
             with open(path, encoding="utf-8") as fh:
                 text = fh.read()
             with open(path, "w", encoding="utf-8") as fh:
-                fh.write(text.replace("S-01-AC2	US-01-AC2a", "S-01-AC2	"))
+                fh.write(text.replace("S-01-AC2\tUS-01-AC2a", "S-01-AC2\t"))
             self.assertEqual(asm.pending(d)["pending"], ["A", "B"])
 
     def test_missing_input_fails_in_both_modes(self):
